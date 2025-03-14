@@ -3,9 +3,8 @@
 
 After installing the dependencies, follow these steps to complete the Capacitor setup:
 
-1. Install the iOS platform:
+1. First, add the iOS platform:
 ```bash
-npm install @capacitor/ios
 npx cap add ios
 ```
 
