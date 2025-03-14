@@ -103,7 +103,7 @@ cd ios/App && pod install && cd ../..
 
 If you see an error message about invalid App ID format:
 
-1. **IMPORTANT:** Do not worry about checking your appId format. The `capacitor.config.json` file in this project already has the correct appId format (`com.lovable.flypcast`).
+1. **IMPORTANT:** Do not worry about checking your appId format. The `capacitor.config.json` file in this project already has the correct appId format (`com.flypcast.lovable`).
 
 2. This error might happen if you try to run `npx cap init` again, which you shouldn't do since the project is already initialized.
 

@@ -1,6 +1,6 @@
 
 {
-  "appId": "com.lovable.flypcast",
+  "appId": "com.flypcast.lovable",
   "appName": "FlypCast",
   "webDir": "dist",
   "server": {
