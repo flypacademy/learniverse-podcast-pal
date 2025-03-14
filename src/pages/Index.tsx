@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { Sparkles, BookOpen, Trophy, ArrowRight } from "lucide-react";
@@ -12,7 +11,7 @@ const featuredCourses = [
   {
     id: "math-gcse",
     title: "Mathematics GCSE",
-    subject: "math" as const,
+    subject: "math",
     totalPodcasts: 12,
     completedPodcasts: 5,
     image: "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png"
@@ -20,7 +19,7 @@ const featuredCourses = [
   {
     id: "english-gcse",
     title: "English GCSE",
-    subject: "english" as const,
+    subject: "english",
     totalPodcasts: 10,
     completedPodcasts: 2,
     image: "/lovable-uploads/b8505be1-663c-4327-9a5f-8c5bb7419180.png"
@@ -28,7 +27,7 @@ const featuredCourses = [
   {
     id: "science-gcse",
     title: "Science GCSE",
-    subject: "science" as const,
+    subject: "science",
     totalPodcasts: 15,
     completedPodcasts: 0,
     image: ""
@@ -88,7 +87,12 @@ const Index = () => {
               {featuredCourses.map((course) => (
                 <CarouselItem key={course.id} className="md:basis-1/1">
                   <CourseCard 
-                    {...course}
+                    id={course.id}
+                    title={course.title}
+                    subject={course.subject}
+                    totalPodcasts={course.totalPodcasts}
+                    completedPodcasts={course.completedPodcasts}
+                    image={course.image}
                     size="large"
                   />
                 </CarouselItem>

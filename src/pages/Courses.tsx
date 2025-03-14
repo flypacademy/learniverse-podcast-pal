@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Search, BookOpen, Plus } from "lucide-react";
 import Layout from "@/components/Layout";
@@ -219,7 +218,12 @@ const Courses = () => {
                     {filteredMyCourses.map((course) => (
                       <CarouselItem key={course.id} className="basis-full">
                         <CourseCard 
-                          {...course}
+                          id={course.id}
+                          title={course.title}
+                          subject={course.subject}
+                          totalPodcasts={course.totalPodcasts}
+                          completedPodcasts={course.completedPodcasts}
+                          image={course.image}
                           size="large"
                         />
                       </CarouselItem>
@@ -254,7 +258,15 @@ const Courses = () => {
                   <CarouselContent>
                     {filteredAvailableCourses.map((course) => (
                       <CarouselItem key={course.id} className="basis-full relative">
-                        <CourseCard {...course} size="large" />
+                        <CourseCard 
+                          id={course.id}
+                          title={course.title}
+                          subject={course.subject}
+                          totalPodcasts={course.totalPodcasts}
+                          completedPodcasts={course.completedPodcasts}
+                          image={course.image}
+                          size="large"
+                        />
                         <button 
                           onClick={() => handleEnrollCourse(course.id)}
                           className="absolute top-3 right-3 bg-white rounded-full p-1 shadow-md"

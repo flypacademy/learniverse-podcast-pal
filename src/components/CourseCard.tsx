@@ -7,7 +7,7 @@ import { Headphones } from "lucide-react";
 interface CourseCardProps {
   id: string;
   title: string;
-  subject: "math" | "english" | "science" | "history" | "languages";
+  subject: string;
   totalPodcasts: number;
   completedPodcasts: number;
   image: string;
