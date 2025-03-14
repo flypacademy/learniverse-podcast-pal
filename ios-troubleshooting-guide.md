@@ -59,19 +59,62 @@ If live reload isn't working correctly:
 3. Try manually syncing with `npx cap sync`
 4. Restart the simulator or device
 
+### 6. Sandbox Permission Errors
+
+If you encounter errors like `Sandbox: bash deny file-read-data Pods-App-frameworks.sh`:
+
+1. Close Xcode completely
+2. Fix permissions on the CocoaPods scripts:
+   ```bash
+   chmod +x ios/App/Pods/Target\ Support\ Files/Pods-App/Pods-App-frameworks.sh
+   chmod -R +x ios/App/Pods
+   ```
+3. Open Xcode again and clean the build:
+   ```bash
+   open ios/App/App.xcworkspace
+   ```
+4. In Xcode, select Product > Clean Build Folder
+5. Try building again
+
+If the error persists, try a complete reset:
+```bash
+# Clean everything and start fresh
+rm -rf ios
+rm -rf node_modules/.cache/capacitor
+npm run build
+npx cap add ios
+npx cap sync
+# Fix permissions
+chmod -R +x ios/App/Pods
+# Open in Xcode
+npx cap open ios
+```
+
 ## Step-by-Step Clean Rebuild Process
 
 For a completely fresh start:
 
-1. Run the fix-and-rebuild script: `./fix-and-rebuild.sh`
-2. In Xcode, select Product > Clean Build Folder
-3. In Xcode, select Product > Build
-4. If problems persist, try removing node_modules and reinstalling:
+1. Remove the iOS directory and cache:
    ```bash
-   rm -rf node_modules
-   npm install
-   ./fix-and-rebuild.sh
+   rm -rf ios
+   rm -rf node_modules/.cache/capacitor
    ```
+2. Rebuild and add iOS:
+   ```bash
+   npm run build
+   npx cap add ios
+   npx cap sync
+   ```
+3. Fix permissions on CocoaPods scripts:
+   ```bash
+   chmod -R +x ios/App/Pods
+   ```
+4. Open in Xcode:
+   ```bash
+   npx cap open ios
+   ```
+5. In Xcode, select Product > Clean Build Folder
+6. In Xcode, select Product > Build
 
 ## For Development with Live Reload
 
