@@ -1,15 +1,25 @@
 
 #!/bin/bash
 
-echo "==== Fixing script files and making them executable ===="
+# This script fixes line endings and makes scripts executable
+# Run with: bash fix-scripts.sh
 
-# Find all shell scripts and fix line endings
-echo "Fixing line endings in all shell scripts..."
-find . -name "*.sh" -type f -exec sed -i -e 's/\r$//' {} \;
+echo "Making scripts executable and fixing line endings..."
 
-# Make all shell scripts executable
-echo "Making all shell scripts executable..."
-find . -name "*.sh" -type f -exec chmod +x {} \;
+# Find all shell scripts and make them executable
+for script in *.sh; do
+  if [ -f "$script" ]; then
+    echo "Processing $script..."
+    # Fix line endings (remove carriage returns)
+    tr -d '\r' < "$script" > "$script.tmp"
+    mv "$script.tmp" "$script"
+    # Make executable
+    chmod +x "$script"
+  fi
+done
 
-echo "==== All scripts fixed and made executable ===="
-echo "You can now run ./complete-rebuild.sh"
+echo "All scripts are now executable. You can run:"
+echo "./simple-ios-build.sh"
+echo ""
+echo "If you still get 'permission denied', run:"
+echo "bash simple-ios-build.sh"
