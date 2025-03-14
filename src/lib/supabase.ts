@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://bofabebqofwfevliiuvf.supabase.co';
@@ -24,6 +25,27 @@ export const uploadFile = async (bucket: string, path: string, file: File) => {
     .getPublicUrl(path);
   
   return urlData.publicUrl;
+};
+
+// Helper to use the security-definer function for creating admin roles
+export const createAdminRole = async (userId: string): Promise<string | null> => {
+  try {
+    console.log("Calling create_admin_role function for user ID:", userId);
+    
+    const { data, error } = await supabase
+      .rpc('create_admin_role', { admin_user_id: userId });
+    
+    if (error) {
+      console.error("Error creating admin role:", error);
+      return null;
+    }
+    
+    console.log("Admin role created successfully:", data);
+    return data;
+  } catch (err) {
+    console.error("Exception in createAdminRole:", err);
+    return null;
+  }
 };
 
 // Admin check function - completely rewritten for more reliability

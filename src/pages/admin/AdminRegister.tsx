@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/lib/supabase";
+import { supabase, createAdminRole } from "@/lib/supabase";
 
 const AdminRegister = () => {
   const [email, setEmail] = useState("admin@flyp.academy");
@@ -43,20 +43,12 @@ const AdminRegister = () => {
       
       console.log("User registered successfully, ID:", data.user.id);
       
-      // Add admin role with explicit insert and checking the response carefully
+      // Add admin role using the security-definer function
       console.log("Attempting to assign admin role to user ID:", data.user.id);
-      const { data: roleData, error: roleError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: data.user.id,
-          role: 'admin'
-        })
-        .select();
+      const roleId = await createAdminRole(data.user.id);
       
-      console.log("Role assignment response:", roleData);
-      
-      if (roleError) {
-        console.error("Error setting admin role:", roleError);
+      if (!roleId) {
+        console.error("Error setting admin role - roleId is null");
         toast({
           title: "Partial registration success",
           description: "User created but role assignment failed. Please contact support.",
@@ -65,7 +57,7 @@ const AdminRegister = () => {
         return;
       }
       
-      console.log("Admin role assigned successfully");
+      console.log("Admin role assigned successfully with ID:", roleId);
       
       // Success
       toast({
