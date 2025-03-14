@@ -53,8 +53,15 @@ const CourseCard = ({
     }
   };
 
+  const handleCardClick = () => {
+    // Add haptic feedback if available
+    if (navigator.vibrate) {
+      navigator.vibrate(15);
+    }
+  };
+
   return (
-    <Link to={`/course/${id}`} className={`block ${size === 'large' ? 'w-full' : ''}`}>
+    <Link to={`/course/${id}`} className={`block ${size === 'large' ? 'w-full' : ''}`} onClick={handleCardClick}>
       <div className={`rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200 ${size === 'large' ? 'p-0' : ''}`}>
         <div
           className={`rounded-xl overflow-hidden ${size === 'large' ? 'aspect-[3/2]' : 'aspect-[2/1]'} relative`}
@@ -99,8 +106,9 @@ const CourseCard = ({
             </span>
           </div>
           
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col items-start justify-end p-4">
             <h3 className="text-white font-medium text-lg">{title}</h3>
+            <p className="text-white/80 text-sm">{subject} Course</p>
           </div>
           
           {/* Frosted glass progress overlay */}

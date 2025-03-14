@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Home, BookOpen, User, CheckSquare } from "lucide-react";
+import { Home, BookOpen, User, Target } from "lucide-react";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -11,10 +11,7 @@ const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
   
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      {/* Add very large and visible top safe area padding for iOS status bar */}
-      <div className="h-24 bg-red-200" /> {/* Increased from h-14 to h-24 and changed color to be obvious */}
-      
+    <div className="flex flex-col min-h-screen bg-gradient-to-b from-white to-gray-50">
       <main className="flex-1 pb-24 pt-6 px-4 max-w-md mx-auto w-full">
         {children}
       </main>
@@ -34,10 +31,10 @@ const Layout = ({ children }: LayoutProps) => {
             isActive={location.pathname === "/courses" || location.pathname.startsWith("/course/")}
           />
           <NavItem 
-            to="/tasks" 
-            icon={<CheckSquare className="h-5 w-5" />} 
-            label="Tasks"
-            isActive={location.pathname === "/tasks"}
+            to="/goals" 
+            icon={<Target className="h-5 w-5" />} 
+            label="Goals"
+            isActive={location.pathname === "/goals"}
           />
           <NavItem 
             to="/profile" 
@@ -59,6 +56,13 @@ interface NavItemProps {
 }
 
 const NavItem = ({ to, icon, label, isActive }: NavItemProps) => {
+  const handleClick = () => {
+    // Add haptic feedback if available
+    if (navigator.vibrate) {
+      navigator.vibrate(10);
+    }
+  };
+
   return (
     <Link
       to={to}
@@ -67,6 +71,7 @@ const NavItem = ({ to, icon, label, isActive }: NavItemProps) => {
           ? "text-primary" 
           : "text-gray-500 hover:text-gray-700"
       }`}
+      onClick={handleClick}
     >
       <div 
         className={`p-1 rounded-full ${

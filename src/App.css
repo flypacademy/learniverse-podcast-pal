@@ -40,3 +40,17 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Add haptic feedback utility class */
+.haptic-feedback {
+  cursor: pointer;
+}
+
+.haptic-feedback:active {
+  transform: scale(0.98);
+}
+
+/* Gentle gradient background */
+.bg-gentle-gradient {
+  background: linear-gradient(180deg, #ffffff 0%, #f7f9fc 100%);
+}

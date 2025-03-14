@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Clock, BookOpen, Play, Calendar, Sparkles, SkipForward } from "lucide-react";
 import Layout from "@/components/Layout";
@@ -140,6 +139,10 @@ const Goals = () => {
   };
   
   const startGoalSession = () => {
+    if (navigator.vibrate) {
+      navigator.vibrate(20);
+    }
+    
     if (recommendedPodcasts.length === 0) {
       toast({
         title: "No podcasts available",
@@ -175,8 +178,9 @@ const Goals = () => {
   };
   
   const completeGoalSession = () => {
-    // In a real app, this would update the database with the completed podcasts,
-    // award XP, and update the streak
+    if (navigator.vibrate) {
+      navigator.vibrate(20);
+    }
     
     const minutesListened = Math.ceil((goalSettings.timeGoal * 60 - currentSession.timeRemaining) / 60);
     const earnedXP = minutesListened * 10; // 10 XP per minute listened
@@ -196,6 +200,10 @@ const Goals = () => {
   };
   
   const skipCurrentPodcast = () => {
+    if (navigator.vibrate) {
+      navigator.vibrate(10);
+    }
+    
     if (currentSession.currentPodcastIndex < currentSession.podcastsQueue.length - 1) {
       setCurrentSession(prev => ({
         ...prev,
@@ -207,7 +215,6 @@ const Goals = () => {
         description: "Playing the next podcast in your queue",
       });
     } else {
-      // If this is the last podcast, complete the session
       completeGoalSession();
     }
   };

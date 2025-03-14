@@ -78,10 +78,20 @@ const Index = () => {
   
   // XP calculation information
   const xpInfo = () => {
+    if (navigator.vibrate) {
+      navigator.vibrate(10);
+    }
+    
     toast({
       title: "XP System",
       description: "Earn 10 XP per minute of listening and 200 XP for maintaining a daily streak. Complete 7 consecutive days for 1000 XP bonus!",
     });
+  };
+  
+  const handleLinkClick = () => {
+    if (navigator.vibrate) {
+      navigator.vibrate(5);
+    }
   };
   
   return (
@@ -113,6 +123,7 @@ const Index = () => {
             <Link 
               to="/courses" 
               className="text-primary flex items-center text-sm font-medium"
+              onClick={handleLinkClick}
             >
               View all
               <ArrowRight className="h-4 w-4 ml-1" />
@@ -181,7 +192,7 @@ const Index = () => {
         </div>
         
         {/* Today's Goal Button */}
-        <Link to="/goals">
+        <Link to="/goals" onClick={handleLinkClick}>
           <div className="glass-card p-4 rounded-xl hover:shadow-md transition-shadow">
             <div className="flex items-center">
               <div className="relative w-12 h-12 rounded-full bg-gradient-to-r from-primary to-blue-600 flex-shrink-0 flex items-center justify-center">
