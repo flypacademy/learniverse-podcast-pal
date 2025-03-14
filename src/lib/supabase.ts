@@ -29,17 +29,31 @@ export const uploadFile = async (bucket: string, path: string, file: File) => {
 
 // Admin check
 export const isUserAdmin = async (): Promise<boolean> => {
-  const { data: { session } } = await supabase.auth.getSession();
-  
-  if (!session) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      console.log("No session found when checking admin status");
+      return false;
+    }
+    
+    console.log("Checking admin status for user:", session.user.id);
+    
+    const { data, error } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', session.user.id)
+      .single();
+    
+    if (error) {
+      console.error("Error checking admin status:", error);
+      return false;
+    }
+    
+    console.log("User role data:", data);
+    return data?.role === 'admin';
+  } catch (err) {
+    console.error("Exception in isUserAdmin:", err);
     return false;
   }
-  
-  const { data } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', session.user.id)
-    .single();
-  
-  return data?.role === 'admin';
 };

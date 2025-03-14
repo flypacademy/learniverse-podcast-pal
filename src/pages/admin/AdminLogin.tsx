@@ -19,9 +19,13 @@ const AdminLogin = () => {
   
   useEffect(() => {
     const checkLoggedIn = async () => {
-      const isAdmin = await isUserAdmin();
-      if (isAdmin) {
-        navigate("/admin");
+      try {
+        const isAdmin = await isUserAdmin();
+        if (isAdmin) {
+          navigate("/admin");
+        }
+      } catch (err) {
+        console.error("Error during admin check:", err);
       }
     };
     
@@ -46,6 +50,7 @@ const AdminLogin = () => {
       
       // Check if user is an admin
       if (data.session) {
+        // First check if the user exists in user_roles table
         const { data: roleData, error: roleError } = await supabase
           .from('user_roles')
           .select('role')
@@ -53,7 +58,13 @@ const AdminLogin = () => {
           .single();
         
         if (roleError) {
-          throw new Error("Error checking admin status");
+          console.error("Role check error:", roleError);
+          
+          if (roleError.code === 'PGRST116') {
+            throw new Error("You do not have an admin account. Please contact the administrator.");
+          } else {
+            throw new Error("Error checking admin status: " + roleError.message);
+          }
         }
         
         if (roleData?.role !== 'admin') {
