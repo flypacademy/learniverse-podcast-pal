@@ -1,10 +1,10 @@
 
 #!/bin/bash
 
-# This script fixes line endings and makes scripts executable
+# This script fixes line endings and makes all scripts executable
 # Run with: bash fix-scripts.sh
 
-echo "Making scripts executable and fixing line endings..."
+echo "Making all scripts executable and fixing line endings..."
 
 # Find all shell scripts and make them executable
 for script in *.sh; do
@@ -18,8 +18,8 @@ for script in *.sh; do
   fi
 done
 
-echo "All scripts are now executable. You can run:"
-echo "./simple-ios-build.sh"
+echo "All scripts are now executable. You can run any of them directly with:"
+echo "./script-name.sh"
 echo ""
-echo "If you still get 'permission denied', run:"
-echo "bash simple-ios-build.sh"
+echo "If you still get 'permission denied' or 'no such file' errors, run:"
+echo "bash script-name.sh"
