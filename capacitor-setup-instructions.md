@@ -20,6 +20,8 @@ npm install
 npm run build
 ```
 
+## Standard Setup
+
 5. If you have an existing ios folder, remove it first:
 ```bash
 rm -rf ios
@@ -40,6 +42,35 @@ npx cap sync
 npx cap open ios
 ```
 
+## Alternative Setup (Skip iOS Platform Addition)
+
+If you're experiencing persistent issues with the `npx cap add ios` command, you can try this alternative approach:
+
+1. Create the iOS folder manually:
+```bash
+mkdir -p ios/App/App
+```
+
+2. Run only the sync command:
+```bash
+npx cap sync
+```
+
+3. If sync fails because of missing files, you may need to:
+   - Clone a working Capacitor iOS template
+   - Or download a template from Capacitor's GitHub repository
+   - Copy the template files into your project's ios directory
+
+4. After setting up the basic structure, try opening in Xcode:
+```bash
+npx cap open ios
+```
+
+5. In Xcode, you may need to manually configure the project settings:
+   - Set your Bundle Identifier to match the appId in capacitor.config.json
+   - Configure signing settings
+   - Ensure SwiftUI and UIKit frameworks are linked
+
 ## Common Issues and Solutions
 
 ### NPM Error: "Could not read package.json"
@@ -58,6 +89,7 @@ If you see "ios platform has not been added yet", try these steps:
 2. Try removing the ios folder if it exists: `rm -rf ios`
 3. Then run `npx cap add ios` again
 4. If issues persist, check that Xcode is properly installed
+5. As a last resort, use the Alternative Setup method above
 
 ### Xcode Signing Issues
 When opening in Xcode:
