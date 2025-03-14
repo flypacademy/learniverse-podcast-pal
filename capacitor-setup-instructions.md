@@ -40,6 +40,20 @@ npx cap open ios
 ### NPM Error: "Could not read package.json"
 If you see this error, you are likely not in your project directory. Make sure to navigate to your project folder first before running any npm commands.
 
+### App ID Format Error
+If you see an error about invalid App ID format, the App ID in capacitor.config.json must:
+- Be in Java package form with no dashes (ex: com.example.app)
+- Have at least two segments (one or more dots)
+- Each segment must start with a letter
+- All characters must be alphanumeric or an underscore [a-zA-Z0-9_]
+
+### iOS Platform Not Added
+If you see "ios platform has not been added yet", try these steps:
+1. Make sure you've run `npm run build` before adding iOS
+2. Try removing the ios folder if it exists: `rm -rf ios`
+3. Then run `npx cap add ios` again
+4. If issues persist, check that Xcode is properly installed
+
 ### Xcode Signing Issues
 When opening in Xcode:
 - Select your project in the Navigator
