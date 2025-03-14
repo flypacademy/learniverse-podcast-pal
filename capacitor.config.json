@@ -1,6 +1,6 @@
 
 {
-  "appId": "com.lovable.flypcast",
+  "appId": "io.ionic.flypcast",
   "appName": "FlypCast",
   "webDir": "dist",
   "server": {

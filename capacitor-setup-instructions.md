@@ -10,14 +10,14 @@ npm install
 
 2. **DO NOT run** `npx cap init` as it's already initialized. The configuration is in `capacitor.config.json`.
 
-3. Add the iOS platform:
-```bash
-npx cap add ios
-```
-
-4. Build your project:
+3. Build your project first:
 ```bash
 npm run build
+```
+
+4. Add the iOS platform:
+```bash
+npx cap add ios
 ```
 
 5. Sync your web code to the native project:
