@@ -20,6 +20,12 @@ chmod -R +x ios/App/Pods
 echo "✓ Permissions fixed"
 echo ""
 
+# Step 3: Update Capacitor plugins
+echo "Step 3: Updating Capacitor plugins..."
+npx cap update ios
+echo "✓ Capacitor updated"
+echo ""
+
 echo "========== FIX COMPLETE =========="
 echo ""
 echo "NEXT STEPS:"

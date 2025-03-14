@@ -4,7 +4,9 @@
   "appName": "FlypCast",
   "webDir": "dist",
   "server": {
-    "url": "http://localhost:8080",
+    "androidScheme": "https",
+    "iosScheme": "capacitor",
+    "hostname": "localhost",
     "cleartext": true
   },
   "ios": {

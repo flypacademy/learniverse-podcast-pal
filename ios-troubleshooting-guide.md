@@ -111,26 +111,47 @@ If you see "Failed to initialize logging system. Log messages may be missing":
 5. Set the name to `IDEPreferLogStreaming` and value to `YES`
 6. Click "Close" and try running again
 
-### 8. Sandbox Extension Error and Server Connection Issues
+### 8. Failed to Resolve Host Network App ID Error
 
-If you see "Could not create a sandbox extension" and "Error: Could not connect to the server":
+If you see "Failed to resolve host network app id" or "WebView failed provisional navigation":
 
-1. Make sure your development server is running: `npm run dev`
-2. Check capacitor.config.json and update the server URL:
-
-```json
-"server": {
-  "url": "http://localhost:8080",
-  "cleartext": true
-}
-```
-
-3. If you're testing on a physical device, replace localhost with your computer's local IP address
-4. If you're using HTTPS, ensure you have proper certificates set up
-5. Try running with the explicit external flag:
-   ```bash
-   npx cap run ios -l --external
+1. Make sure your development server is running (`npm run dev`) and accessible
+2. Check that capacitor.config.json has the proper server settings:
+   ```json
+   "server": {
+     "hostname": "localhost",
+     "androidScheme": "https",
+     "iosScheme": "capacitor",
+     "cleartext": true
+   }
    ```
+3. Try using your computer's IP address instead of localhost
+4. If testing on a physical device, ensure it's on the same network as your development machine
+5. Try running:
+   ```bash
+   npx cap update ios
+   npx cap sync
+   npx cap open ios
+   ```
+6. In Xcode, clean build folder and rebuild
+
+### 9. Error: Could not connect to the server
+
+If you see "Error: Could not connect to the server":
+
+1. Verify your development server is running on the correct port (usually 8080)
+2. Check your network/firewall settings to ensure the port is accessible
+3. Try updating vite.config.ts to explicitly set the host:
+   ```typescript
+   server: {
+     host: "0.0.0.0",
+     port: 8080,
+     hmr: {
+       host: "localhost",
+     },
+   }
+   ```
+4. Close Xcode, run `npx cap update ios`, `npx cap sync` and try again
 
 ## Step-by-Step Clean Rebuild Process
 
