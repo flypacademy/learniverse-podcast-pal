@@ -8,14 +8,17 @@
     "cleartext": true
   },
   "ios": {
-    "contentInset": "always"
+    "contentInset": "always",
+    "backgroundColor": "#ffffff",
+    "scheme": "app"
   },
   "android": {
     "allowMixedContent": true
   },
   "plugins": {
     "SplashScreen": {
-      "launchAutoHide": false
+      "launchAutoHide": false,
+      "showSpinner": false
     }
   }
 }
