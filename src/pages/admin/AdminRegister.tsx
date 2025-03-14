@@ -43,17 +43,20 @@ const AdminRegister = () => {
       
       console.log("User registered successfully, ID:", data.user.id);
       
-      // Add admin role
-      const { error: roleError } = await supabase
+      // Add admin role with explicit insert and checking the response carefully
+      console.log("Attempting to assign admin role to user ID:", data.user.id);
+      const { data: roleData, error: roleError } = await supabase
         .from('user_roles')
         .insert({
           user_id: data.user.id,
           role: 'admin'
-        });
+        })
+        .select();
+      
+      console.log("Role assignment response:", roleData);
       
       if (roleError) {
         console.error("Error setting admin role:", roleError);
-        // Even if role setting fails, the user was created
         toast({
           title: "Partial registration success",
           description: "User created but role assignment failed. Please contact support.",

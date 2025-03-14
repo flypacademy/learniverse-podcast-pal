@@ -37,6 +37,9 @@ const AdminLogin = () => {
           navigate("/admin");
         } else {
           console.log("AdminLogin: User is NOT an admin");
+          // Sign out non-admin users
+          await supabase.auth.signOut();
+          setError("You do not have admin privileges.");
         }
       } catch (err) {
         console.error("AdminLogin: Error during admin check:", err);
@@ -78,6 +81,7 @@ const AdminLogin = () => {
       
       if (!isAdmin) {
         console.error("AdminLogin: User is not an admin");
+        await supabase.auth.signOut();
         throw new Error("You do not have admin privileges. Please contact the administrator.");
       }
       

@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://bofabebqofwfevliiuvf.supabase.co';
@@ -27,7 +26,7 @@ export const uploadFile = async (bucket: string, path: string, file: File) => {
   return urlData.publicUrl;
 };
 
-// Admin check function
+// Admin check function - completely rewritten for more reliability
 export const isUserAdmin = async (): Promise<boolean> => {
   try {
     // Get current session
@@ -41,21 +40,23 @@ export const isUserAdmin = async (): Promise<boolean> => {
     const userId = session.user.id;
     console.log("Checking admin status for user ID:", userId);
     
-    // Query user_roles table directly
+    // Explicitly make the admin check more direct and verbose with logging
     const { data, error } = await supabase
       .from('user_roles')
-      .select('role')
-      .eq('user_id', userId)
-      .eq('role', 'admin')
-      .single();
+      .select('*')  // Select all columns for debugging
+      .eq('user_id', userId);
     
     if (error) {
-      console.error("Error checking admin role:", error);
+      console.error("Error fetching user roles:", error);
       return false;
     }
     
-    const isAdmin = !!data && data.role === 'admin';
-    console.log("Admin check result:", isAdmin, data);
+    console.log("User roles data:", data);
+    
+    // Check if any of the returned rows have role = 'admin'
+    const isAdmin = data && data.length > 0 && data.some(row => row.role === 'admin');
+    console.log("Is admin result:", isAdmin);
+    
     return isAdmin;
     
   } catch (err) {
