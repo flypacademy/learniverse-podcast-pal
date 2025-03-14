@@ -5,6 +5,7 @@ import Layout from "@/components/Layout";
 import CourseCard from "@/components/CourseCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 
 // Mock data
 const allCourses = [
@@ -116,7 +117,7 @@ const Courses = () => {
   return (
     <Layout>
       <div className="space-y-5 animate-slide-up">
-        <div className="pt-2">
+        <div className="pt-1">
           <h1 className="font-display font-bold text-2xl text-gray-900 mb-1">
             Courses
           </h1>
@@ -161,7 +162,7 @@ const Courses = () => {
             <TabsTrigger value="find-courses">Find Courses</TabsTrigger>
           </TabsList>
           
-          {/* My Courses Tab */}
+          {/* My Courses Tab - Updated to use carousel */}
           <TabsContent value="my-courses" className="space-y-4">
             {filteredMyCourses.length === 0 ? (
               <div className="text-center py-8">
@@ -172,18 +173,32 @@ const Courses = () => {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-4">
-                {filteredMyCourses.map((course) => (
-                  <CourseCard 
-                    key={course.id}
-                    {...course}
-                  />
-                ))}
-              </div>
+              <Carousel className="w-full">
+                <CarouselContent>
+                  {filteredMyCourses.map((course) => (
+                    <CarouselItem key={course.id} className="basis-full">
+                      <CourseCard 
+                        {...course}
+                        size="large"
+                      />
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <div className="flex justify-center mt-3">
+                  <div className="flex gap-1.5">
+                    {filteredMyCourses.map((_, index) => (
+                      <div 
+                        key={index} 
+                        className={`h-1.5 rounded-full ${index === 0 ? 'w-4 bg-primary' : 'w-1.5 bg-gray-200'}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </Carousel>
             )}
           </TabsContent>
           
-          {/* Find Courses Tab */}
+          {/* Find Courses Tab - Updated to use carousel */}
           <TabsContent value="find-courses" className="space-y-4">
             {filteredAvailableCourses.length === 0 ? (
               <div className="text-center py-8">
@@ -194,19 +209,31 @@ const Courses = () => {
                 </p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {filteredAvailableCourses.map((course) => (
-                  <div key={course.id} className="relative">
-                    <CourseCard {...course} />
-                    <button 
-                      onClick={() => handleEnrollCourse(course.id)}
-                      className="absolute top-3 right-3 bg-white rounded-full p-1 shadow-md"
-                    >
-                      <Plus className="h-5 w-5 text-primary" />
-                    </button>
+              <Carousel className="w-full">
+                <CarouselContent>
+                  {filteredAvailableCourses.map((course) => (
+                    <CarouselItem key={course.id} className="basis-full relative">
+                      <CourseCard {...course} size="large" />
+                      <button 
+                        onClick={() => handleEnrollCourse(course.id)}
+                        className="absolute top-3 right-3 bg-white rounded-full p-1 shadow-md"
+                      >
+                        <Plus className="h-5 w-5 text-primary" />
+                      </button>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <div className="flex justify-center mt-3">
+                  <div className="flex gap-1.5">
+                    {filteredAvailableCourses.map((_, index) => (
+                      <div 
+                        key={index} 
+                        className={`h-1.5 rounded-full ${index === 0 ? 'w-4 bg-primary' : 'w-1.5 bg-gray-200'}`}
+                      />
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              </Carousel>
             )}
           </TabsContent>
         </Tabs>

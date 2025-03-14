@@ -12,11 +12,11 @@ const Layout = ({ children }: LayoutProps) => {
   
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <main className="flex-1 pb-20 pt-2 px-3 max-w-md mx-auto w-full">
+      <main className="flex-1 pb-16 pt-2 px-3 max-w-md mx-auto w-full">
         {children}
       </main>
       
-      <nav className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-white border border-gray-100 shadow-lg rounded-full z-10 max-w-xs w-[90%]">
+      <nav className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white border border-gray-100 shadow-lg rounded-full z-10 max-w-xs w-[90%]">
         <div className="flex justify-around items-center py-1.5 px-2">
           <NavItem 
             to="/" 

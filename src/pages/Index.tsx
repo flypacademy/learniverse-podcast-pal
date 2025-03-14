@@ -53,7 +53,7 @@ const Index = () => {
   
   return (
     <Layout>
-      <div className="space-y-6 animate-slide-up pt-2">
+      <div className="space-y-5 animate-slide-up pt-1">
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
@@ -68,36 +68,8 @@ const Index = () => {
           </div>
         </div>
         
-        {/* Level Achievement Card (Moved to top) */}
-        <div className="glass-card p-4 rounded-xl">
-          <div className="flex items-center">
-            <div className="relative w-16 h-16 rounded-full bg-gradient-to-r from-brand-purple to-brand-blue flex-shrink-0">
-              <div className="absolute inset-1 bg-white rounded-full flex items-center justify-center">
-                <Trophy className="h-7 w-7 text-brand-purple" />
-              </div>
-            </div>
-            <div className="ml-4">
-              <h3 className="font-medium">Level {currentLevel} Scholar</h3>
-              <p className="text-sm text-gray-500">
-                You've reached level {currentLevel}! Keep learning to unlock more achievements.
-              </p>
-              <div className="mt-1.5 progress-bar h-1.5">
-                <div 
-                  className="progress-value bg-gradient-to-r from-brand-purple to-brand-blue"
-                  style={{ width: "65%" }}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Weekly Streak */}
-        <div className="space-y-3">
-          <StreakCalendar streak={3} days={streakData} />
-        </div>
-        
-        {/* Continue Learning with Carousel */}
-        <div className="space-y-3">
+        {/* Continue Learning with Carousel - MOVED TO TOP */}
+        <div className="space-y-2.5">
           <div className="flex justify-between items-center">
             <h2 className="font-display font-semibold text-xl text-gray-900">
               Continue Learning
@@ -122,7 +94,7 @@ const Index = () => {
                 </CarouselItem>
               ))}
             </CarouselContent>
-            <div className="flex justify-center mt-3">
+            <div className="flex justify-center mt-2">
               <div className="flex gap-1.5">
                 {featuredCourses.map((_, index) => (
                   <div 
@@ -133,6 +105,34 @@ const Index = () => {
               </div>
             </div>
           </Carousel>
+        </div>
+        
+        {/* Weekly Streak - MOVED TO MIDDLE */}
+        <div className="space-y-2.5">
+          <StreakCalendar streak={3} days={streakData} />
+        </div>
+        
+        {/* Level Achievement Card - MOVED TO BOTTOM */}
+        <div className="glass-card p-4 rounded-xl">
+          <div className="flex items-center">
+            <div className="relative w-16 h-16 rounded-full bg-gradient-to-r from-brand-purple to-brand-blue flex-shrink-0">
+              <div className="absolute inset-1 bg-white rounded-full flex items-center justify-center">
+                <Trophy className="h-7 w-7 text-brand-purple" />
+              </div>
+            </div>
+            <div className="ml-4">
+              <h3 className="font-medium">Level {currentLevel} Scholar</h3>
+              <p className="text-sm text-gray-500">
+                You've reached level {currentLevel}! Keep learning to unlock more achievements.
+              </p>
+              <div className="mt-1.5 progress-bar h-1.5">
+                <div 
+                  className="progress-value bg-gradient-to-r from-brand-purple to-brand-blue"
+                  style={{ width: "65%" }}
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </Layout>

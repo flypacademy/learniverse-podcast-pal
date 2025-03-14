@@ -48,7 +48,7 @@ const CourseCard = ({
     <Link to={`/course/${id}`} className={`block ${size === 'large' ? 'w-full' : ''}`}>
       <div className={`rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200 ${size === 'large' ? 'p-0' : ''}`}>
         <div
-          className={`rounded-xl overflow-hidden ${size === 'large' ? 'aspect-[4/3]' : 'aspect-[2/1]'} relative`}
+          className={`rounded-xl overflow-hidden ${size === 'large' ? 'aspect-[3/2]' : 'aspect-[2/1]'} relative`}
         >
           {image ? (
             <img
@@ -64,18 +64,20 @@ const CourseCard = ({
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4">
             <h3 className="text-white font-medium text-lg">{title}</h3>
           </div>
-        </div>
-        <div className="p-3 bg-white">
-          <div className="flex justify-between text-xs mb-1.5">
-            <span className="text-gray-600">Progress</span>
-            <span className="font-medium">{completionPercentage}%</span>
-          </div>
-          <ProgressBar
-            value={completionPercentage}
-            color={getGradientClass()}
-          />
-          <div className="mt-2 text-xs text-gray-500">
-            {completedPodcasts} of {totalPodcasts} podcasts
+          
+          {/* New frosted glass progress overlay */}
+          <div className="absolute bottom-0 left-0 right-0 backdrop-blur-md bg-white/30 p-3 border-t border-white/20">
+            <div className="flex justify-between text-xs mb-1.5">
+              <span className="text-white font-medium">Progress</span>
+              <span className="text-white font-medium">{completionPercentage}%</span>
+            </div>
+            <ProgressBar
+              value={completionPercentage}
+              color={`bg-white`}
+            />
+            <div className="mt-2 text-xs text-white font-medium">
+              {completedPodcasts} of {totalPodcasts} podcasts
+            </div>
           </div>
         </div>
       </div>
