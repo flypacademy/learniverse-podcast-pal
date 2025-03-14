@@ -1,65 +1,23 @@
 
 import React, { useState, useEffect } from "react";
-import { Search, Filter, BookOpen, Plus, Check } from "lucide-react";
+import { Search, BookOpen, Plus } from "lucide-react";
 import Layout from "@/components/Layout";
 import CourseCard from "@/components/CourseCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
+import { supabase } from "@/lib/supabase";
 
-// Mock data
-const allCourses = [
-  {
-    id: "math-gcse",
-    title: "Mathematics GCSE",
-    subject: "math" as const,
-    totalPodcasts: 12,
-    completedPodcasts: 5,
-    description: "Master key mathematical concepts for your GCSE exams",
-    image: "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png",
-    enrolled: true
-  },
-  {
-    id: "english-gcse",
-    title: "English GCSE",
-    subject: "english" as const,
-    totalPodcasts: 10,
-    completedPodcasts: 2,
-    description: "Improve your English language and literature skills",
-    image: "/lovable-uploads/b8505be1-663c-4327-9a5f-8c5bb7419180.png",
-    enrolled: true
-  },
-  {
-    id: "science-gcse",
-    title: "Science GCSE",
-    subject: "science" as const,
-    totalPodcasts: 15,
-    completedPodcasts: 0,
-    description: "Biology, Chemistry and Physics combined for GCSE",
-    image: "/lovable-uploads/6a12720b-97cc-4a73-9c51-608fd283049d.png",
-    enrolled: false
-  },
-  {
-    id: "history-gcse",
-    title: "History GCSE",
-    subject: "history" as const,
-    totalPodcasts: 8,
-    completedPodcasts: 0,
-    description: "Explore key historical events and their impact",
-    image: "",
-    enrolled: false
-  },
-  {
-    id: "languages-gcse",
-    title: "Foreign Languages",
-    subject: "languages" as const,
-    totalPodcasts: 12,
-    completedPodcasts: 0,
-    description: "French, Spanish and German language podcasts",
-    image: "",
-    enrolled: false
-  }
-];
+interface Course {
+  id: string;
+  title: string;
+  subject: string;
+  totalPodcasts: number;
+  completedPodcasts: number;
+  description: string;
+  image: string;
+  enrolled: boolean;
+}
 
 const subjects = [
   { id: "all", label: "All" },
@@ -73,14 +31,89 @@ const subjects = [
 const Courses = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("all");
-  const [myCourses, setMyCourses] = useState<typeof allCourses>([]);
-  const [availableCourses, setAvailableCourses] = useState<typeof allCourses>([]);
+  const [myCourses, setMyCourses] = useState<Course[]>([]);
+  const [availableCourses, setAvailableCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   
+  const fetchCourses = async () => {
+    setLoading(true);
+    try {
+      console.log("Fetching courses from Supabase...");
+      
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Fetch all courses from Supabase
+      const { data: coursesData, error } = await supabase
+        .from('courses')
+        .select('*');
+      
+      if (error) {
+        console.error("Error fetching courses:", error);
+        throw error;
+      }
+      
+      console.log("Courses fetched:", coursesData);
+      
+      if (!coursesData || coursesData.length === 0) {
+        // If no courses in database, use the mock data
+        setMyCourses([]);
+        setAvailableCourses([]);
+        setLoading(false);
+        return;
+      }
+      
+      // Transform data to match our Course interface
+      const transformedCourses: Course[] = await Promise.all(coursesData.map(async (course) => {
+        // Get podcast count
+        const { count: podcastCount, error: countError } = await supabase
+          .from('podcasts')
+          .select('id', { count: 'exact', head: true })
+          .eq('course_id', course.id);
+          
+        if (countError) {
+          console.error("Error counting podcasts:", countError);
+        }
+        
+        // For now, just mark first two courses as enrolled
+        // In a real app, you'd check if the user is enrolled in the course
+        const enrolled = coursesData.indexOf(course) < 2;
+        
+        return {
+          id: course.id,
+          title: course.title,
+          subject: course.subject || "math", // Default to math if subject not specified
+          totalPodcasts: podcastCount || 0,
+          completedPodcasts: 0, // Would be fetched from user progress in a real app
+          description: course.description || "",
+          image: course.image_url || "",
+          enrolled: enrolled
+        };
+      }));
+      
+      // Filter courses based on enrolled status
+      setMyCourses(transformedCourses.filter(course => course.enrolled));
+      setAvailableCourses(transformedCourses.filter(course => !course.enrolled));
+      
+    } catch (error) {
+      console.error("Error in fetchCourses:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load courses",
+        variant: "destructive"
+      });
+      
+      // Fallback to empty lists
+      setMyCourses([]);
+      setAvailableCourses([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   useEffect(() => {
-    // Filter courses based on enrolled status
-    setMyCourses(allCourses.filter(course => course.enrolled));
-    setAvailableCourses(allCourses.filter(course => !course.enrolled));
+    fetchCourses();
   }, []);
 
   const handleEnrollCourse = (courseId: string) => {
@@ -100,9 +133,11 @@ const Courses = () => {
       title: "Course Added",
       description: `${courseToEnroll.title} has been added to your courses.`,
     });
+    
+    // In a real app, you'd update user enrollment in the database here
   };
   
-  const filterCourses = (courses: typeof allCourses) => {
+  const filterCourses = (courses: Course[]) => {
     return courses.filter(course => {
       const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesSubject = selectedSubject === "all" || course.subject === selectedSubject;
@@ -155,88 +190,95 @@ const Courses = () => {
           </div>
         </div>
         
-        {/* Courses Tabs */}
-        <Tabs defaultValue="my-courses" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="my-courses">My Courses</TabsTrigger>
-            <TabsTrigger value="find-courses">Find Courses</TabsTrigger>
-          </TabsList>
-          
-          {/* My Courses Tab - Updated to use carousel */}
-          <TabsContent value="my-courses" className="space-y-4">
-            {filteredMyCourses.length === 0 ? (
-              <div className="text-center py-8">
-                <BookOpen className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-                <h3 className="font-medium text-gray-700">No enrolled courses</h3>
-                <p className="text-gray-500 text-sm mt-1">
-                  Switch to "Find Courses" to add some
-                </p>
-              </div>
-            ) : (
-              <Carousel className="w-full">
-                <CarouselContent>
-                  {filteredMyCourses.map((course) => (
-                    <CarouselItem key={course.id} className="basis-full">
-                      <CourseCard 
-                        {...course}
-                        size="large"
-                      />
-                    </CarouselItem>
-                  ))}
-                </CarouselContent>
-                <div className="flex justify-center mt-3">
-                  <div className="flex gap-1.5">
-                    {filteredMyCourses.map((_, index) => (
-                      <div 
-                        key={index} 
-                        className={`h-1.5 rounded-full ${index === 0 ? 'w-4 bg-primary' : 'w-1.5 bg-gray-200'}`}
-                      />
-                    ))}
-                  </div>
+        {/* Loading State */}
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+          </div>
+        ) : (
+          // Courses Tabs
+          <Tabs defaultValue="my-courses" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="my-courses">My Courses</TabsTrigger>
+              <TabsTrigger value="find-courses">Find Courses</TabsTrigger>
+            </TabsList>
+            
+            {/* My Courses Tab */}
+            <TabsContent value="my-courses" className="space-y-4">
+              {filteredMyCourses.length === 0 ? (
+                <div className="text-center py-8">
+                  <BookOpen className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                  <h3 className="font-medium text-gray-700">No enrolled courses</h3>
+                  <p className="text-gray-500 text-sm mt-1">
+                    Switch to "Find Courses" to add some
+                  </p>
                 </div>
-              </Carousel>
-            )}
-          </TabsContent>
-          
-          {/* Find Courses Tab - Updated to use carousel */}
-          <TabsContent value="find-courses" className="space-y-4">
-            {filteredAvailableCourses.length === 0 ? (
-              <div className="text-center py-8">
-                <BookOpen className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-                <h3 className="font-medium text-gray-700">No courses found</h3>
-                <p className="text-gray-500 text-sm mt-1">
-                  Try adjusting your search or filters
-                </p>
-              </div>
-            ) : (
-              <Carousel className="w-full">
-                <CarouselContent>
-                  {filteredAvailableCourses.map((course) => (
-                    <CarouselItem key={course.id} className="basis-full relative">
-                      <CourseCard {...course} size="large" />
-                      <button 
-                        onClick={() => handleEnrollCourse(course.id)}
-                        className="absolute top-3 right-3 bg-white rounded-full p-1 shadow-md"
-                      >
-                        <Plus className="h-5 w-5 text-primary" />
-                      </button>
-                    </CarouselItem>
-                  ))}
-                </CarouselContent>
-                <div className="flex justify-center mt-3">
-                  <div className="flex gap-1.5">
-                    {filteredAvailableCourses.map((_, index) => (
-                      <div 
-                        key={index} 
-                        className={`h-1.5 rounded-full ${index === 0 ? 'w-4 bg-primary' : 'w-1.5 bg-gray-200'}`}
-                      />
+              ) : (
+                <Carousel className="w-full">
+                  <CarouselContent>
+                    {filteredMyCourses.map((course) => (
+                      <CarouselItem key={course.id} className="basis-full">
+                        <CourseCard 
+                          {...course}
+                          size="large"
+                        />
+                      </CarouselItem>
                     ))}
+                  </CarouselContent>
+                  <div className="flex justify-center mt-3">
+                    <div className="flex gap-1.5">
+                      {filteredMyCourses.map((_, index) => (
+                        <div 
+                          key={index} 
+                          className={`h-1.5 rounded-full ${index === 0 ? 'w-4 bg-primary' : 'w-1.5 bg-gray-200'}`}
+                        />
+                      ))}
+                    </div>
                   </div>
+                </Carousel>
+              )}
+            </TabsContent>
+            
+            {/* Find Courses Tab */}
+            <TabsContent value="find-courses" className="space-y-4">
+              {filteredAvailableCourses.length === 0 ? (
+                <div className="text-center py-8">
+                  <BookOpen className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                  <h3 className="font-medium text-gray-700">No courses found</h3>
+                  <p className="text-gray-500 text-sm mt-1">
+                    Try adjusting your search or filters
+                  </p>
                 </div>
-              </Carousel>
-            )}
-          </TabsContent>
-        </Tabs>
+              ) : (
+                <Carousel className="w-full">
+                  <CarouselContent>
+                    {filteredAvailableCourses.map((course) => (
+                      <CarouselItem key={course.id} className="basis-full relative">
+                        <CourseCard {...course} size="large" />
+                        <button 
+                          onClick={() => handleEnrollCourse(course.id)}
+                          className="absolute top-3 right-3 bg-white rounded-full p-1 shadow-md"
+                        >
+                          <Plus className="h-5 w-5 text-primary" />
+                        </button>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <div className="flex justify-center mt-3">
+                    <div className="flex gap-1.5">
+                      {filteredAvailableCourses.map((_, index) => (
+                        <div 
+                          key={index} 
+                          className={`h-1.5 rounded-full ${index === 0 ? 'w-4 bg-primary' : 'w-1.5 bg-gray-200'}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </Carousel>
+              )}
+            </TabsContent>
+          </Tabs>
+        )}
       </div>
     </Layout>
   );

@@ -30,6 +30,8 @@ const CoursesList = () => {
     setLoading(true);
     
     try {
+      console.log("Fetching courses...");
+      
       // Fetch courses
       const { data, error } = await supabase
         .from('courses')
@@ -37,16 +39,29 @@ const CoursesList = () => {
         .order('created_at', { ascending: false });
       
       if (error) {
+        console.error("Error fetching courses:", error);
         throw error;
+      }
+      
+      console.log("Courses fetched:", data);
+      
+      if (!data || data.length === 0) {
+        setCourses([]);
+        setLoading(false);
+        return;
       }
       
       // Get podcast counts for each course
       const coursesWithCount = await Promise.all(
-        (data || []).map(async (course) => {
-          const { count } = await supabase
+        data.map(async (course) => {
+          const { count, error: countError } = await supabase
             .from('podcasts')
             .select('id', { count: 'exact', head: true })
             .eq('course_id', course.id);
+          
+          if (countError) {
+            console.error("Error counting podcasts:", countError);
+          }
           
           return {
             ...course,
@@ -74,6 +89,17 @@ const CoursesList = () => {
   
   const deleteCourse = async (id: string) => {
     try {
+      // First delete all podcasts related to this course
+      const { error: podcastError } = await supabase
+        .from('podcasts')
+        .delete()
+        .eq('course_id', id);
+      
+      if (podcastError) {
+        console.error("Error deleting related podcasts:", podcastError);
+      }
+      
+      // Then delete the course
       const { error } = await supabase
         .from('courses')
         .delete()
