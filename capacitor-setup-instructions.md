@@ -1,3 +1,4 @@
+
 # Capacitor Setup Instructions
 
 ## Important: First-time Setup
@@ -96,6 +97,27 @@ sudo gem install cocoapods
 5. Run pod install manually:
 ```bash
 cd ios/App && pod install && cd ../..
+```
+
+## Troubleshooting: App ID Format Error
+
+If you see an error message about invalid App ID format like:
+```
+Invalid App ID "npx cap init "FlypCast" "com.lovable.flypcast""
+```
+
+This means you're trying to run `npx cap init` again, which you shouldn't do since the project is already initialized.
+
+1. Skip the `npx cap init` step completely.
+2. Verify your capacitor.config.json has the correct appId format:
+   - It should be in Java package form with no dashes (ex: com.example.app)
+   - Have at least two segments (one or more dots)
+   - Each segment must start with a letter
+   - All characters must be alphanumeric or an underscore [a-zA-Z0-9_]
+
+3. If you need to skip appId validation for some reason:
+```bash
+npx cap add ios --skip-appid-validation
 ```
 
 ## Alternative Setup (Skip iOS Platform Addition)
