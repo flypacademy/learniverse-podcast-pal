@@ -82,7 +82,7 @@ const CourseForm = () => {
       
       fetchCourse();
     }
-  }, [id, isEditMode]);
+  }, [id, isEditMode, toast]);
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -122,14 +122,28 @@ const CourseForm = () => {
       
       // Upload image if a new one is selected
       if (selectedImage) {
-        const path = `courses/${Date.now()}_${selectedImage.name}`;
-        imageUrl = await uploadFile('course-content', path, selectedImage);
+        try {
+          const path = `courses/${Date.now()}_${selectedImage.name}`;
+          imageUrl = await uploadFile('course-content', path, selectedImage);
+        } catch (uploadError) {
+          console.error("Error uploading image:", uploadError);
+          // Continue with course creation even if image upload fails
+          toast({
+            title: "Warning",
+            description: "Image upload failed, but course will be created",
+            variant: "default"
+          });
+        }
       }
       
       const courseData = {
-        ...formData,
-        image_url: imageUrl,
+        title: formData.title,
+        subject: formData.subject,
+        description: formData.description,
+        image_url: imageUrl || null,
       };
+      
+      console.log("Submitting course data:", courseData);
       
       if (isEditMode) {
         // Update existing course
@@ -138,7 +152,10 @@ const CourseForm = () => {
           .update(courseData)
           .eq('id', id);
         
-        if (error) throw error;
+        if (error) {
+          console.error("Supabase update error:", error);
+          throw error;
+        }
         
         toast({
           title: "Course updated",
@@ -146,11 +163,17 @@ const CourseForm = () => {
         });
       } else {
         // Create new course
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('courses')
-          .insert([courseData]);
+          .insert([courseData])
+          .select();
         
-        if (error) throw error;
+        if (error) {
+          console.error("Supabase insert error:", error);
+          throw error;
+        }
+        
+        console.log("Course created successfully:", data);
         
         toast({
           title: "Course created",
@@ -160,11 +183,11 @@ const CourseForm = () => {
       
       // Redirect back to courses list
       navigate("/admin/courses");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving course:", error);
       toast({
         title: "Error",
-        description: `Failed to ${isEditMode ? 'update' : 'create'} course`,
+        description: error.message || `Failed to ${isEditMode ? 'update' : 'create'} course`,
         variant: "destructive"
       });
     } finally {
