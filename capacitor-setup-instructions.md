@@ -46,30 +46,74 @@ npx cap open ios
 
 If you're experiencing persistent issues with the `npx cap add ios` command, you can try this alternative approach:
 
-1. Create the iOS folder manually:
+1. Create the iOS folder structure manually:
 ```bash
 mkdir -p ios/App/App
+mkdir -p ios/App/Pods
+mkdir -p ios/App/public
 ```
 
-2. Run only the sync command:
+2. Download a basic Capacitor iOS template:
+```bash
+# Option 1: Clone the template repository (recommended)
+git clone https://github.com/ionic-team/capacitor-ios-template-minimal.git temp-ios
+cp -r temp-ios/* ios/
+rm -rf temp-ios
+
+# Option 2: If git clone doesn't work, download directly
+curl -L https://github.com/ionic-team/capacitor-ios-template-minimal/archive/refs/heads/main.zip -o ios-template.zip
+unzip ios-template.zip
+cp -r capacitor-ios-template-minimal-main/* ios/
+rm -rf capacitor-ios-template-minimal-main ios-template.zip
+```
+
+3. Edit the App/App/Info.plist file to match your app configuration:
+```bash
+# Open Info.plist in your text editor
+# Change CFBundleIdentifier to match your appId in capacitor.config.json (com.lovable.flypcast)
+# Change CFBundleDisplayName to match your appName in capacitor.config.json (FlypCast)
+```
+
+4. Run the sync command to copy your web content:
 ```bash
 npx cap sync
 ```
 
-3. If sync fails because of missing files, you may need to:
-   - Clone a working Capacitor iOS template
-   - Or download a template from Capacitor's GitHub repository
-   - Copy the template files into your project's ios directory
+5. If sync completes but you still can't open the project, try creating a basic Xcode project configuration:
+```bash
+# Create a basic xcodeproj file
+touch ios/App/App.xcodeproj
+```
 
-4. After setting up the basic structure, try opening in Xcode:
+6. Try opening in Xcode:
 ```bash
 npx cap open ios
 ```
 
-5. In Xcode, you may need to manually configure the project settings:
-   - Set your Bundle Identifier to match the appId in capacitor.config.json
-   - Configure signing settings
-   - Ensure SwiftUI and UIKit frameworks are linked
+7. If Xcode fails to open the project properly, you may need to:
+   - Open Xcode manually
+   - Choose "Open another project..."
+   - Navigate to your project's ios/App directory
+   - Select the .xcworkspace file (if it exists) or create a new project
+   - Set your Bundle Identifier to "com.lovable.flypcast"
+   - Configure your Team for signing
+
+## Manual Configuration (Last Resort)
+
+If you're still having trouble, you can create a completely new iOS app in Xcode and manually integrate Capacitor:
+
+1. Open Xcode and create a new iOS app project
+2. Name it "App" and save it in your project's ios directory
+3. Set the Bundle Identifier to "com.lovable.flypcast"
+4. Add the Capacitor iOS SDK using Swift Package Manager:
+   - In Xcode, go to File > Add Packages...
+   - Enter URL: https://github.com/ionic-team/capacitor-ios
+   - Select the latest version
+5. Add your web files:
+   - Create a "public" folder in your Xcode project
+   - Copy files from your "dist" folder into this "public" folder
+6. Configure AppDelegate.swift to load your web content
+7. Run your app directly from Xcode
 
 ## Common Issues and Solutions
 
