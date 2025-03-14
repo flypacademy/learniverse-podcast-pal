@@ -3,7 +3,7 @@ import React from "react";
 import { Link, useLocation, Navigate } from "react-router-dom";
 import { Home, BookOpen, Users, Settings, Database, LogOut } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/lib/supabase";
+import { supabase, isUserAdmin } from "@/lib/supabase";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -19,30 +19,16 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
     const checkAdmin = async () => {
       setLoading(true);
       
-      // Check if user is logged in
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        setIsAdmin(false);
-        setLoading(false);
-        return;
-      }
-      
-      // Check if user is admin
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', session.user.id)
-        .single();
-      
-      if (error) {
+      try {
+        // Use the improved isUserAdmin function
+        const adminStatus = await isUserAdmin();
+        setIsAdmin(adminStatus);
+      } catch (error) {
         console.error("Error checking admin status:", error);
         setIsAdmin(false);
-      } else {
-        setIsAdmin(data?.role === 'admin');
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
     };
     
     checkAdmin();
