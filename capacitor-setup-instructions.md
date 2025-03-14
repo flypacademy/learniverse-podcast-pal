@@ -1,4 +1,3 @@
-
 # Capacitor Setup Instructions
 
 ## Important: First-time Setup
@@ -40,6 +39,63 @@ npx cap sync
 8. To open the project in Xcode:
 ```bash
 npx cap open ios
+```
+
+## Troubleshooting: Missing Podfile Error
+
+If you encounter the "Error: ENOENT: no such file or directory, open '.../ios/App/Podfile'" error:
+
+1. Verify your iOS folder structure. You should have:
+```
+ios/
+  ├── App/
+  │   ├── App/
+  │   ├── App.xcodeproj/
+  │   ├── App.xcworkspace/
+  │   └── Podfile  <-- This file is missing
+  └── capacitor-cordova-ios-plugins/
+```
+
+2. If the Podfile is missing, create it manually:
+```bash
+# First, ensure the App directory exists
+mkdir -p ios/App
+
+# Create a basic Podfile
+cat > ios/App/Podfile << 'EOL'
+platform :ios, '13.0'
+use_frameworks!
+
+# workaround to avoid Xcode caching of Pods that requires
+# Product -> Clean Build Folder after new Cordova plugins installed
+# Requires CocoaPods 1.6 or newer
+install! 'cocoapods', :disable_input_output_paths => true
+
+def capacitor_pods
+  pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
+  pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+end
+
+target 'App' do
+  capacitor_pods
+  # Add your Pods here
+end
+EOL
+```
+
+3. Try running the sync command again:
+```bash
+npx cap sync
+```
+
+4. If you still encounter issues, you may need to install CocoaPods if it's not already installed:
+```bash
+sudo gem install cocoapods
+```
+
+5. Run pod install manually:
+```bash
+cd ios/App && pod install && cd ../..
 ```
 
 ## Alternative Setup (Skip iOS Platform Addition)
