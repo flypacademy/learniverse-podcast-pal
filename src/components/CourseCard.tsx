@@ -2,7 +2,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import ProgressBar from "./ProgressBar";
-import { Headphones } from "lucide-react";
+import { Headphones, Award, Star, Flame, Trophy } from "lucide-react";
 
 interface CourseCardProps {
   id: string;
@@ -12,6 +12,12 @@ interface CourseCardProps {
   completedPodcasts: number;
   image: string;
   size?: "normal" | "large";
+  exam?: string;
+  board?: string;
+  achievements?: {
+    type: "streak" | "popular" | "recommended" | "complete";
+    value?: number;
+  }[];
 }
 
 const CourseCard = ({
@@ -21,7 +27,10 @@ const CourseCard = ({
   totalPodcasts,
   completedPodcasts,
   image,
-  size = "normal"
+  size = "normal",
+  exam = "GCSE",
+  board = "AQA",
+  achievements = []
 }: CourseCardProps) => {
   const completionPercentage = Math.round(
     (completedPodcasts / totalPodcasts) * 100
@@ -61,11 +70,40 @@ const CourseCard = ({
               <Headphones className="h-12 w-12 text-white/70" />
             </div>
           )}
+          
+          {/* Achievement badge indicators */}
+          {achievements.length > 0 && (
+            <div className="absolute top-2 left-2 flex -space-x-2">
+              {achievements.map((achievement, index) => (
+                <div 
+                  key={index}
+                  className="h-8 w-8 rounded-full bg-yellow-400 flex items-center justify-center shadow-md border-2 border-white"
+                  title={`${achievement.type} ${achievement.value || ''}`}
+                >
+                  {achievement.type === "streak" && <Flame className="h-4 w-4 text-white" />}
+                  {achievement.type === "popular" && <Star className="h-4 w-4 text-white" />}
+                  {achievement.type === "recommended" && <Award className="h-4 w-4 text-white" />}
+                  {achievement.type === "complete" && <Trophy className="h-4 w-4 text-white" />}
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {/* Exam and board tags */}
+          <div className="absolute top-2 right-2 flex flex-col space-y-1">
+            <span className="text-xs px-2 py-0.5 bg-blue-100/90 text-blue-700 rounded-full backdrop-blur-sm">
+              {exam}
+            </span>
+            <span className="text-xs px-2 py-0.5 bg-purple-100/90 text-purple-700 rounded-full backdrop-blur-sm">
+              {board}
+            </span>
+          </div>
+          
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4">
             <h3 className="text-white font-medium text-lg">{title}</h3>
           </div>
           
-          {/* New frosted glass progress overlay */}
+          {/* Frosted glass progress overlay */}
           <div className="absolute bottom-0 left-0 right-0 backdrop-blur-md bg-white/30 p-3 border-t border-white/20">
             <div className="flex justify-between text-xs mb-1.5">
               <span className="text-white font-medium">Progress</span>

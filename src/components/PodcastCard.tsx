@@ -1,6 +1,7 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
-import { Play, Check, Clock, Headphones } from "lucide-react";
+import { Play, Check, Clock, Headphones, Award, Star } from "lucide-react";
 
 interface PodcastCardProps {
   id: string;
@@ -11,6 +12,12 @@ interface PodcastCardProps {
   progress: number; // 0-100
   completed: boolean;
   image?: string;
+  achievements?: {
+    type: "popular" | "new" | "recommended" | "top";
+    label: string;
+  }[];
+  exam?: string;
+  board?: string;
 }
 
 const PodcastCard = ({
@@ -21,7 +28,10 @@ const PodcastCard = ({
   duration,
   progress,
   completed,
-  image
+  image,
+  achievements = [],
+  exam = "GCSE",
+  board = "AQA"
 }: PodcastCardProps) => {
   // Format duration to mm:ss
   const formatDuration = (seconds: number) => {
@@ -30,10 +40,15 @@ const PodcastCard = ({
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
+  // Extract subject name from course name
+  const getSubject = (courseName: string): string => {
+    return courseName.split(" ")[0];
+  };
+
   return (
     <Link 
       to={`/podcast/${id}`} 
-      className="podcast-card flex items-center gap-3 group"
+      className="podcast-card flex items-center gap-3 group relative bg-white rounded-lg p-3 shadow-sm hover:shadow-md transition-all"
     >
       <div className="relative h-16 w-16 rounded-lg overflow-hidden flex-shrink-0">
         {image ? (
@@ -60,10 +75,36 @@ const PodcastCard = ({
       </div>
       
       <div className="flex-1 min-w-0">
-        <h4 className="font-medium text-gray-900 truncate">{title}</h4>
-        <p className="text-sm text-gray-500 truncate">{courseName}</p>
+        <div className="flex justify-between items-start">
+          <h4 className="font-medium text-gray-900 truncate max-w-[70%]">{title}</h4>
+          
+          {/* Achievement indicators */}
+          {achievements.length > 0 && (
+            <div className="flex -space-x-1">
+              {achievements.map((achievement, index) => (
+                <div 
+                  key={index}
+                  className="h-5 w-5 rounded-full bg-yellow-400 flex items-center justify-center shadow-sm"
+                  title={achievement.label}
+                >
+                  {achievement.type === "popular" && <Star className="h-3 w-3 text-white" />}
+                  {achievement.type === "top" && <Award className="h-3 w-3 text-white" />}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         
-        <div className="mt-1 flex items-center gap-3">
+        <div className="flex items-center gap-2 mt-1">
+          <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full">
+            {exam}
+          </span>
+          <span className="text-xs px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded-full">
+            {board}
+          </span>
+        </div>
+        
+        <div className="mt-1 flex items-center justify-between gap-3">
           <div className="flex items-center text-xs text-gray-500">
             <Clock className="h-3 w-3 mr-1" />
             <span>{formatDuration(duration)}</span>

@@ -2,9 +2,10 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Courses from "./pages/Courses";
-import Tasks from "./pages/Tasks";
+import Goals from "./pages/Goals";
 import Profile from "./pages/Profile";
 import PodcastPlayer from "./pages/PodcastPlayer";
+import PodcastSample from "./pages/PodcastSample";
 import CourseDetail from "./pages/CourseDetail";
 import NotFound from "./pages/NotFound";
 
@@ -29,9 +30,10 @@ function App() {
         <Route path="/" element={<Index />} />
         <Route path="/courses" element={<Courses />} />
         <Route path="/course/:courseId" element={<CourseDetail />} />
-        <Route path="/tasks" element={<Tasks />} />
+        <Route path="/goals" element={<Goals />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/podcast/:podcastId" element={<PodcastPlayer />} />
+        <Route path="/podcast-sample/:podcastId" element={<PodcastSample />} />
         
         {/* Admin Routes */}
         <Route path="/admin/login" element={<AdminLogin />} />
