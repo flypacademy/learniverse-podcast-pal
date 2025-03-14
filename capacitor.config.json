@@ -6,5 +6,8 @@
   "server": {
     "url": "https://268daa47-7b04-4517-9aa7-56f20357d582.lovableproject.com?forceHideBadge=true",
     "cleartext": true
+  },
+  "ios": {
+    "contentInset": "always"
   }
 }
