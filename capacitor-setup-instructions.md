@@ -103,7 +103,7 @@ cd ios/App && pod install && cd ../..
 
 If you see an error message about invalid App ID format:
 
-1. **IMPORTANT:** Do not worry about checking your appId format. The `capacitor.config.json` file in this project already has the correct appId format (`com.flypcast.lovable`).
+1. **IMPORTANT:** Do not worry about checking your appId format. The `capacitor.config.json` file in this project already has the correct appId format (`com.flyp.cast`).
 
 2. This error might happen if you try to run `npx cap init` again, which you shouldn't do since the project is already initialized.
 
@@ -192,7 +192,7 @@ If you're still having trouble, you can create a completely new iOS app in Xcode
 
 1. Open Xcode and create a new iOS app project
 2. Name it "App" and save it in your project's ios directory
-3. Set the Bundle Identifier to "com.lovable.flypcast"
+3. Set the Bundle Identifier to "com.flyp.cast"
 4. Add the Capacitor iOS SDK using Swift Package Manager:
    - In Xcode, go to File > Add Packages...
    - Enter URL: https://github.com/ionic-team/capacitor-ios
