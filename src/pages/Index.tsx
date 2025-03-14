@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { Sparkles, BookOpen, Trophy, ArrowRight } from "lucide-react";
 import Layout from "@/components/Layout";
 import CourseCard from "@/components/CourseCard";
-import PodcastCard from "@/components/PodcastCard";
+import StreakCalendar from "@/components/StreakCalendar";
 
 // Mock data
 const featuredCourses = [
@@ -26,27 +26,15 @@ const featuredCourses = [
   }
 ];
 
-const recentPodcasts = [
-  {
-    id: "math-algebra-1",
-    title: "Algebra Fundamentals",
-    courseId: "math-gcse",
-    courseName: "Mathematics GCSE",
-    duration: 840,
-    progress: 65,
-    completed: false,
-    image: "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png"
-  },
-  {
-    id: "english-shakespeare-1",
-    title: "Introduction to Shakespeare",
-    courseId: "english-gcse",
-    courseName: "English GCSE",
-    duration: 720,
-    progress: 0,
-    completed: false,
-    image: "/lovable-uploads/b8505be1-663c-4327-9a5f-8c5bb7419180.png"
-  }
+// Mock streak data
+const streakData = [
+  { date: "2023-06-12", completed: true },
+  { date: "2023-06-13", completed: true },
+  { date: "2023-06-14", completed: true },
+  { date: "2023-06-15", completed: false },
+  { date: "2023-06-16", completed: false },
+  { date: "2023-06-17", partial: true },
+  { date: "2023-06-18", completed: false }
 ];
 
 const Index = () => {
@@ -71,6 +59,34 @@ const Index = () => {
           </div>
         </div>
         
+        {/* Level Achievement Card (Moved to top) */}
+        <div className="glass-card p-4 rounded-xl">
+          <div className="flex items-center">
+            <div className="relative w-16 h-16 rounded-full bg-gradient-to-r from-brand-purple to-brand-blue flex-shrink-0">
+              <div className="absolute inset-1 bg-white rounded-full flex items-center justify-center">
+                <Trophy className="h-7 w-7 text-brand-purple" />
+              </div>
+            </div>
+            <div className="ml-4">
+              <h3 className="font-medium">Level {currentLevel} Scholar</h3>
+              <p className="text-sm text-gray-500">
+                You've reached level {currentLevel}! Keep learning to unlock more achievements.
+              </p>
+              <div className="mt-1.5 progress-bar h-1.5">
+                <div 
+                  className="progress-value bg-gradient-to-r from-brand-purple to-brand-blue"
+                  style={{ width: "65%" }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Weekly Streak (Replacing Latest Podcasts) */}
+        <div className="space-y-3">
+          <StreakCalendar streak={3} days={streakData} />
+        </div>
+        
         {/* Continue Learning */}
         <div className="space-y-3">
           <div className="flex justify-between items-center">
@@ -93,66 +109,6 @@ const Index = () => {
                 {...course}
               />
             ))}
-          </div>
-        </div>
-        
-        {/* Latest Podcasts */}
-        <div className="space-y-3">
-          <div className="flex justify-between items-center">
-            <h2 className="font-display font-semibold text-xl text-gray-900">
-              Latest Podcasts
-            </h2>
-            <Link 
-              to="/library" 
-              className="text-primary flex items-center text-sm font-medium"
-            >
-              View all
-              <ArrowRight className="h-4 w-4 ml-1" />
-            </Link>
-          </div>
-          
-          <div className="space-y-3">
-            {recentPodcasts.map((podcast) => (
-              <PodcastCard 
-                key={podcast.id}
-                {...podcast}
-              />
-            ))}
-          </div>
-        </div>
-        
-        {/* Achievements Preview */}
-        <div className="glass-card p-4 rounded-xl">
-          <div className="flex justify-between items-center mb-3">
-            <h2 className="font-display font-semibold text-lg text-gray-900">
-              Your Achievements
-            </h2>
-            <Link 
-              to="/profile" 
-              className="text-primary flex items-center text-sm font-medium"
-            >
-              View all
-            </Link>
-          </div>
-          
-          <div className="flex items-center">
-            <div className="relative w-16 h-16 rounded-full bg-gradient-to-r from-brand-purple to-brand-blue flex-shrink-0">
-              <div className="absolute inset-1 bg-white rounded-full flex items-center justify-center">
-                <Trophy className="h-7 w-7 text-brand-purple" />
-              </div>
-            </div>
-            <div className="ml-4">
-              <h3 className="font-medium">Level {currentLevel} Scholar</h3>
-              <p className="text-sm text-gray-500">
-                You've reached level {currentLevel}! Keep learning to unlock more achievements.
-              </p>
-              <div className="mt-1.5 progress-bar h-1.5">
-                <div 
-                  className="progress-value bg-gradient-to-r from-brand-purple to-brand-blue"
-                  style={{ width: "65%" }}
-                />
-              </div>
-            </div>
           </div>
         </div>
       </div>

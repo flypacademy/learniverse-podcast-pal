@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Home, BookOpen, User, Headphones } from "lucide-react";
+import { Home, BookOpen, User, CheckSquare } from "lucide-react";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -28,13 +28,13 @@ const Layout = ({ children }: LayoutProps) => {
             to="/courses" 
             icon={<BookOpen className="h-5 w-5" />} 
             label="Courses"
-            isActive={location.pathname === "/courses"}
+            isActive={location.pathname === "/courses" || location.pathname.startsWith("/course/")}
           />
           <NavItem 
-            to="/library" 
-            icon={<Headphones className="h-5 w-5" />} 
-            label="Library"
-            isActive={location.pathname === "/library"}
+            to="/tasks" 
+            icon={<CheckSquare className="h-5 w-5" />} 
+            label="Tasks"
+            isActive={location.pathname === "/tasks"}
           />
           <NavItem 
             to="/profile" 

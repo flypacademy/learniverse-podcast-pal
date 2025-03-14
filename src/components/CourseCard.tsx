@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Link } from "react-router-dom";
-import { BookOpen } from "lucide-react";
+import ProgressBar from "./ProgressBar";
 
 interface CourseCardProps {
   id: string;
@@ -9,63 +9,64 @@ interface CourseCardProps {
   subject: "math" | "english" | "science" | "history" | "languages";
   totalPodcasts: number;
   completedPodcasts: number;
-  image?: string;
+  image: string;
 }
 
-const CourseCard = ({ 
-  id, 
-  title, 
-  subject, 
-  totalPodcasts, 
+const CourseCard = ({
+  id,
+  title,
+  subject,
+  totalPodcasts,
   completedPodcasts,
-  image 
+  image
 }: CourseCardProps) => {
-  const progress = totalPodcasts > 0 ? (completedPodcasts / totalPodcasts) * 100 : 0;
-  
-  const gradientClass = {
-    math: "bg-math-gradient",
-    english: "bg-english-gradient",
-    science: "bg-science-gradient",
-    history: "bg-history-gradient",
-    languages: "bg-languages-gradient",
-  }[subject];
+  const completionPercentage = Math.round(
+    (completedPodcasts / totalPodcasts) * 100
+  );
+
+  const getGradientClass = () => {
+    switch (subject) {
+      case "math":
+        return "bg-math-gradient";
+      case "english":
+        return "bg-english-gradient";
+      case "science":
+        return "bg-science-gradient";
+      case "history":
+        return "bg-history-gradient";
+      case "languages":
+        return "bg-languages-gradient";
+      default:
+        return "bg-math-gradient";
+    }
+  };
 
   return (
-    <Link to={`/courses/${id}`} className="course-card group">
-      <div className={`h-32 ${gradientClass}`}>
-        {image && (
-          <img 
-            src={image} 
-            alt={title} 
-            className="w-full h-full object-cover mix-blend-overlay opacity-60"
+    <Link to={`/course/${id}`} className="block">
+      <div className="rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200">
+        <div
+          className={`h-24 ${getGradientClass()} relative flex items-end p-3`}
+        >
+          <img
+            src={image}
+            alt={title}
+            className="absolute inset-0 mix-blend-overlay w-full h-full object-cover"
           />
-        )}
-      </div>
-      <div className="p-4">
-        <div className="flex justify-between items-start mb-2">
-          <h3 className="font-display font-semibold text-lg text-gray-900 group-hover:text-primary transition-colors">
+          <h3 className="text-white font-medium text-sm relative z-10">
             {title}
           </h3>
-          <span className="badge bg-primary/10 text-primary">
-            {subject.charAt(0).toUpperCase() + subject.slice(1)}
-          </span>
         </div>
-        
-        <div className="flex items-center text-sm text-gray-500 mb-3">
-          <BookOpen className="h-4 w-4 mr-1" />
-          <span>{totalPodcasts} podcasts</span>
-        </div>
-        
-        <div className="space-y-1">
-          <div className="progress-bar">
-            <div 
-              className={`progress-value ${gradientClass}`}
-              style={{ width: `${progress}%` }}
-            />
+        <div className="p-3 bg-white">
+          <div className="flex justify-between text-xs mb-1.5">
+            <span className="text-gray-600">Progress</span>
+            <span className="font-medium">{completionPercentage}%</span>
           </div>
-          <div className="flex justify-between text-xs">
-            <span className="text-gray-500">{completedPodcasts} completed</span>
-            <span className="font-medium">{Math.round(progress)}%</span>
+          <ProgressBar
+            progress={completionPercentage}
+            color={getGradientClass()}
+          />
+          <div className="mt-2 text-xs text-gray-500">
+            {completedPodcasts} of {totalPodcasts} podcasts
           </div>
         </div>
       </div>
