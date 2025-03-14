@@ -5,6 +5,7 @@ import { Sparkles, BookOpen, Trophy, ArrowRight } from "lucide-react";
 import Layout from "@/components/Layout";
 import CourseCard from "@/components/CourseCard";
 import StreakCalendar from "@/components/StreakCalendar";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 
 // Mock data
 const featuredCourses = [
@@ -23,6 +24,14 @@ const featuredCourses = [
     totalPodcasts: 10,
     completedPodcasts: 2,
     image: "/lovable-uploads/b8505be1-663c-4327-9a5f-8c5bb7419180.png"
+  },
+  {
+    id: "science-gcse",
+    title: "Science GCSE",
+    subject: "science" as const,
+    totalPodcasts: 15,
+    completedPodcasts: 0,
+    image: ""
   }
 ];
 
@@ -44,9 +53,9 @@ const Index = () => {
   
   return (
     <Layout>
-      <div className="space-y-8 pb-4 animate-slide-up">
+      <div className="space-y-6 animate-slide-up pt-2">
         {/* Header */}
-        <div className="pt-4 flex justify-between items-center">
+        <div className="flex justify-between items-center">
           <div>
             <h1 className="font-display font-bold text-2xl text-gray-900">
               Hello, {userName}
@@ -82,12 +91,12 @@ const Index = () => {
           </div>
         </div>
         
-        {/* Weekly Streak (Replacing Latest Podcasts) */}
+        {/* Weekly Streak */}
         <div className="space-y-3">
           <StreakCalendar streak={3} days={streakData} />
         </div>
         
-        {/* Continue Learning */}
+        {/* Continue Learning with Carousel */}
         <div className="space-y-3">
           <div className="flex justify-between items-center">
             <h2 className="font-display font-semibold text-xl text-gray-900">
@@ -102,14 +111,28 @@ const Index = () => {
             </Link>
           </div>
           
-          <div className="grid grid-cols-2 gap-4">
-            {featuredCourses.map((course) => (
-              <CourseCard 
-                key={course.id}
-                {...course}
-              />
-            ))}
-          </div>
+          <Carousel className="w-full">
+            <CarouselContent>
+              {featuredCourses.map((course) => (
+                <CarouselItem key={course.id} className="md:basis-1/1">
+                  <CourseCard 
+                    {...course}
+                    size="large"
+                  />
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <div className="flex justify-center mt-3">
+              <div className="flex gap-1.5">
+                {featuredCourses.map((_, index) => (
+                  <div 
+                    key={index} 
+                    className={`h-1.5 rounded-full ${index === 0 ? 'w-4 bg-primary' : 'w-1.5 bg-gray-200'}`}
+                  />
+                ))}
+              </div>
+            </div>
+          </Carousel>
         </div>
       </div>
     </Layout>

@@ -1,9 +1,11 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ChevronLeft, Play, Pause, SkipBack, SkipForward, Volume2, Award, Headphones } from "lucide-react";
+import { ChevronLeft, Play, Pause, SkipBack, SkipForward, Volume2, Award, Headphones, BrainCircuit } from "lucide-react";
 import Layout from "@/components/Layout";
 import ProgressBar from "@/components/ProgressBar";
+import QuizModal, { QuizQuestion } from "@/components/QuizModal";
+import { useToast } from "@/components/ui/use-toast";
 
 // Mock data
 const podcasts = {
@@ -14,7 +16,42 @@ const podcasts = {
     courseName: "Mathematics GCSE",
     description: "Learn the basics of algebra, including variables, expressions, and equations. This episode covers essential concepts for GCSE Mathematics.",
     duration: 840,
-    image: "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png"
+    image: "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png",
+    quiz: [
+      {
+        id: "q1",
+        question: "What is a variable in algebra?",
+        options: [
+          "A number that varies",
+          "A symbol that represents an unknown value",
+          "A mathematical operation",
+          "A constant value"
+        ],
+        correctAnswer: 1
+      },
+      {
+        id: "q2",
+        question: "Which of the following is a linear equation?",
+        options: [
+          "y = x²",
+          "y = 2x + 3",
+          "y = 1/x",
+          "y = √x"
+        ],
+        correctAnswer: 1
+      },
+      {
+        id: "q3",
+        question: "If 2x + 5 = 15, what is the value of x?",
+        options: [
+          "5",
+          "7.5",
+          "10",
+          "None of the above"
+        ],
+        correctAnswer: 0
+      }
+    ]
   },
   "english-shakespeare-1": {
     id: "english-shakespeare-1",
@@ -23,18 +60,55 @@ const podcasts = {
     courseName: "English GCSE",
     description: "Discover Shakespeare's life, works, and influence. This episode provides an overview of his major plays and their themes.",
     duration: 720,
-    image: "/lovable-uploads/b8505be1-663c-4327-9a5f-8c5bb7419180.png"
+    image: "/lovable-uploads/b8505be1-663c-4327-9a5f-8c5bb7419180.png",
+    quiz: [
+      {
+        id: "q1",
+        question: "In which century was William Shakespeare born?",
+        options: [
+          "14th century",
+          "15th century",
+          "16th century",
+          "17th century"
+        ],
+        correctAnswer: 2
+      },
+      {
+        id: "q2",
+        question: "Which of the following is NOT a play written by Shakespeare?",
+        options: [
+          "Hamlet",
+          "Macbeth",
+          "The Canterbury Tales",
+          "Romeo and Juliet"
+        ],
+        correctAnswer: 2
+      },
+      {
+        id: "q3",
+        question: "How many sonnets did Shakespeare write?",
+        options: [
+          "104",
+          "134",
+          "154",
+          "174"
+        ],
+        correctAnswer: 2
+      }
+    ]
   }
 };
 
 const PodcastPlayer = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [volume, setVolume] = useState(80);
   const [showXPModal, setShowXPModal] = useState(false);
+  const [showQuiz, setShowQuiz] = useState(false);
   
   const podcast = id ? podcasts[id as keyof typeof podcasts] : null;
   
@@ -81,10 +155,26 @@ const PodcastPlayer = () => {
     const remainingSeconds = Math.floor(seconds % 60);
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
+
+  const handleQuizComplete = (score: number) => {
+    // Show toast with the quiz score
+    toast({
+      title: "Quiz Completed!",
+      description: `You scored ${score}% on the ${podcast.title} quiz.`,
+    });
+    
+    // Add XP based on score
+    const xpEarned = Math.floor(score / 10) * 5; // 5 XP per 10% score
+    
+    toast({
+      title: `+${xpEarned} XP Earned!`,
+      description: "Keep learning to earn more XP and level up.",
+    });
+  };
   
   return (
     <Layout>
-      <div className="space-y-6 animate-slide-up">
+      <div className="space-y-5 animate-slide-up">
         {/* Header with back button */}
         <div className="pt-2 flex items-center">
           <button 
@@ -180,6 +270,15 @@ const PodcastPlayer = () => {
           </div>
         </div>
         
+        {/* Quiz Button */}
+        <button
+          onClick={() => setShowQuiz(true)}
+          className="w-full py-3 rounded-lg bg-primary/10 text-primary font-medium flex items-center justify-center"
+        >
+          <BrainCircuit className="h-5 w-5 mr-2" />
+          Take Quiz
+        </button>
+        
         {/* Podcast Description */}
         <div className="glass-card p-4 rounded-xl">
           <h3 className="font-medium mb-1">About this episode</h3>
@@ -202,6 +301,16 @@ const PodcastPlayer = () => {
             </div>
           </div>
         </div>
+      )}
+      
+      {/* Quiz Modal */}
+      {showQuiz && podcast.quiz && (
+        <QuizModal
+          questions={podcast.quiz as QuizQuestion[]}
+          podcastTitle={podcast.title}
+          onClose={() => setShowQuiz(false)}
+          onComplete={handleQuizComplete}
+        />
       )}
     </Layout>
   );

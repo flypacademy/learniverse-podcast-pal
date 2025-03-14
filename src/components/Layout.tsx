@@ -12,12 +12,12 @@ const Layout = ({ children }: LayoutProps) => {
   
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <main className="flex-1 pb-16 pt-4 px-4 max-w-md mx-auto w-full">
+      <main className="flex-1 pb-20 pt-2 px-3 max-w-md mx-auto w-full">
         {children}
       </main>
       
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 shadow-lg rounded-t-xl z-10">
-        <div className="max-w-md mx-auto flex justify-around items-center p-2">
+      <nav className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-white border border-gray-100 shadow-lg rounded-full z-10 max-w-xs w-[90%]">
+        <div className="flex justify-around items-center py-1.5 px-2">
           <NavItem 
             to="/" 
             icon={<Home className="h-5 w-5" />} 
@@ -59,20 +59,20 @@ const NavItem = ({ to, icon, label, isActive }: NavItemProps) => {
   return (
     <Link
       to={to}
-      className={`flex flex-col items-center justify-center p-2 transition-all duration-200 ease-in-out ${
+      className={`flex flex-col items-center justify-center p-1.5 transition-all duration-200 ease-in-out ${
         isActive 
           ? "text-primary" 
           : "text-gray-500 hover:text-gray-700"
       }`}
     >
       <div 
-        className={`p-1.5 rounded-lg ${
+        className={`p-1 rounded-full ${
           isActive ? "bg-primary/10" : ""
         }`}
       >
         {icon}
       </div>
-      <span className="text-xs mt-1">{label}</span>
+      <span className="text-xs mt-0.5">{label}</span>
     </Link>
   );
 };

@@ -1,8 +1,10 @@
 
-import React, { useState } from "react";
-import { Search, Filter, BookOpen } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Search, Filter, BookOpen, Plus, Check } from "lucide-react";
 import Layout from "@/components/Layout";
 import CourseCard from "@/components/CourseCard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/components/ui/use-toast";
 
 // Mock data
 const allCourses = [
@@ -13,7 +15,8 @@ const allCourses = [
     totalPodcasts: 12,
     completedPodcasts: 5,
     description: "Master key mathematical concepts for your GCSE exams",
-    image: "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png"
+    image: "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png",
+    enrolled: true
   },
   {
     id: "english-gcse",
@@ -22,7 +25,8 @@ const allCourses = [
     totalPodcasts: 10,
     completedPodcasts: 2,
     description: "Improve your English language and literature skills",
-    image: "/lovable-uploads/b8505be1-663c-4327-9a5f-8c5bb7419180.png"
+    image: "/lovable-uploads/b8505be1-663c-4327-9a5f-8c5bb7419180.png",
+    enrolled: true
   },
   {
     id: "science-gcse",
@@ -31,7 +35,8 @@ const allCourses = [
     totalPodcasts: 15,
     completedPodcasts: 0,
     description: "Biology, Chemistry and Physics combined for GCSE",
-    image: ""
+    image: "/lovable-uploads/6a12720b-97cc-4a73-9c51-608fd283049d.png",
+    enrolled: false
   },
   {
     id: "history-gcse",
@@ -40,7 +45,8 @@ const allCourses = [
     totalPodcasts: 8,
     completedPodcasts: 0,
     description: "Explore key historical events and their impact",
-    image: ""
+    image: "",
+    enrolled: false
   },
   {
     id: "languages-gcse",
@@ -49,7 +55,8 @@ const allCourses = [
     totalPodcasts: 12,
     completedPodcasts: 0,
     description: "French, Spanish and German language podcasts",
-    image: ""
+    image: "",
+    enrolled: false
   }
 ];
 
@@ -65,18 +72,51 @@ const subjects = [
 const Courses = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("all");
+  const [myCourses, setMyCourses] = useState<typeof allCourses>([]);
+  const [availableCourses, setAvailableCourses] = useState<typeof allCourses>([]);
+  const { toast } = useToast();
   
-  const filteredCourses = allCourses.filter(course => {
-    const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesSubject = selectedSubject === "all" || course.subject === selectedSubject;
+  useEffect(() => {
+    // Filter courses based on enrolled status
+    setMyCourses(allCourses.filter(course => course.enrolled));
+    setAvailableCourses(allCourses.filter(course => !course.enrolled));
+  }, []);
+
+  const handleEnrollCourse = (courseId: string) => {
+    // Find the course to enroll
+    const courseToEnroll = availableCourses.find(course => course.id === courseId);
+    if (!courseToEnroll) return;
+
+    // Update available courses (remove the enrolled one)
+    setAvailableCourses(prev => prev.filter(c => c.id !== courseId));
     
-    return matchesSearch && matchesSubject;
-  });
+    // Add to my courses with enrolled status
+    const enrolledCourse = { ...courseToEnroll, enrolled: true };
+    setMyCourses(prev => [...prev, enrolledCourse]);
+
+    // Show success toast
+    toast({
+      title: "Course Added",
+      description: `${courseToEnroll.title} has been added to your courses.`,
+    });
+  };
+  
+  const filterCourses = (courses: typeof allCourses) => {
+    return courses.filter(course => {
+      const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSubject = selectedSubject === "all" || course.subject === selectedSubject;
+      
+      return matchesSearch && matchesSubject;
+    });
+  };
+
+  const filteredMyCourses = filterCourses(myCourses);
+  const filteredAvailableCourses = filterCourses(availableCourses);
   
   return (
     <Layout>
-      <div className="space-y-6 animate-slide-up">
-        <div className="pt-4">
+      <div className="space-y-5 animate-slide-up">
+        <div className="pt-2">
           <h1 className="font-display font-bold text-2xl text-gray-900 mb-1">
             Courses
           </h1>
@@ -114,37 +154,62 @@ const Courses = () => {
           </div>
         </div>
         
-        {/* Course List */}
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500">
-              Showing {filteredCourses.length} course{filteredCourses.length !== 1 ? 's' : ''}
-            </p>
-            <button className="flex items-center text-sm text-gray-700">
-              <Filter className="h-4 w-4 mr-1" />
-              Sort
-            </button>
-          </div>
+        {/* Courses Tabs */}
+        <Tabs defaultValue="my-courses" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsTrigger value="my-courses">My Courses</TabsTrigger>
+            <TabsTrigger value="find-courses">Find Courses</TabsTrigger>
+          </TabsList>
           
-          {filteredCourses.length === 0 ? (
-            <div className="text-center py-10">
-              <BookOpen className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-              <h3 className="font-medium text-gray-700">No courses found</h3>
-              <p className="text-gray-500 text-sm mt-1">
-                Try adjusting your search or filters
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {filteredCourses.map((course) => (
-                <CourseCard 
-                  key={course.id}
-                  {...course}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+          {/* My Courses Tab */}
+          <TabsContent value="my-courses" className="space-y-4">
+            {filteredMyCourses.length === 0 ? (
+              <div className="text-center py-8">
+                <BookOpen className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                <h3 className="font-medium text-gray-700">No enrolled courses</h3>
+                <p className="text-gray-500 text-sm mt-1">
+                  Switch to "Find Courses" to add some
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4">
+                {filteredMyCourses.map((course) => (
+                  <CourseCard 
+                    key={course.id}
+                    {...course}
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+          
+          {/* Find Courses Tab */}
+          <TabsContent value="find-courses" className="space-y-4">
+            {filteredAvailableCourses.length === 0 ? (
+              <div className="text-center py-8">
+                <BookOpen className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                <h3 className="font-medium text-gray-700">No courses found</h3>
+                <p className="text-gray-500 text-sm mt-1">
+                  Try adjusting your search or filters
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredAvailableCourses.map((course) => (
+                  <div key={course.id} className="relative">
+                    <CourseCard {...course} />
+                    <button 
+                      onClick={() => handleEnrollCourse(course.id)}
+                      className="absolute top-3 right-3 bg-white rounded-full p-1 shadow-md"
+                    >
+                      <Plus className="h-5 w-5 text-primary" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   );

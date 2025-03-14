@@ -2,6 +2,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import ProgressBar from "./ProgressBar";
+import { Headphones } from "lucide-react";
 
 interface CourseCardProps {
   id: string;
@@ -10,6 +11,7 @@ interface CourseCardProps {
   totalPodcasts: number;
   completedPodcasts: number;
   image: string;
+  size?: "normal" | "large";
 }
 
 const CourseCard = ({
@@ -18,7 +20,8 @@ const CourseCard = ({
   subject,
   totalPodcasts,
   completedPodcasts,
-  image
+  image,
+  size = "normal"
 }: CourseCardProps) => {
   const completionPercentage = Math.round(
     (completedPodcasts / totalPodcasts) * 100
@@ -42,19 +45,25 @@ const CourseCard = ({
   };
 
   return (
-    <Link to={`/course/${id}`} className="block">
-      <div className="rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200">
+    <Link to={`/course/${id}`} className={`block ${size === 'large' ? 'w-full' : ''}`}>
+      <div className={`rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200 ${size === 'large' ? 'p-0' : ''}`}>
         <div
-          className={`h-24 ${getGradientClass()} relative flex items-end p-3`}
+          className={`rounded-xl overflow-hidden ${size === 'large' ? 'aspect-[4/3]' : 'aspect-[2/1]'} relative`}
         >
-          <img
-            src={image}
-            alt={title}
-            className="absolute inset-0 mix-blend-overlay w-full h-full object-cover"
-          />
-          <h3 className="text-white font-medium text-sm relative z-10">
-            {title}
-          </h3>
+          {image ? (
+            <img
+              src={image}
+              alt={title}
+              className="w-full h-full object-cover rounded-xl"
+            />
+          ) : (
+            <div className={`w-full h-full ${getGradientClass()} flex items-center justify-center rounded-xl`}>
+              <Headphones className="h-12 w-12 text-white/70" />
+            </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4">
+            <h3 className="text-white font-medium text-lg">{title}</h3>
+          </div>
         </div>
         <div className="p-3 bg-white">
           <div className="flex justify-between text-xs mb-1.5">
