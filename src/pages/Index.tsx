@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
 import { Sparkles, BookOpen, Trophy, ArrowRight } from "lucide-react";
@@ -52,9 +53,9 @@ const Index = () => {
   
   return (
     <Layout>
-      <div className="space-y-5 animate-slide-up pt-1">
+      <div className="space-y-5 animate-slide-up pt-3"> {/* Changed from pt-1 to pt-3 for more spacing */}
         {/* Header */}
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center mb-6"> {/* Added mb-6 for more space below header */}
           <div>
             <h1 className="font-display font-bold text-2xl text-gray-900">
               Hello, {userName}
