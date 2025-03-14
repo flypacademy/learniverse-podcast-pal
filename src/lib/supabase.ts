@@ -62,7 +62,7 @@ export const isUserAdmin = async (): Promise<boolean> => {
     const userId = session.user.id;
     console.log("Checking admin status for user ID:", userId);
     
-    // Use the RPC function to check admin status
+    // Use the RPC function to check admin status with the fixed function
     const { data, error } = await supabase
       .rpc('is_admin', { user_id: userId });
     
