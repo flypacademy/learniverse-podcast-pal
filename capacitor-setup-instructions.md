@@ -119,12 +119,17 @@ If you see an error message about invalid App ID format:
    rm -rf ios
    ```
    
-   c. Run the add command:
+   c. Clear the Capacitor cache:
    ```bash
-   npx cap add ios
+   rm -rf node_modules/.cache/capacitor
    ```
    
-   d. If this still fails, try reinstalling the Capacitor CLI:
+   d. Run the add command with the skip validation flag:
+   ```bash
+   npx cap add ios --skip-appid-validation
+   ```
+   
+   e. If this still fails, try reinstalling the Capacitor CLI:
    ```bash
    npm uninstall -g @capacitor/cli
    npm install -g @capacitor/cli@latest
@@ -158,7 +163,7 @@ rm -rf capacitor-ios-template-minimal-main ios-template.zip
 3. Edit the App/App/Info.plist file to match your app configuration:
 ```bash
 # Open Info.plist in your text editor
-# Change CFBundleIdentifier to match your appId in capacitor.config.json (com.lovable.flypcast)
+# Change CFBundleIdentifier to match your appId in capacitor.config.json (com.flyp.cast)
 # Change CFBundleDisplayName to match your appName in capacitor.config.json (FlypCast)
 ```
 
@@ -183,7 +188,7 @@ npx cap open ios
    - Choose "Open another project..."
    - Navigate to your project's ios/App directory
    - Select the .xcworkspace file (if it exists) or create a new project
-   - Set your Bundle Identifier to "com.lovable.flypcast"
+   - Set your Bundle Identifier to "com.flyp.cast"
    - Configure your Team for signing
 
 ## Manual Configuration (Last Resort)
