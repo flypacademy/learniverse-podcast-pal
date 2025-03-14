@@ -1,7 +1,7 @@
 
 {
-  "appId": "app.lovable.268daa477b0445179aa756f20357d582",
-  "appName": "learniverse-podcast-pal",
+  "appId": "com.lovable.flypcast",
+  "appName": "FlypCast",
   "webDir": "dist",
   "server": {
     "url": "https://268daa47-7b04-4517-9aa7-56f20357d582.lovableproject.com?forceHideBadge=true",
