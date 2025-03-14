@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://bofabebqofwfevliiuvf.supabase.co';
@@ -40,7 +41,7 @@ export const isUserAdmin = async (): Promise<boolean> => {
     const userId = session.user.id;
     console.log("Checking admin status for user ID:", userId);
     
-    // Simpler, more direct approach
+    // Query user_roles table directly
     const { data, error } = await supabase
       .from('user_roles')
       .select('role')

@@ -53,7 +53,13 @@ const AdminRegister = () => {
       
       if (roleError) {
         console.error("Error setting admin role:", roleError);
-        throw roleError;
+        // Even if role setting fails, the user was created
+        toast({
+          title: "Partial registration success",
+          description: "User created but role assignment failed. Please contact support.",
+          variant: "destructive"
+        });
+        return;
       }
       
       console.log("Admin role assigned successfully");
@@ -61,14 +67,29 @@ const AdminRegister = () => {
       // Success
       toast({
         title: "Admin registered",
-        description: "Admin user has been created successfully",
+        description: "Admin user has been created successfully. You can now log in.",
       });
       
       navigate("/admin/login");
       
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred during registration");
-      console.error("Registration error:", err);
+    } catch (err: any) {
+      let errorMessage = "An error occurred during registration";
+      
+      // Extract specific error message if available
+      if (err.message) {
+        errorMessage = err.message;
+      } else if (typeof err === 'object' && err !== null) {
+        errorMessage = JSON.stringify(err);
+      }
+      
+      setError(errorMessage);
+      console.error("Registration error details:", err);
+      
+      toast({
+        title: "Registration failed",
+        description: errorMessage,
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
