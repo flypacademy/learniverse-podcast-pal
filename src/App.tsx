@@ -15,6 +15,8 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import CoursesList from "./pages/admin/courses/CoursesList";
 import CourseForm from "./pages/admin/courses/CourseForm";
 import PodcastsList from "./pages/admin/podcasts/PodcastsList";
+import AdminUsers from "./pages/admin/users/AdminUsers";
+import AdminSettings from "./pages/admin/settings/AdminSettings";
 
 import { Toaster } from "@/components/ui/toaster";
 import "./App.css";
@@ -39,6 +41,8 @@ function App() {
         <Route path="/admin/courses/new" element={<CourseForm />} />
         <Route path="/admin/courses/:id/edit" element={<CourseForm />} />
         <Route path="/admin/courses/:courseId/podcasts" element={<PodcastsList />} />
+        <Route path="/admin/users" element={<AdminUsers />} />
+        <Route path="/admin/settings" element={<AdminSettings />} />
         
         {/* 404 Route */}
         <Route path="*" element={<NotFound />} />
