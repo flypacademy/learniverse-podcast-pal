@@ -10,6 +10,7 @@ import NotFound from "./pages/NotFound";
 
 // Admin pages
 import AdminLogin from "./pages/admin/AdminLogin";
+import AdminRegister from "./pages/admin/AdminRegister";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import CoursesList from "./pages/admin/courses/CoursesList";
 import CourseForm from "./pages/admin/courses/CourseForm";
@@ -32,6 +33,7 @@ function App() {
         
         {/* Admin Routes */}
         <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/register" element={<AdminRegister />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/courses" element={<CoursesList />} />
         <Route path="/admin/courses/new" element={<CourseForm />} />
