@@ -62,7 +62,7 @@ const CourseCard = ({
             <span className="font-medium">{completionPercentage}%</span>
           </div>
           <ProgressBar
-            progress={completionPercentage}
+            value={completionPercentage}
             color={getGradientClass()}
           />
           <div className="mt-2 text-xs text-gray-500">

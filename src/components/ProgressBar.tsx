@@ -2,7 +2,8 @@
 import React from "react";
 
 interface ProgressBarProps {
-  value: number; // 0-100
+  value?: number; // 0-100
+  progress?: number; // 0-100 (for backward compatibility)
   color?: string;
   size?: "sm" | "md" | "lg";
   showLabel?: boolean;
@@ -11,6 +12,7 @@ interface ProgressBarProps {
 
 const ProgressBar = ({
   value,
+  progress,
   color = "bg-primary",
   size = "md",
   showLabel = false,
@@ -28,7 +30,9 @@ const ProgressBar = ({
     lg: "text-base"
   }[size];
 
-  const safeValue = Math.max(0, Math.min(100, value));
+  // Use value if provided, fall back to progress for backward compatibility
+  const progressValue = value !== undefined ? value : (progress !== undefined ? progress : 0);
+  const safeValue = Math.max(0, Math.min(100, progressValue));
   
   return (
     <div className="flex items-center gap-2">

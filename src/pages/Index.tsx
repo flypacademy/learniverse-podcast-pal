@@ -33,7 +33,7 @@ const streakData = [
   { date: "2023-06-14", completed: true },
   { date: "2023-06-15", completed: false },
   { date: "2023-06-16", completed: false },
-  { date: "2023-06-17", partial: true },
+  { date: "2023-06-17", completed: false, partial: true },
   { date: "2023-06-18", completed: false }
 ];
 

@@ -162,7 +162,7 @@ const CourseDetail = () => {
             </span>
           </div>
           <ProgressBar 
-            progress={completionPercentage}
+            value={completionPercentage}
             color={course.subject === "math" ? "bg-math-gradient" : 
                   course.subject === "english" ? "bg-english-gradient" : 
                   "bg-science-gradient"}
