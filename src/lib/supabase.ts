@@ -62,24 +62,17 @@ export const isUserAdmin = async (): Promise<boolean> => {
     const userId = session.user.id;
     console.log("Checking admin status for user ID:", userId);
     
-    // Explicitly make the admin check more direct and verbose with logging
+    // Use the RPC function to check admin status
     const { data, error } = await supabase
-      .from('user_roles')
-      .select('*')  // Select all columns for debugging
-      .eq('user_id', userId);
+      .rpc('is_admin', { user_id: userId });
     
     if (error) {
-      console.error("Error fetching user roles:", error);
+      console.error("Error checking admin status:", error);
       return false;
     }
     
-    console.log("User roles data:", data);
-    
-    // Check if any of the returned rows have role = 'admin'
-    const isAdmin = data && data.length > 0 && data.some(row => row.role === 'admin');
-    console.log("Is admin result:", isAdmin);
-    
-    return isAdmin;
+    console.log("Admin check result:", data);
+    return !!data;
     
   } catch (err) {
     console.error("Exception in isUserAdmin:", err);

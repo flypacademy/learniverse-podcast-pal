@@ -11,7 +11,7 @@ import { supabase, createAdminRole } from "@/lib/supabase";
 
 const AdminRegister = () => {
   const [email, setEmail] = useState("admin@flyp.academy");
-  const [password, setPassword] = useState("hello");
+  const [password, setPassword] = useState("password");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
