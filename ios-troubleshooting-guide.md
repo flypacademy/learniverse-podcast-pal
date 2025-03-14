@@ -90,6 +90,38 @@ chmod -R +x ios/App/Pods
 npx cap open ios
 ```
 
+### 7. Logging System Initialization Error
+
+If you see "Failed to initialize logging system. Log messages may be missing":
+
+1. In Xcode, go to Product > Scheme > Edit Scheme
+2. Select the "Run" action on the left
+3. Go to the "Arguments" tab
+4. Add a new environment variable by clicking "+"
+5. Set the name to `IDEPreferLogStreaming` and value to `YES`
+6. Click "Close" and try running again
+
+### 8. Sandbox Extension Error and Server Connection Issues
+
+If you see "Could not create a sandbox extension" and "Error: Could not connect to the server":
+
+1. Make sure your development server is running: `npm run dev`
+2. Check capacitor.config.json and update the server URL:
+
+```json
+"server": {
+  "url": "http://localhost:8080",
+  "cleartext": true
+}
+```
+
+3. If you're testing on a physical device, replace localhost with your computer's local IP address
+4. If you're using HTTPS, ensure you have proper certificates set up
+5. Try running with the explicit external flag:
+   ```bash
+   npx cap run ios -l --external
+   ```
+
 ## Step-by-Step Clean Rebuild Process
 
 For a completely fresh start:
