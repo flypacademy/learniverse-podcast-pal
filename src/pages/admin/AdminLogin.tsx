@@ -20,16 +20,26 @@ const AdminLogin = () => {
   useEffect(() => {
     const checkLoggedIn = async () => {
       try {
-        console.log("Checking if user is already logged in as admin");
-        const isAdmin = await isUserAdmin();
-        console.log("Is admin check result:", isAdmin);
+        console.log("AdminLogin: Checking if user is already logged in");
+        const { data } = await supabase.auth.getSession();
         
-        if (isAdmin) {
-          console.log("User is admin, redirecting to admin dashboard");
+        if (!data.session) {
+          console.log("AdminLogin: No active session");
+          return;
+        }
+        
+        console.log("AdminLogin: Session found, checking if admin");
+        const admin = await isUserAdmin();
+        console.log("AdminLogin: isAdmin result:", admin);
+        
+        if (admin) {
+          console.log("AdminLogin: User is admin, redirecting to dashboard");
           navigate("/admin");
+        } else {
+          console.log("AdminLogin: User is NOT an admin");
         }
       } catch (err) {
-        console.error("Error during admin check:", err);
+        console.error("AdminLogin: Error during admin check:", err);
       }
     };
     
@@ -42,7 +52,7 @@ const AdminLogin = () => {
     setError(null);
     
     try {
-      console.log("Attempting to sign in with email:", email);
+      console.log(`AdminLogin: Attempting login with email: ${email}`);
       
       // Sign in with Supabase
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
@@ -51,49 +61,37 @@ const AdminLogin = () => {
       });
       
       if (signInError) {
+        console.error("AdminLogin: Sign in error:", signInError);
         throw signInError;
       }
       
-      console.log("Sign in successful, session:", data.session?.user.id);
-      
-      // Check if user is an admin
-      if (data.session) {
-        console.log("Checking if user has admin role");
-        
-        // First check if the user exists in user_roles table
-        const { data: roleData, error: roleError } = await supabase
-          .from('user_roles')
-          .select('*')
-          .eq('user_id', data.session.user.id);
-        
-        if (roleError) {
-          console.error("Role check error:", roleError);
-          throw new Error("Error checking admin status: " + roleError.message);
-        }
-        
-        console.log("Role data:", roleData);
-        
-        if (!roleData || roleData.length === 0) {
-          throw new Error("You do not have an admin account. Please contact the administrator.");
-        }
-        
-        const isAdmin = roleData.some(role => role.role === 'admin');
-        
-        if (!isAdmin) {
-          throw new Error("You do not have admin privileges");
-        }
-        
-        // Success
-        toast({
-          title: "Login successful",
-          description: "Welcome to the admin panel",
-        });
-        
-        navigate("/admin");
+      if (!data.session) {
+        console.error("AdminLogin: No session after successful login");
+        throw new Error("No session created after login");
       }
+      
+      console.log("AdminLogin: Login successful, user ID:", data.session.user.id);
+      
+      // Check if user is an admin using our function
+      const isAdmin = await isUserAdmin();
+      console.log("AdminLogin: Admin check result:", isAdmin);
+      
+      if (!isAdmin) {
+        console.error("AdminLogin: User is not an admin");
+        throw new Error("You do not have admin privileges. Please contact the administrator.");
+      }
+      
+      // Success
+      toast({
+        title: "Login successful",
+        description: "Welcome to the admin panel",
+      });
+      
+      navigate("/admin");
+      
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
-      console.error("Login error:", err);
+      console.error("AdminLogin: Login error:", err);
     } finally {
       setLoading(false);
     }

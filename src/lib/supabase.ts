@@ -27,33 +27,34 @@ export const uploadFile = async (bucket: string, path: string, file: File) => {
   return urlData.publicUrl;
 };
 
-// Admin check
+// Admin check - completely rewritten to be more direct and thorough
 export const isUserAdmin = async (): Promise<boolean> => {
   try {
+    // Get current session
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session) {
-      console.log("No session found when checking admin status");
+      console.log("No active session found - user not logged in");
       return false;
     }
     
-    console.log("Checking admin status for user ID:", session.user.id);
+    const userId = session.user.id;
+    console.log("Checking admin status for user ID:", userId);
     
-    // First check if this user exists in the user_roles table at all
-    const { data, error } = await supabase
-      .from('user_roles')
-      .select('*')
-      .eq('user_id', session.user.id);
+    // Direct database query with SQL
+    const { data, error } = await supabase.rpc(
+      'is_admin',
+      { user_id: userId }
+    );
     
     if (error) {
-      console.error("Error checking admin status:", error);
+      console.error("Error calling is_admin function:", error);
       return false;
     }
     
-    console.log("User roles data:", data);
+    console.log("is_admin function returned:", data);
+    return !!data;
     
-    // Check if any of the returned roles is 'admin'
-    return data && data.length > 0 && data.some(role => role.role === 'admin');
   } catch (err) {
     console.error("Exception in isUserAdmin:", err);
     return false;
