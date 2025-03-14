@@ -1,24 +1,31 @@
 
 # Capacitor Setup Instructions
 
-After installing the dependencies, follow these steps to complete the Capacitor setup:
+## Important: First-time Setup
 
-1. First, add the iOS platform:
+1. First, make sure you've pulled the latest code and installed all dependencies:
+```bash
+npm install
+```
+
+2. **DO NOT run** `npx cap init` as it's already initialized. The configuration is in `capacitor.config.json`.
+
+3. Add the iOS platform:
 ```bash
 npx cap add ios
 ```
 
-2. Build your project:
+4. Build your project:
 ```bash
 npm run build
 ```
 
-3. Sync your web code to the native project:
+5. Sync your web code to the native project:
 ```bash
 npx cap sync
 ```
 
-4. To open the project in Xcode:
+6. To open the project in Xcode:
 ```bash
 npx cap open ios
 ```
