@@ -121,7 +121,12 @@ const Index = () => {
           
           <Carousel 
             className="w-full"
-            onSelect={(index) => setActiveSlide(index)}
+            onSelect={(index) => {
+              // Fix: Ensure we're working with a number
+              if (typeof index === 'number') {
+                setActiveSlide(index);
+              }
+            }}
           >
             <CarouselContent>
               {featuredCourses.map((course, index) => (
