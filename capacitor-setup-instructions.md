@@ -101,24 +101,51 @@ cd ios/App && pod install && cd ../..
 
 ## Troubleshooting: App ID Format Error
 
-If you see an error message about invalid App ID format like:
-```
-Invalid App ID "npx cap init "FlypCast" "com.lovable.flypcast""
-```
+If you see an error message about invalid App ID format:
 
-This means you're trying to run `npx cap init` again, which you shouldn't do since the project is already initialized.
+1. This might happen if you try to run `npx cap init` again, which you shouldn't do since the project is already initialized.
 
-1. Skip the `npx cap init` step completely.
 2. Verify your capacitor.config.json has the correct appId format:
    - It should be in Java package form with no dashes (ex: com.example.app)
    - Have at least two segments (one or more dots)
    - Each segment must start with a letter
    - All characters must be alphanumeric or an underscore [a-zA-Z0-9_]
 
-3. If you need to skip appId validation for some reason:
-```bash
-npx cap add ios --skip-appid-validation
-```
+3. For Capacitor v4+, if you get "unknown option" errors with "--skip-appid-validation", try these steps instead:
+   
+   a. First check if your capacitor.config.json has the correct format already:
+   ```json
+   {
+     "appId": "com.lovable.flypcast",
+     "appName": "FlypCast",
+     "webDir": "dist",
+     "server": {
+       "url": "https://your-project-url.com",
+       "cleartext": true
+     }
+   }
+   ```
+   
+   b. Make sure you've built your web app first:
+   ```bash
+   npm run build
+   ```
+   
+   c. Delete any existing ios folder:
+   ```bash
+   rm -rf ios
+   ```
+   
+   d. Run the add command without any extra flags:
+   ```bash
+   npx cap add ios
+   ```
+   
+   e. If this still fails, you might need to try reinstalling the Capacitor CLI:
+   ```bash
+   npm uninstall -g @capacitor/cli
+   npm install -g @capacitor/cli@latest
+   ```
 
 ## Alternative Setup (Skip iOS Platform Addition)
 
