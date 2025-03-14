@@ -59,19 +59,23 @@ If live reload isn't working correctly:
 3. Try manually syncing with `npx cap sync`
 4. Restart the simulator or device
 
-### 6. Sandbox Permission Errors (MOST COMMON FIX)
+### 6. Sandbox Permission Errors (MOST COMMON ISSUE)
 
 If you encounter errors like `Sandbox: bash deny file-read-data Pods-App-frameworks.sh`:
 
-**Quick Fix Solution:**
+**DO NOT DELETE the Pods-App-frameworks.sh file!** Instead, fix the permissions:
+
 ```bash
 # Navigate to your project directory first
 cd /path/to/your/project
 
+# Create the directories if they don't exist (in case you're rebuilding)
+mkdir -p ios/App/Pods/Target\ Support\ Files/Pods-App
+
 # Fix permissions on the specific script
 chmod +x ios/App/Pods/Target\ Support\ Files/Pods-App/Pods-App-frameworks.sh
 
-# Fix permissions on all CocoaPods files (recommended)
+# Fix permissions on all CocoaPods files (most reliable fix)
 chmod -R +x ios/App/Pods
 
 # Now close Xcode completely and reopen
@@ -90,7 +94,7 @@ rm -rf node_modules/.cache/capacitor
 npm run build
 npx cap add ios
 npx cap sync
-# Fix permissions immediately
+# Fix permissions immediately before opening Xcode
 chmod -R +x ios/App/Pods
 # Open in Xcode
 npx cap open ios
