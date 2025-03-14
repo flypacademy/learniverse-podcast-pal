@@ -9,13 +9,201 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      courses: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          subject: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          subject: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          subject?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      podcasts: {
+        Row: {
+          audio_url: string
+          course_id: string
+          created_at: string
+          description: string | null
+          duration: number
+          id: string
+          image_url: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          audio_url: string
+          course_id: string
+          created_at?: string
+          description?: string | null
+          duration: number
+          id?: string
+          image_url?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          audio_url?: string
+          course_id?: string
+          created_at?: string
+          description?: string | null
+          duration?: number
+          id?: string
+          image_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "podcasts_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quiz_questions: {
+        Row: {
+          correct_option: number
+          created_at: string
+          id: string
+          options: Json
+          podcast_id: string
+          question: string
+          updated_at: string
+        }
+        Insert: {
+          correct_option: number
+          created_at?: string
+          id?: string
+          options: Json
+          podcast_id: string
+          question: string
+          updated_at?: string
+        }
+        Update: {
+          correct_option?: number
+          created_at?: string
+          id?: string
+          options?: Json
+          podcast_id?: string
+          question?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_questions_podcast_id_fkey"
+            columns: ["podcast_id"]
+            isOneToOne: false
+            referencedRelation: "podcasts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_progress: {
+        Row: {
+          completed: boolean
+          course_id: string | null
+          created_at: string
+          id: string
+          last_position: number | null
+          podcast_id: string | null
+          quiz_score: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          course_id?: string | null
+          created_at?: string
+          id?: string
+          last_position?: number | null
+          podcast_id?: string | null
+          quiz_score?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          course_id?: string | null
+          created_at?: string
+          id?: string
+          last_position?: number | null
+          podcast_id?: string | null
+          quiz_score?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_progress_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_progress_podcast_id_fkey"
+            columns: ["podcast_id"]
+            isOneToOne: false
+            referencedRelation: "podcasts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_admin: {
+        Args: {
+          user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
