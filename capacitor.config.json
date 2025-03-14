@@ -10,7 +10,9 @@
   "ios": {
     "contentInset": "always",
     "backgroundColor": "#ffffff",
-    "scheme": "app"
+    "scheme": "app",
+    "limitsNavigationsToAppBoundDomains": true,
+    "allowsLinkPreview": false
   },
   "android": {
     "allowMixedContent": true
