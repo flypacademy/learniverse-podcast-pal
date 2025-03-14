@@ -20,17 +20,22 @@ npm install
 npm run build
 ```
 
-5. Add the iOS platform:
+5. If you have an existing ios folder, remove it first:
+```bash
+rm -rf ios
+```
+
+6. Add the iOS platform:
 ```bash
 npx cap add ios
 ```
 
-6. Sync your web code to the native project:
+7. Sync your web code to the native project:
 ```bash
 npx cap sync
 ```
 
-7. To open the project in Xcode:
+8. To open the project in Xcode:
 ```bash
 npx cap open ios
 ```
