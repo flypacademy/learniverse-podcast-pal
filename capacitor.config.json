@@ -9,5 +9,13 @@
   },
   "ios": {
     "contentInset": "always"
+  },
+  "android": {
+    "allowMixedContent": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": false
+    }
   }
 }
