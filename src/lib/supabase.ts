@@ -37,21 +37,23 @@ export const isUserAdmin = async (): Promise<boolean> => {
       return false;
     }
     
-    console.log("Checking admin status for user:", session.user.id);
+    console.log("Checking admin status for user ID:", session.user.id);
     
+    // First check if this user exists in the user_roles table at all
     const { data, error } = await supabase
       .from('user_roles')
-      .select('role')
-      .eq('user_id', session.user.id)
-      .single();
+      .select('*')
+      .eq('user_id', session.user.id);
     
     if (error) {
       console.error("Error checking admin status:", error);
       return false;
     }
     
-    console.log("User role data:", data);
-    return data?.role === 'admin';
+    console.log("User roles data:", data);
+    
+    // Check if any of the returned roles is 'admin'
+    return data && data.length > 0 && data.some(role => role.role === 'admin');
   } catch (err) {
     console.error("Exception in isUserAdmin:", err);
     return false;
