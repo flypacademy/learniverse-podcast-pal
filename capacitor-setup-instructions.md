@@ -42,6 +42,26 @@ npx cap sync
 npx cap open ios
 ```
 
+## Troubleshooting: Xcode Command Line Tools
+
+If you encounter errors related to Xcode command line tools like:
+```
+xcode-select: error: tool 'xcodebuild' requires Xcode, but active developer directory '/Library/Developer/CommandLineTools' is a command line tools instance
+```
+
+Follow these steps to fix it:
+
+1. Make sure Xcode is installed (not just the command line tools)
+2. Run the following command to point to the correct Xcode developer directory:
+```bash
+sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+```
+3. Accept the Xcode license if needed:
+```bash
+sudo xcodebuild -license accept
+```
+4. Try running the previous commands again
+
 ## Troubleshooting: Missing Podfile Error
 
 If you encounter the "Error: ENOENT: no such file or directory, open '.../ios/App/Podfile'" error:
