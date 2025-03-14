@@ -1,7 +1,6 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
-import { Play, Check, Clock } from "lucide-react";
+import { Play, Check, Clock, Headphones } from "lucide-react";
 
 interface PodcastCardProps {
   id: string;

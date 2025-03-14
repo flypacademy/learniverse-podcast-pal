@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ChevronLeft, Play, Pause, SkipBack, SkipForward, Volume2, Award } from "lucide-react";
+import { ChevronLeft, Play, Pause, SkipBack, SkipForward, Volume2, Award, Headphones } from "lucide-react";
 import Layout from "@/components/Layout";
 import ProgressBar from "@/components/ProgressBar";
 

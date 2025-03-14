@@ -1,6 +1,6 @@
 
 import React from "react";
-import { BarChart3, Award, Clock, Calendar, BookOpen, Settings } from "lucide-react";
+import { BarChart3, Award, Clock, Calendar, BookOpen, Settings, Headphones } from "lucide-react";
 import Layout from "@/components/Layout";
 import ProgressBar from "@/components/ProgressBar";
 import StreakCalendar from "@/components/StreakCalendar";
