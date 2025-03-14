@@ -12,8 +12,8 @@ const Layout = ({ children }: LayoutProps) => {
   
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      {/* Add top safe area padding for iOS status bar */}
-      <div className="h-14 bg-background" /> {/* Increased from h-8 to h-14 for more padding */}
+      {/* Add very large and visible top safe area padding for iOS status bar */}
+      <div className="h-24 bg-red-200" /> {/* Increased from h-14 to h-24 and changed color to be obvious */}
       
       <main className="flex-1 pb-24 pt-6 px-4 max-w-md mx-auto w-full">
         {children}
