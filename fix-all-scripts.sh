@@ -3,7 +3,15 @@
 
 echo "==== Creating and fixing all scripts with proper Unix line endings ===="
 
-# First, create a single reliable script with proper Unix line endings
+# First, ensure this script has proper line endings
+# This is critical for execution
+if [ ! -x "$0" ]; then
+  echo "Making this script executable..."
+  chmod +x "$0"
+fi
+
+# Create complete-rebuild.sh with proper Unix line endings
+echo "Creating complete-rebuild.sh with proper Unix line endings..."
 cat > complete-rebuild.sh << 'EOF'
 #!/bin/bash
 
@@ -50,7 +58,28 @@ EOF
 # Make the complete-rebuild script executable
 chmod +x complete-rebuild.sh
 
+# Fix line endings in all existing sh files
+echo "Fixing line endings in all shell scripts..."
+for script in *.sh; do
+  if [ -f "$script" ]; then
+    echo "Processing $script..."
+    tr -d '\r' < "$script" > "$script.tmp"
+    mv "$script.tmp" "$script"
+    chmod +x "$script"
+  fi
+done
+
+# Verify the scripts are executable
+echo "Verifying scripts are executable..."
+for script in *.sh; do
+  if [ -f "$script" ] && [ ! -x "$script" ]; then
+    echo "Making $script executable..."
+    chmod +x "$script"
+  fi
+done
+
 echo "Created and made executable: complete-rebuild.sh"
+echo "Fixed line endings for all shell scripts."
 echo ""
 echo "==== All done! ===="
 echo "You can now run: ./complete-rebuild.sh"
