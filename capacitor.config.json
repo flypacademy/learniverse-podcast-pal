@@ -4,7 +4,7 @@
   "appName": "FlypCast",
   "webDir": "dist",
   "server": {
-    "url": "https://268daa47-7b04-4517-9aa7-56f20357d582.lovableproject.com?forceHideBadge=true",
+    "url": "http://localhost:8080",
     "cleartext": true
   },
   "ios": {

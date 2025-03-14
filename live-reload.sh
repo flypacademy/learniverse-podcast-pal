@@ -13,6 +13,7 @@ sleep 5
 
 # Run with live reload
 echo "Starting iOS simulator with live reload..."
+npx cap sync
 npx cap run ios -l --external
 
 # If the iOS command exits, kill the dev server
