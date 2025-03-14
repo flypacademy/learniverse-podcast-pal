@@ -21,7 +21,7 @@ const featuredCourses = [
     exam: "GCSE",
     board: "AQA",
     achievements: [
-      { type: "streak", value: 3 }
+      { type: "streak" as const, value: 3 }
     ]
   },
   {
@@ -34,7 +34,7 @@ const featuredCourses = [
     exam: "GCSE",
     board: "Edexcel",
     achievements: [
-      { type: "popular" }
+      { type: "popular" as const }
     ]
   },
   {
@@ -63,11 +63,11 @@ const streakData = [
 
 // Mock leaderboard data
 const leaderboardData = [
-  { id: "user1", name: "Alex", xp: 2430, rank: 1, change: "same" },
-  { id: "user2", name: "Jordan", xp: 2180, rank: 2, change: "up" },
-  { id: "user3", name: "Taylor", xp: 2050, rank: 3, change: "down" },
-  { id: "current", name: "Student", xp: 1250, rank: 8, change: "up" },
-  { id: "user5", name: "Casey", xp: 1100, rank: 9, change: "down" }
+  { id: "user1", name: "Alex", xp: 2430, rank: 1, change: "same" as const },
+  { id: "user2", name: "Jordan", xp: 2180, rank: 2, change: "up" as const },
+  { id: "user3", name: "Taylor", xp: 2050, rank: 3, change: "down" as const },
+  { id: "current", name: "Student", xp: 1250, rank: 8, change: "up" as const },
+  { id: "user5", name: "Casey", xp: 1100, rank: 9, change: "down" as const }
 ];
 
 const Index = () => {
