@@ -18,4 +18,4 @@ for script in *.sh; do
 done
 
 echo "==== All scripts are now executable with proper line endings ===="
-echo "You can now run: ./rebuild-ios-complete.sh"
+echo "You can now run: ./rebuild-ios-now.sh"
