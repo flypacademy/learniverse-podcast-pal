@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -10,6 +9,14 @@ import Leaderboard from "@/components/Leaderboard";
 import { Bell, Search, Play, Star, Clock, Rocket } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/context/AuthContext";
+
+const leaderboardData = [
+  { id: "user1", name: "Alex Johnson", xp: 2450, rank: 1, change: "up" },
+  { id: "user2", name: "Morgan Smith", xp: 2280, rank: 2, change: "same" },
+  { id: "user3", name: "Jamie Williams", xp: 2100, rank: 3, change: "down" },
+  { id: "user4", name: "Taylor Davis", xp: 1950, rank: 4, change: "up" },
+  { id: "user5", name: "Jordan Brown", xp: 1820, rank: 5, change: "same" },
+];
 
 const Index = () => {
   const [listeningTime, setListeningTime] = useState(20);
@@ -29,10 +36,11 @@ const Index = () => {
     });
   };
 
+  const currentUserId = user?.id || "user4";
+
   return (
     <Layout>
       <div className="pb-16 pt-4 animate-slide-up space-y-6">
-        {/* Greeting Section */}
         <div className="flex justify-between items-start">
           <div>
             <h1 className="font-display text-2xl font-bold text-gray-900">
@@ -46,7 +54,6 @@ const Index = () => {
           </button>
         </div>
 
-        {/* Today's Goal Section */}
         <div className="glass-card p-5 rounded-xl">
           <div className="flex items-center mb-4">
             <div className="h-9 w-9 rounded-full bg-brand-blue text-white flex items-center justify-center mr-3">
@@ -83,7 +90,6 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Continue Learning Section */}
         <div>
           <h2 className="font-display text-xl font-semibold mb-4 text-gray-900">
             Continue Learning
@@ -127,7 +133,6 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Featured Courses Section */}
         <div>
           <h2 className="font-display text-xl font-semibold mb-4 text-gray-900">
             Featured Courses
@@ -159,17 +164,18 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Leaderboard Section - with padding to prevent overlap */}
-        <div className="mt-8">
+        <div className="mt-8 mb-20">
           <h2 className="font-display text-xl font-semibold mb-4 text-gray-900">
             Leaderboard
           </h2>
           <div className="glass-card p-4 rounded-xl">
-            <Leaderboard />
+            <Leaderboard 
+              users={leaderboardData} 
+              currentUserId={currentUserId} 
+            />
           </div>
         </div>
         
-        {/* Bottom spacing to prevent overlap with navigation */}
         <div className="h-20"></div>
       </div>
     </Layout>
