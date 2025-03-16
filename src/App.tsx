@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, BrowserRouter } from 'react-router-dom';
 import { supabase } from "@/lib/supabase";
@@ -71,9 +72,9 @@ function App() {
             
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <Toaster />
         </BrowserRouter>
       </AudioProvider>
-      <Toaster />
     </div>
   );
 }
