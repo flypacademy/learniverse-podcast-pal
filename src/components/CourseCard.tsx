@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
 import ProgressBar from "./ProgressBar";
@@ -72,8 +73,9 @@ const CourseCard = ({
       className={`block w-full ${size === 'large' ? 'md:max-w-full' : 'md:max-w-sm'}`} 
       onClick={handleCardClick}
     >
-      <Card className="overflow-hidden rounded-xl hover:shadow-lg transition-all duration-300 h-full">
-        <div className={`relative ${size === 'large' ? 'h-56' : 'h-48'}`}>
+      <Card className="overflow-hidden rounded-xl hover:shadow-lg transition-all duration-300 h-full relative">
+        {/* Image covers the entire card */}
+        <div className="absolute inset-0 w-full h-full">
           {image ? (
             <img
               src={getImageUrl(image)}
@@ -83,28 +85,28 @@ const CourseCard = ({
           ) : (
             <div className={`w-full h-full ${getCardGradient()}`} />
           )}
-          
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-          
-          {achievements.length > 0 && (
-            <div className="absolute top-3 right-3 flex gap-1">
-              {achievements.map((achievement, index) => (
-                <div 
-                  key={index}
-                  className="h-8 w-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-md"
-                  title={`${achievement.type} ${achievement.value || ''}`}
-                >
-                  {achievement.type === "streak" && <Flame className="h-5 w-5 text-amber-500" />}
-                  {achievement.type === "recommended" && <Award className="h-5 w-5 text-blue-500" />}
-                  {achievement.type === "popular" && <Star className="h-5 w-5 text-purple-500" />}
-                  {achievement.type === "complete" && <Trophy className="h-5 w-5 text-green-500" />}
-                </div>
-              ))}
-            </div>
-          )}
         </div>
         
-        <div className="p-4 bg-white/80 backdrop-blur-md border-t border-white/20">
+        {/* Achievements icons */}
+        {achievements.length > 0 && (
+          <div className="absolute top-3 right-3 flex gap-1 z-10">
+            {achievements.map((achievement, index) => (
+              <div 
+                key={index}
+                className="h-8 w-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-md"
+                title={`${achievement.type} ${achievement.value || ''}`}
+              >
+                {achievement.type === "streak" && <Flame className="h-5 w-5 text-amber-500" />}
+                {achievement.type === "recommended" && <Award className="h-5 w-5 text-blue-500" />}
+                {achievement.type === "popular" && <Star className="h-5 w-5 text-purple-500" />}
+                {achievement.type === "complete" && <Trophy className="h-5 w-5 text-green-500" />}
+              </div>
+            ))}
+          </div>
+        )}
+        
+        {/* Bottom section with blurry glass effect */}
+        <div className="absolute bottom-0 left-0 right-0 bg-white/70 backdrop-blur-md border-t border-white/20 p-4 z-10">
           <h3 className="text-gray-900 font-bold text-xl leading-tight mb-3">
             {title}
           </h3>
