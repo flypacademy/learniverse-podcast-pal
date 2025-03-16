@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Volume2 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
