@@ -53,49 +53,51 @@ const CourseDetail = () => {
         setError(null);
         console.log("Fetching course details for:", courseId);
         
-        // Fetch course
-        const { data: courseData, error: courseError } = await supabase
+        // Fetch course with explicit conditional check
+        const courseResponse = await supabase
           .from('courses')
           .select('*')
-          .eq('id', courseId)
-          .single();
+          .eq('id', courseId);
         
-        if (courseError) {
-          console.error("Error fetching course:", courseError);
-          setError(`Failed to load course: ${courseError.message}`);
+        if (courseResponse.error) {
+          console.error("Error fetching course:", courseResponse.error);
+          setError(`Failed to load course: ${courseResponse.error.message}`);
           setLoading(false);
           return;
         }
         
-        if (!courseData) {
+        // Check if course exists
+        if (!courseResponse.data || courseResponse.data.length === 0) {
           console.log("No course found with ID:", courseId);
           setError("Course not found");
           setLoading(false);
           return;
         }
         
+        const courseData = courseResponse.data[0];
         console.log("Course data fetched:", courseData);
         
         // Fetch podcasts for the course
-        const { data: podcastsData, error: podcastsError } = await supabase
+        const podcastsResponse = await supabase
           .from('podcasts')
           .select('*')
           .eq('course_id', courseId);
         
-        if (podcastsError) {
-          console.error("Error fetching podcasts:", podcastsError);
-          setError(`Failed to load podcasts: ${podcastsError.message}`);
+        if (podcastsResponse.error) {
+          console.error("Error fetching podcasts:", podcastsResponse.error);
+          setError(`Failed to load podcasts: ${podcastsResponse.error.message}`);
           setLoading(false);
           return;
         }
         
+        const podcastsData = podcastsResponse.data || [];
         console.log("Podcasts data fetched:", podcastsData);
         
         // Calculate total duration
-        const totalDuration = podcastsData?.reduce((sum, podcast) => sum + (podcast.duration || 0), 0) || 0;
+        const totalDuration = podcastsData.reduce((sum, podcast) => sum + (podcast.duration || 0), 0);
         
         // Transform podcasts data to match the expected format
-        const formattedPodcasts: Podcast[] = (podcastsData || []).map(podcast => ({
+        const formattedPodcasts: Podcast[] = podcastsData.map(podcast => ({
           id: podcast.id,
           title: podcast.title,
           courseId: podcast.course_id,
@@ -112,7 +114,7 @@ const CourseDetail = () => {
           title: courseData.title,
           subject: courseData.subject || "math",
           description: courseData.description || "No description available",
-          totalPodcasts: podcastsData?.length || 0,
+          totalPodcasts: podcastsData.length || 0,
           completedPodcasts: 0, // Will be fetched from user_progress in a real app
           totalDuration: totalDuration,
           difficulty: "Intermediate", // Hardcoded for now
