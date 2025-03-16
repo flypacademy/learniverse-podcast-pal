@@ -16,6 +16,8 @@ interface Course {
   description: string;
   image: string;
   enrolled: boolean;
+  header_text?: string;
+  display_order: number;
 }
 
 const subjects = [
@@ -46,7 +48,9 @@ const Courses = () => {
       // Fetch all courses from Supabase
       const { data: coursesData, error } = await supabase
         .from('courses')
-        .select('*');
+        .select('*')
+        .order('display_order', { ascending: true })
+        .order('title', { ascending: true });
       
       if (error) {
         console.error("Error fetching courses:", error);
@@ -87,7 +91,9 @@ const Courses = () => {
           completedPodcasts: 0, // Would be fetched from user progress in a real app
           description: course.description || "",
           image: course.image_url || "",
-          enrolled: enrolled
+          enrolled: enrolled,
+          header_text: course.header_text,
+          display_order: course.display_order || 0
         };
       }));
       
@@ -145,8 +151,44 @@ const Courses = () => {
     });
   };
 
+  const groupCoursesByHeader = (courses: Course[]) => {
+    const grouped: Record<string, Course[]> = {};
+    
+    // Add "No Header" group for courses without a header_text
+    grouped[""] = [];
+    
+    courses.forEach(course => {
+      const headerKey = course.header_text || "";
+      
+      if (!grouped[headerKey]) {
+        grouped[headerKey] = [];
+      }
+      
+      grouped[headerKey].push(course);
+    });
+    
+    return grouped;
+  };
+
   const filteredMyCourses = filterCourses(myCourses);
   const filteredAvailableCourses = filterCourses(availableCourses);
+  
+  const groupedMyCourses = groupCoursesByHeader(filteredMyCourses);
+  const groupedAvailableCourses = groupCoursesByHeader(filteredAvailableCourses);
+  
+  const getOrderedHeaders = (groupedCourses: Record<string, Course[]>) => {
+    return Object.keys(groupedCourses).sort((a, b) => {
+      // Empty header (no header) goes last
+      if (a === "" && b !== "") return 1;
+      if (a !== "" && b === "") return -1;
+      
+      // Otherwise sort alphabetically
+      return a.localeCompare(b);
+    });
+  };
+  
+  const myCoursesHeaders = getOrderedHeaders(groupedMyCourses);
+  const availableCoursesHeaders = getOrderedHeaders(groupedAvailableCourses);
   
   return (
     <Layout>
@@ -203,7 +245,7 @@ const Courses = () => {
             </TabsList>
             
             {/* My Courses Tab */}
-            <TabsContent value="my-courses" className="space-y-4">
+            <TabsContent value="my-courses" className="space-y-6">
               {filteredMyCourses.length === 0 ? (
                 <div className="text-center py-8">
                   <BookOpen className="h-12 w-12 mx-auto text-gray-300 mb-3" />
@@ -213,38 +255,50 @@ const Courses = () => {
                   </p>
                 </div>
               ) : (
-                <Carousel className="w-full">
-                  <CarouselContent>
-                    {filteredMyCourses.map((course) => (
-                      <CarouselItem key={course.id} className="basis-full">
-                        <CourseCard 
-                          id={course.id}
-                          title={course.title}
-                          subject={course.subject}
-                          totalPodcasts={course.totalPodcasts}
-                          completedPodcasts={course.completedPodcasts}
-                          image={course.image}
-                          size="large"
-                        />
-                      </CarouselItem>
-                    ))}
-                  </CarouselContent>
-                  <div className="flex justify-center mt-3">
-                    <div className="flex gap-1.5">
-                      {filteredMyCourses.map((_, index) => (
-                        <div 
-                          key={index} 
-                          className={`h-1.5 rounded-full ${index === 0 ? 'w-4 bg-primary' : 'w-1.5 bg-gray-200'}`}
-                        />
-                      ))}
+                <>
+                  {myCoursesHeaders.map((header) => (
+                    <div key={header || 'no-header'} className="space-y-3">
+                      {header && (
+                        <h3 className="font-display font-semibold text-lg text-gray-900 mt-6">
+                          {header}
+                        </h3>
+                      )}
+                      
+                      <Carousel className="w-full">
+                        <CarouselContent>
+                          {groupedMyCourses[header].map((course) => (
+                            <CarouselItem key={course.id} className="basis-full">
+                              <CourseCard 
+                                id={course.id}
+                                title={course.title}
+                                subject={course.subject}
+                                totalPodcasts={course.totalPodcasts}
+                                completedPodcasts={course.completedPodcasts}
+                                image={course.image}
+                                size="large"
+                              />
+                            </CarouselItem>
+                          ))}
+                        </CarouselContent>
+                        <div className="flex justify-center mt-3">
+                          <div className="flex gap-1.5">
+                            {groupedMyCourses[header].map((_, index) => (
+                              <div 
+                                key={index} 
+                                className={`h-1.5 rounded-full ${index === 0 ? 'w-4 bg-primary' : 'w-1.5 bg-gray-200'}`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </Carousel>
                     </div>
-                  </div>
-                </Carousel>
+                  ))}
+                </>
               )}
             </TabsContent>
             
             {/* Find Courses Tab */}
-            <TabsContent value="find-courses" className="space-y-4">
+            <TabsContent value="find-courses" className="space-y-6">
               {filteredAvailableCourses.length === 0 ? (
                 <div className="text-center py-8">
                   <BookOpen className="h-12 w-12 mx-auto text-gray-300 mb-3" />
@@ -254,39 +308,51 @@ const Courses = () => {
                   </p>
                 </div>
               ) : (
-                <Carousel className="w-full">
-                  <CarouselContent>
-                    {filteredAvailableCourses.map((course) => (
-                      <CarouselItem key={course.id} className="basis-full relative">
-                        <CourseCard 
-                          id={course.id}
-                          title={course.title}
-                          subject={course.subject}
-                          totalPodcasts={course.totalPodcasts}
-                          completedPodcasts={course.completedPodcasts}
-                          image={course.image}
-                          size="large"
-                        />
-                        <button 
-                          onClick={() => handleEnrollCourse(course.id)}
-                          className="absolute top-3 right-3 bg-white rounded-full p-1 shadow-md"
-                        >
-                          <Plus className="h-5 w-5 text-primary" />
-                        </button>
-                      </CarouselItem>
-                    ))}
-                  </CarouselContent>
-                  <div className="flex justify-center mt-3">
-                    <div className="flex gap-1.5">
-                      {filteredAvailableCourses.map((_, index) => (
-                        <div 
-                          key={index} 
-                          className={`h-1.5 rounded-full ${index === 0 ? 'w-4 bg-primary' : 'w-1.5 bg-gray-200'}`}
-                        />
-                      ))}
+                <>
+                  {availableCoursesHeaders.map((header) => (
+                    <div key={header || 'no-header'} className="space-y-3">
+                      {header && (
+                        <h3 className="font-display font-semibold text-lg text-gray-900 mt-6">
+                          {header}
+                        </h3>
+                      )}
+                      
+                      <Carousel className="w-full">
+                        <CarouselContent>
+                          {groupedAvailableCourses[header].map((course) => (
+                            <CarouselItem key={course.id} className="basis-full relative">
+                              <CourseCard 
+                                id={course.id}
+                                title={course.title}
+                                subject={course.subject}
+                                totalPodcasts={course.totalPodcasts}
+                                completedPodcasts={course.completedPodcasts}
+                                image={course.image}
+                                size="large"
+                              />
+                              <button 
+                                onClick={() => handleEnrollCourse(course.id)}
+                                className="absolute top-3 right-3 bg-white rounded-full p-1 shadow-md"
+                              >
+                                <Plus className="h-5 w-5 text-primary" />
+                              </button>
+                            </CarouselItem>
+                          ))}
+                        </CarouselContent>
+                        <div className="flex justify-center mt-3">
+                          <div className="flex gap-1.5">
+                            {groupedAvailableCourses[header].map((_, index) => (
+                              <div 
+                                key={index} 
+                                className={`h-1.5 rounded-full ${index === 0 ? 'w-4 bg-primary' : 'w-1.5 bg-gray-200'}`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </Carousel>
                     </div>
-                  </div>
-                </Carousel>
+                  ))}
+                </>
               )}
             </TabsContent>
           </Tabs>

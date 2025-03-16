@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { QuizQuestion } from "@/components/QuizModal";
@@ -58,6 +59,7 @@ export const usePodcastPlayer = (podcastId?: string) => {
             image_url,
             course_id,
             courses (
+              id,
               title
             )
           `)
@@ -96,7 +98,7 @@ export const usePodcastPlayer = (podcastId?: string) => {
           correctAnswer: question.correct_option
         }));
         
-        // Fix for the course name issue - ensure we have a valid course name
+        // Extract course name from the joined courses data
         let courseName = "Unknown Course";
         if (podcastData.courses) {
           courseName = podcastData.courses.title || "Unknown Course";

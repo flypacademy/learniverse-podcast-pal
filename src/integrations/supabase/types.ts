@@ -14,7 +14,9 @@ export type Database = {
           board: string | null
           created_at: string
           description: string | null
+          display_order: number | null
           exam: string | null
+          header_text: string | null
           id: string
           image_url: string | null
           subject: string
@@ -25,7 +27,9 @@ export type Database = {
           board?: string | null
           created_at?: string
           description?: string | null
+          display_order?: number | null
           exam?: string | null
+          header_text?: string | null
           id?: string
           image_url?: string | null
           subject: string
@@ -36,7 +40,9 @@ export type Database = {
           board?: string | null
           created_at?: string
           description?: string | null
+          display_order?: number | null
           exam?: string | null
+          header_text?: string | null
           id?: string
           image_url?: string | null
           subject?: string

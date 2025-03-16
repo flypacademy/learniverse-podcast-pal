@@ -26,6 +26,8 @@ interface CourseFormData {
   image_url: string;
   exam: string;
   board: string;
+  header_text?: string;
+  display_order: number;
 }
 
 const CourseForm = () => {
@@ -40,7 +42,9 @@ const CourseForm = () => {
     description: "",
     image_url: "",
     exam: "GCSE",
-    board: "AQA"
+    board: "AQA",
+    header_text: "",
+    display_order: 0
   });
   
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -67,7 +71,9 @@ const CourseForm = () => {
               description: data.description || "",
               image_url: data.image_url || "",
               exam: data.exam || "GCSE",
-              board: data.board || "AQA"
+              board: data.board || "AQA",
+              header_text: data.header_text || "",
+              display_order: data.display_order || 0
             });
             
             if (data.image_url) {
@@ -95,6 +101,14 @@ const CourseForm = () => {
     setFormData({
       ...formData,
       [name]: value,
+    });
+  };
+  
+  const handleNumberInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: parseInt(value) || 0,
     });
   };
   
@@ -176,7 +190,9 @@ const CourseForm = () => {
         description: formData.description,
         image_url: imageUrl || null,
         exam: formData.exam,
-        board: formData.board
+        board: formData.board,
+        header_text: formData.header_text || null,
+        display_order: formData.display_order
       };
       
       console.log("Submitting course data:", courseData);
@@ -337,6 +353,34 @@ const CourseForm = () => {
                     </SelectGroup>
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+            
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="header_text">Course Header (optional)</Label>
+                <Input
+                  id="header_text"
+                  name="header_text"
+                  value={formData.header_text || ""}
+                  onChange={handleInputChange}
+                  placeholder="e.g. Mathematics Courses"
+                />
+                <p className="text-xs text-gray-500">Group courses under this header on the courses page</p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="display_order">Display Order</Label>
+                <Input
+                  id="display_order"
+                  name="display_order"
+                  type="number"
+                  min="0"
+                  value={formData.display_order}
+                  onChange={handleNumberInputChange}
+                  placeholder="0"
+                />
+                <p className="text-xs text-gray-500">Lower numbers appear first</p>
               </div>
             </div>
             
