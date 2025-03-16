@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { useParams } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
 import { Plus } from "lucide-react";
@@ -23,6 +23,7 @@ const PodcastsList = () => {
     deletePodcast,
     sections,
     addHeader,
+    assignPodcastToHeader,
     error
   } = usePodcasts(courseId);
   
@@ -30,6 +31,12 @@ const PodcastsList = () => {
     console.log("PodcastsList - handleAddHeader called with:", headerText);
     if (courseId && headerText) {
       await addHeader(headerText);
+    }
+  };
+  
+  const handleAssignPodcast = async (podcastId: string, headerId: string) => {
+    if (courseId) {
+      await assignPodcastToHeader(podcastId, headerId);
     }
   };
   
@@ -77,6 +84,7 @@ const PodcastsList = () => {
                   courseId={courseId || ""}
                   formatDuration={formatDuration}
                   onDeletePodcast={deletePodcast}
+                  onAssignPodcast={handleAssignPodcast}
                   isLoading={false}
                 />
                 {index < sections.length - 1 && <Separator className="my-4" />}

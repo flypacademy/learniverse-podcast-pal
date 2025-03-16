@@ -86,6 +86,45 @@ export type Database = {
         }
         Relationships: []
       }
+      podcast_headers: {
+        Row: {
+          created_at: string
+          header_id: string
+          id: string
+          podcast_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          header_id: string
+          id?: string
+          podcast_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          header_id?: string
+          id?: string
+          podcast_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "podcast_headers_header_id_fkey"
+            columns: ["header_id"]
+            isOneToOne: false
+            referencedRelation: "course_headers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "podcast_headers_podcast_id_fkey"
+            columns: ["podcast_id"]
+            isOneToOne: false
+            referencedRelation: "podcasts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       podcasts: {
         Row: {
           audio_url: string

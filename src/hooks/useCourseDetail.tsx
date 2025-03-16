@@ -97,6 +97,12 @@ export const useCourseDetail = (courseId: string | undefined): UseCourseDetailRe
         const headers = headersData || [];
         console.log("Fetched headers:", headers);
         
+        // Create a map of header_id to header_text for faster lookups
+        const headerMap: Record<string, string> = {};
+        headers.forEach(header => {
+          headerMap[header.id] = header.header_text;
+        });
+        
         // Fetch podcasts data
         const { data: podcastsData, error: podcastsError } = await supabase
           .from('podcasts')
@@ -112,14 +118,35 @@ export const useCourseDetail = (courseId: string | undefined): UseCourseDetailRe
         
         const podcasts = podcastsData || [];
         
+        // Fetch podcast-header relationships
+        const { data: podcastHeadersData, error: podcastHeadersError } = await supabase
+          .from('podcast_headers')
+          .select('*')
+          .in('podcast_id', podcasts.map(p => p.id));
+        
+        if (podcastHeadersError) {
+          console.error("Error fetching podcast-header relationships:", podcastHeadersError);
+          // Continue even if relationship fetch fails
+        }
+        
+        // Create a map of podcast_id to header_text
+        const podcastToHeaderMap: Record<string, string> = {};
+        
+        if (podcastHeadersData) {
+          podcastHeadersData.forEach(ph => {
+            const headerText = headerMap[ph.header_id];
+            if (headerText) {
+              podcastToHeaderMap[ph.podcast_id] = headerText;
+            }
+          });
+        }
+        
+        console.log("Podcast to header map:", podcastToHeaderMap);
+        
         // Calculate total duration
         const totalDuration = podcasts.reduce((sum, podcast) => {
           return sum + (podcast.duration || 0);
         }, 0);
-        
-        // Assign headers to podcasts
-        // For now, assign all podcasts to the first header if one exists
-        const firstHeader = headers.length > 0 ? headers[0] : null;
         
         // Format course data
         const formattedCourse: Course = {
@@ -143,7 +170,7 @@ export const useCourseDetail = (courseId: string | undefined): UseCourseDetailRe
             progress: 0,
             completed: false,
             image: podcast.image_url || courseData.image_url || "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png",
-            header_text: firstHeader ? firstHeader.header_text : null
+            header_text: podcastToHeaderMap[podcast.id] || null
           }))
         };
         

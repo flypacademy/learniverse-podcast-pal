@@ -21,6 +21,13 @@ interface Section {
   podcasts: Podcast[];
 }
 
+interface PodcastHeader {
+  id: string;
+  podcast_id: string;
+  header_id: string;
+  header_text?: string;
+}
+
 export const usePodcasts = (courseId: string | undefined) => {
   const { toast } = useToast();
   const [courseName, setCourseName] = useState("");
@@ -137,25 +144,43 @@ export const usePodcasts = (courseId: string | undefined) => {
         throw error;
       }
       
-      // Process podcasts - IMPORTANT: For now, assign all podcasts to the first header
-      // In a real implementation, you would have a separate table linking podcasts to headers
+      // Fetch podcast-header relationships
+      const { data: podcastHeadersData, error: podcastHeadersError } = await supabase
+        .from('podcast_headers')
+        .select('*, course_headers!inner(id, header_text)')
+        .eq('course_headers.course_id', courseId);
+      
+      if (podcastHeadersError) {
+        console.error("Error fetching podcast headers relationships:", podcastHeadersError);
+      }
+      
+      console.log("Fetched podcast-header relationships:", podcastHeadersData);
+      
+      // Create a map of podcast_id to header_text
+      const podcastToHeaderMap: Record<string, { header_id: string, header_text: string }> = {};
+      
+      if (podcastHeadersData) {
+        podcastHeadersData.forEach(ph => {
+          const headerText = ph.course_headers?.header_text;
+          if (headerText) {
+            podcastToHeaderMap[ph.podcast_id] = {
+              header_id: ph.header_id,
+              header_text: headerText
+            };
+          }
+        });
+      }
+      
+      console.log("Podcast to header map:", podcastToHeaderMap);
+      
+      // Process podcasts with header relationships
       const processedPodcasts = (data || []).map(podcast => {
-        if (headers.length === 0) {
-          return {
-            ...podcast,
-            header_text: null,
-            course_header_id: null
-          };
-        }
-        
-        // For this implementation, let's use only the first header
-        // In a real app, this would be determined by a podcast_header relationship table
-        const header = headers[0];
+        const headerInfo = podcastToHeaderMap[podcast.id];
         
         return {
           ...podcast,
-          header_text: header.header_text,
-          course_header_id: header.id
+          header_text: headerInfo?.header_text || null,
+          course_header_id: headerInfo?.header_id || null
         };
       });
       
@@ -315,6 +340,57 @@ export const usePodcasts = (courseId: string | undefined) => {
     }
   };
   
+  const assignPodcastToHeader = async (podcastId: string, headerId: string) => {
+    try {
+      console.log(`Assigning podcast ${podcastId} to header ${headerId}`);
+      
+      // First, remove any existing header assignments for this podcast
+      const { error: deleteError } = await supabase
+        .from('podcast_headers')
+        .delete()
+        .eq('podcast_id', podcastId);
+      
+      if (deleteError) {
+        console.error("Error removing existing podcast-header relationships:", deleteError);
+        throw deleteError;
+      }
+      
+      // Then, insert the new relationship
+      const { data, error } = await supabase
+        .from('podcast_headers')
+        .insert([
+          {
+            podcast_id: podcastId,
+            header_id: headerId
+          }
+        ])
+        .select();
+      
+      if (error) {
+        console.error("Error assigning podcast to header:", error);
+        throw error;
+      }
+      
+      // Refresh podcasts to update the UI
+      await fetchPodcasts();
+      
+      toast({
+        title: "Podcast assigned",
+        description: "Podcast has been assigned to the header"
+      });
+      
+      return data;
+    } catch (error: any) {
+      console.error("Error in assignPodcastToHeader:", error);
+      toast({
+        title: "Error",
+        description: "Failed to assign podcast to header",
+        variant: "destructive"
+      });
+      throw error;
+    }
+  };
+  
   useEffect(() => {
     if (courseId) {
       fetchCourse();
@@ -329,6 +405,7 @@ export const usePodcasts = (courseId: string | undefined) => {
     loading,
     error,
     deletePodcast,
-    addHeader
+    addHeader,
+    assignPodcastToHeader
   };
 };
