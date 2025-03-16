@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ChevronLeft, Play, BookOpen, Clock, BarChart3 } from "lucide-react";
@@ -46,92 +45,91 @@ const CourseDetail = () => {
   
   useEffect(() => {
     const fetchCourseDetails = async () => {
-      if (!courseId) return;
-      
       try {
-        setLoading(true);
-        setError(null);
-        console.log("Fetching course details for:", courseId);
-        
-        // Fetch course with explicit conditional check
-        const courseResponse = await supabase
-          .from('courses')
-          .select('*')
-          .eq('id', courseId);
-        
-        if (courseResponse.error) {
-          console.error("Error fetching course:", courseResponse.error);
-          setError(`Failed to load course: ${courseResponse.error.message}`);
+        if (!courseId) {
+          setError("No course ID provided");
           setLoading(false);
           return;
         }
         
-        // Check if course exists
-        if (!courseResponse.data || courseResponse.data.length === 0) {
+        setLoading(true);
+        setError(null);
+        console.log("Fetching course details for:", courseId);
+        
+        const { data: courseData, error: courseError } = await supabase
+          .from('courses')
+          .select('*')
+          .eq('id', courseId);
+        
+        if (courseError) {
+          console.error("Error fetching course:", courseError);
+          setError(`Failed to load course: ${courseError.message}`);
+          setLoading(false);
+          return;
+        }
+        
+        if (!courseData || courseData.length === 0) {
           console.log("No course found with ID:", courseId);
           setError("Course not found");
           setLoading(false);
           return;
         }
         
-        const courseData = courseResponse.data[0];
-        console.log("Course data fetched:", courseData);
+        const course = courseData[0];
+        console.log("Course data fetched:", course);
         
-        // Fetch podcasts for the course
-        const podcastsResponse = await supabase
+        const { data: podcastsData, error: podcastsError } = await supabase
           .from('podcasts')
           .select('*')
           .eq('course_id', courseId);
         
-        if (podcastsResponse.error) {
-          console.error("Error fetching podcasts:", podcastsResponse.error);
-          setError(`Failed to load podcasts: ${podcastsResponse.error.message}`);
+        if (podcastsError) {
+          console.error("Error fetching podcasts:", podcastsError);
+          setError(`Failed to load podcasts: ${podcastsError.message}`);
           setLoading(false);
           return;
         }
         
-        const podcastsData = podcastsResponse.data || [];
-        console.log("Podcasts data fetched:", podcastsData);
+        const podcasts = podcastsData || [];
+        console.log("Podcasts data fetched:", podcasts);
         
-        // Calculate total duration
-        const totalDuration = podcastsData.reduce((sum, podcast) => sum + (podcast.duration || 0), 0);
+        const totalDuration = podcasts.reduce((sum, podcast) => {
+          return sum + (podcast.duration || 0);
+        }, 0);
         
-        // Transform podcasts data to match the expected format
-        const formattedPodcasts: Podcast[] = podcastsData.map(podcast => ({
-          id: podcast.id,
-          title: podcast.title,
-          courseId: podcast.course_id,
-          courseName: courseData.title,
-          duration: podcast.duration || 0,
-          progress: 0, // We'll fetch this from user_progress in a real app
-          completed: false, // We'll fetch this from user_progress in a real app
-          image: podcast.image_url || courseData.image_url || "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png"
-        }));
-        
-        // Set course with formatted data
-        setCourse({
-          id: courseData.id,
-          title: courseData.title,
-          subject: courseData.subject || "math",
-          description: courseData.description || "No description available",
-          totalPodcasts: podcastsData.length || 0,
-          completedPodcasts: 0, // Will be fetched from user_progress in a real app
+        const formattedCourse: Course = {
+          id: course.id,
+          title: course.title,
+          subject: course.subject || "math",
+          description: course.description || "No description available",
+          totalPodcasts: podcasts.length,
+          completedPodcasts: 0,
           totalDuration: totalDuration,
-          difficulty: "Intermediate", // Hardcoded for now
-          image: courseData.image_url || "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png",
-          podcasts: formattedPodcasts,
-          exam: courseData.exam || "GCSE",
-          board: courseData.board || "AQA"
-        });
+          difficulty: course.difficulty || "Intermediate",
+          image: course.image_url || "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png",
+          exam: course.exam || "GCSE",
+          board: course.board || "AQA",
+          podcasts: podcasts.map(podcast => ({
+            id: podcast.id,
+            title: podcast.title || "Untitled Podcast",
+            courseId: podcast.course_id,
+            courseName: course.title,
+            duration: podcast.duration || 0,
+            progress: 0,
+            completed: false,
+            image: podcast.image_url || course.image_url || "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png"
+          }))
+        };
         
+        setCourse(formattedCourse);
         setLoading(false);
-      } catch (error: any) {
-        console.error("Error in fetchCourseDetails:", error);
-        setError(error.message || "Failed to load course details");
+      } catch (err: any) {
+        console.error("Unexpected error in fetchCourseDetails:", err);
+        setError(err.message || "An unexpected error occurred");
         setLoading(false);
         toast({
           title: "Error",
-          description: error.message || "Failed to load course details",
+          description: err.message || "Failed to load course details",
           variant: "destructive"
         });
       }
@@ -144,16 +142,11 @@ const CourseDetail = () => {
     return (
       <Layout>
         <div className="space-y-6 pb-4 animate-slide-up">
-          {/* Header with back button skeleton */}
           <div className="flex items-center space-x-2 pt-4">
             <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse"></div>
             <div className="h-6 w-32 bg-gray-200 rounded animate-pulse"></div>
           </div>
-          
-          {/* Course Hero Section skeleton */}
           <div className="rounded-xl overflow-hidden relative h-48 bg-gray-200 animate-pulse"></div>
-          
-          {/* Progress Section skeleton */}
           <div className="bg-white rounded-xl shadow-sm p-4">
             <div className="flex justify-between items-center mb-2">
               <div className="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
@@ -161,8 +154,6 @@ const CourseDetail = () => {
             </div>
             <Skeleton className="h-2 w-full mt-2" />
           </div>
-          
-          {/* Tabs Section skeleton */}
           <div className="w-full">
             <div className="grid w-full grid-cols-2 mb-4">
               <Skeleton className="h-10 rounded-md" />
@@ -207,15 +198,14 @@ const CourseDetail = () => {
     );
   }
   
-  const completionPercentage = Math.round((course.completedPodcasts / course.totalPodcasts) * 100) || 0;
-  const subjectGradient = course.subject === "math" ? "bg-math-gradient" : 
-                         course.subject === "english" ? "bg-english-gradient" : 
+  const completionPercentage = Math.round((course?.completedPodcasts / course?.totalPodcasts) * 100) || 0;
+  const subjectGradient = course?.subject === "math" ? "bg-math-gradient" : 
+                         course?.subject === "english" ? "bg-english-gradient" : 
                          "bg-science-gradient";
   
   return (
     <Layout>
       <div className="space-y-6 pb-4 animate-slide-up">
-        {/* Header with back button */}
         <div className="flex items-center space-x-2 pt-4">
           <Link 
             to="/courses"
@@ -228,49 +218,46 @@ const CourseDetail = () => {
           </h1>
         </div>
         
-        {/* Course Hero Section */}
         <div className={`rounded-xl overflow-hidden relative ${subjectGradient}`}>
           <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-black/10 p-6 flex flex-col justify-end">
             <h2 className="font-display font-bold text-2xl text-white mb-1">
-              {course.title}
+              {course?.title}
             </h2>
             <p className="text-white/90 text-sm mb-4">
-              {course.description}
+              {course?.description}
             </p>
             <div className="flex justify-between items-center">
               <div className="text-white text-xs font-semibold bg-white/20 rounded-full px-3 py-1">
-                {course.difficulty}
+                {course?.difficulty}
               </div>
               <div className="flex items-center text-white text-xs">
                 <Clock className="w-3 h-3 mr-1" />
-                {Math.floor(course.totalDuration / 60)}h {course.totalDuration % 60}m
+                {Math.floor(course?.totalDuration / 60)}h {course?.totalDuration % 60}m
               </div>
             </div>
           </div>
           <img 
-            src={course.image} 
-            alt={course.title}
+            src={course?.image} 
+            alt={course?.title}
             className="w-full h-48 object-cover"
           />
         </div>
         
-        {/* Progress Section */}
         <div className="bg-white rounded-xl shadow-sm p-4">
           <div className="flex justify-between items-center mb-2">
             <h3 className="font-semibold">Your Progress</h3>
             <span className="text-sm text-gray-500">
-              {course.completedPodcasts}/{course.totalPodcasts} completed
+              {course?.completedPodcasts}/{course?.totalPodcasts} completed
             </span>
           </div>
           <ProgressBar 
             value={completionPercentage}
-            color={course.subject === "math" ? "bg-math-gradient" : 
-                  course.subject === "english" ? "bg-english-gradient" : 
+            color={course?.subject === "math" ? "bg-math-gradient" : 
+                  course?.subject === "english" ? "bg-english-gradient" : 
                   "bg-science-gradient"}
           />
         </div>
         
-        {/* Tabs Section */}
         <Tabs defaultValue="episodes" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="episodes">
@@ -284,7 +271,7 @@ const CourseDetail = () => {
           </TabsList>
           
           <TabsContent value="episodes" className="space-y-4 pt-4">
-            {course.podcasts.length > 0 ? (
+            {course?.podcasts.length > 0 ? (
               course.podcasts.map((podcast) => (
                 <PodcastCard 
                   key={podcast.id}
@@ -307,7 +294,7 @@ const CourseDetail = () => {
               <div>
                 <h3 className="font-semibold mb-2">Course Description</h3>
                 <p className="text-gray-600 text-sm">
-                  {course.description}
+                  {course?.description}
                 </p>
               </div>
               
@@ -324,7 +311,7 @@ const CourseDetail = () => {
                   </li>
                   <li className="flex items-start">
                     <div className="mr-2 mt-0.5 text-primary">•</div>
-                    <p>Build confidence for your {course.exam} exams</p>
+                    <p>Build confidence for your {course?.exam} exams</p>
                   </li>
                 </ul>
               </div>
@@ -334,14 +321,14 @@ const CourseDetail = () => {
                   <BarChart3 className="w-5 h-5 text-primary mr-3" />
                   <div>
                     <h4 className="font-medium text-sm">Difficulty Level</h4>
-                    <p className="text-xs text-gray-500">{course.difficulty}</p>
+                    <p className="text-xs text-gray-500">{course?.difficulty}</p>
                   </div>
                 </div>
                 <div className="flex items-center">
                   <Clock className="w-5 h-5 text-primary mr-3" />
                   <div>
                     <h4 className="font-medium text-sm">Total Duration</h4>
-                    <p className="text-xs text-gray-500">{Math.floor(course.totalDuration / 60)}h {course.totalDuration % 60}m</p>
+                    <p className="text-xs text-gray-500">{Math.floor(course?.totalDuration / 60)}h {course?.totalDuration % 60}m</p>
                   </div>
                 </div>
               </div>
