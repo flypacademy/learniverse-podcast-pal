@@ -75,15 +75,6 @@ const CourseCard = ({
       onClick={handleCardClick}
     >
       <Card className="overflow-hidden rounded-xl hover:shadow-lg transition-all duration-300 h-full">
-        {/* Bestseller or Featured tag - similar to the reference image */}
-        {achievements.some(a => a.type === "popular") && (
-          <div className="absolute top-4 left-4 z-10">
-            <Badge variant="default" className="bg-white/90 backdrop-blur-sm text-black font-medium px-3 py-1">
-              Bestseller
-            </Badge>
-          </div>
-        )}
-        
         {/* Card Header with Image */}
         <div className={`relative ${size === 'large' ? 'h-56' : 'h-48'}`}>
           {/* Background image or gradient */}
@@ -111,29 +102,21 @@ const CourseCard = ({
                 >
                   {achievement.type === "streak" && <Flame className="h-5 w-5 text-amber-500" />}
                   {achievement.type === "recommended" && <Award className="h-5 w-5 text-blue-500" />}
+                  {achievement.type === "popular" && <Star className="h-5 w-5 text-purple-500" />}
                   {achievement.type === "complete" && <Trophy className="h-5 w-5 text-green-500" />}
                 </div>
               ))}
             </div>
           )}
-          
-          {/* Subject badge */}
-          <div className="absolute bottom-20 left-4">
-            <Badge className={`${getSubjectColor()} font-semibold px-3 py-1`}>
-              {subject.charAt(0).toUpperCase() + subject.slice(1)}
-            </Badge>
-          </div>
-          
-          {/* Course title - prominent display */}
-          <div className="absolute bottom-4 left-4 right-4">
-            <h3 className="text-white font-bold text-2xl leading-tight">
-              {title}
-            </h3>
-          </div>
         </div>
         
-        {/* Progress and info section */}
-        <div className="p-4 bg-white">
+        {/* Info section with glass effect */}
+        <div className="p-4 bg-white/80 backdrop-blur-md border-t border-white/20">
+          {/* Course title - moved here from image */}
+          <h3 className="text-gray-900 font-bold text-xl leading-tight mb-3">
+            {title}
+          </h3>
+          
           <div className="flex items-center justify-between mb-3">
             {/* Exam & board info */}
             <div className="flex space-x-2">
