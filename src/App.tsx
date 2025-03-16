@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from "@/lib/supabase";
 import { Session } from '@supabase/supabase-js';
 import { Toaster } from "@/components/ui/toaster"
 
@@ -24,12 +24,6 @@ import AdminUsers from './pages/admin/users/AdminUsers';
 import AdminSettings from './pages/admin/settings/AdminSettings';
 import NotFound from './pages/NotFound';
 import PodcastForm from './pages/admin/podcasts/PodcastForm';
-
-// Supabase client configuration
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://bofabebqofwfevliiuvf.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvZmFiZWJxb2Z3ZmV2bGlpdXZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE5MjI4NjcsImV4cCI6MjA1NzQ5ODg2N30.3Op3A2CeHzxcU0JvXQgQXyfFeNg2rqacZCp9Lij7EPI';
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 function App() {
   const [session, setSession] = useState<Session | null>(null);
