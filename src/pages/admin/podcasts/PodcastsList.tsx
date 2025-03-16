@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
@@ -56,7 +55,6 @@ const PodcastsList = () => {
       setLoading(true);
       
       try {
-        // Fetch podcasts for this course
         const { data, error } = await supabase
           .from('podcasts')
           .select('*')
@@ -65,7 +63,6 @@ const PodcastsList = () => {
         
         if (error) throw error;
         
-        // Get quiz question count for each podcast
         const podcastsWithQuizCount = await Promise.all(
           (data || []).map(async (podcast) => {
             const { count } = await supabase
@@ -99,7 +96,6 @@ const PodcastsList = () => {
     }
   }, [courseId]);
   
-  // Format duration from seconds to mm:ss
   const formatDuration = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
@@ -188,7 +184,7 @@ const PodcastsList = () => {
                         </Link>
                       </Button>
                       <Button variant="outline" size="sm" asChild>
-                        <Link to={`/admin/podcasts/${podcast.id}/edit`}>
+                        <Link to={`/admin/courses/${courseId}/podcasts/${podcast.id}/edit`}>
                           <Edit className="h-4 w-4" />
                         </Link>
                       </Button>

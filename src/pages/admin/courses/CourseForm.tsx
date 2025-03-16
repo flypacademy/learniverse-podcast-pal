@@ -24,6 +24,8 @@ interface CourseFormData {
   subject: string;
   description: string;
   image_url: string;
+  exam: string;
+  board: string;
 }
 
 const CourseForm = () => {
@@ -37,6 +39,8 @@ const CourseForm = () => {
     subject: "math",
     description: "",
     image_url: "",
+    exam: "GCSE",
+    board: "AQA"
   });
   
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -62,6 +66,8 @@ const CourseForm = () => {
               subject: data.subject,
               description: data.description || "",
               image_url: data.image_url || "",
+              exam: data.exam || "GCSE",
+              board: data.board || "AQA"
             });
             
             if (data.image_url) {
@@ -96,6 +102,20 @@ const CourseForm = () => {
     setFormData({
       ...formData,
       subject: value,
+    });
+  };
+
+  const handleExamChange = (value: string) => {
+    setFormData({
+      ...formData,
+      exam: value,
+    });
+  };
+
+  const handleBoardChange = (value: string) => {
+    setFormData({
+      ...formData,
+      board: value,
     });
   };
   
@@ -141,6 +161,8 @@ const CourseForm = () => {
         subject: formData.subject,
         description: formData.description,
         image_url: imageUrl || null,
+        exam: formData.exam,
+        board: formData.board
       };
       
       console.log("Submitting course data:", courseData);
@@ -254,6 +276,50 @@ const CourseForm = () => {
                       <SelectItem value="science">Science</SelectItem>
                       <SelectItem value="history">History</SelectItem>
                       <SelectItem value="languages">Languages</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="exam">Exam</Label>
+                <Select 
+                  value={formData.exam} 
+                  onValueChange={handleExamChange}
+                >
+                  <SelectTrigger id="exam">
+                    <SelectValue placeholder="Select an exam" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="GCSE">GCSE</SelectItem>
+                      <SelectItem value="IGCSE">IGCSE</SelectItem>
+                      <SelectItem value="A-Level">A-Level</SelectItem>
+                      <SelectItem value="IB">IB</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="board">Exam Board</Label>
+                <Select 
+                  value={formData.board} 
+                  onValueChange={handleBoardChange}
+                >
+                  <SelectTrigger id="board">
+                    <SelectValue placeholder="Select an exam board" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="AQA">AQA</SelectItem>
+                      <SelectItem value="OCR">OCR</SelectItem>
+                      <SelectItem value="CIE">CIE</SelectItem>
+                      <SelectItem value="Edexcel">Edexcel</SelectItem>
+                      <SelectItem value="CCEA">CCEA</SelectItem>
+                      <SelectItem value="WJEC">WJEC</SelectItem>
                     </SelectGroup>
                   </SelectContent>
                 </Select>
