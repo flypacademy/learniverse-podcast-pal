@@ -4,38 +4,32 @@ import { useToast } from "@/components/ui/use-toast";
 import { useAudioStore } from "@/lib/audioContext";
 import { useAudioControls } from "./audioPlayback/useAudioControls";
 import { useAudioEvents } from "./audioPlayback/useAudioEvents";
+import { useAudioState } from "./audioPlayback/useAudioState";
+import { useAudioSync } from "./audioPlayback/useAudioSync";
 
 export function useAudioPlayback(initialPosition: number = 0) {
   const { toast } = useToast();
   const globalAudioStore = useAudioStore();
   const isUnmountingRef = useRef(false);
   
-  // State
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [duration, setDuration] = useState(0);
-  const [currentTime, setCurrentTime] = useState(initialPosition);
-  const [volume, setVolume] = useState(0.8);
-  const [ready, setReady] = useState(false);
+  // Audio state management using a dedicated hook
+  const {
+    isPlaying, setIsPlaying,
+    duration, setDuration,
+    currentTime, setCurrentTime,
+    volume, setVolume,
+    ready, setReady,
+    audioRef
+  } = useAudioState(initialPosition);
   
-  // Refs
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const isInitialSyncRef = useRef(true);
-  
-  // Sync with global audio store if already playing
-  useEffect(() => {
-    if (globalAudioStore.audioElement && isInitialSyncRef.current) {
-      console.log("Syncing state with global audio store");
-      setIsPlaying(globalAudioStore.isPlaying);
-      setCurrentTime(globalAudioStore.currentTime);
-      setDuration(globalAudioStore.duration || 0);
-      setVolume(globalAudioStore.volume);
-      isInitialSyncRef.current = false;
-    }
-    
-    return () => {
-      isUnmountingRef.current = true;
-    };
-  }, [globalAudioStore]);
+  // Sync with global audio store
+  useAudioSync({
+    globalAudioStore,
+    setIsPlaying,
+    setCurrentTime,
+    setDuration,
+    setVolume
+  });
   
   // Set up audio controls
   const { 
@@ -58,6 +52,13 @@ export function useAudioPlayback(initialPosition: number = 0) {
     audioRef,
     setIsPlaying
   });
+  
+  // Set unmounting flag on cleanup
+  useEffect(() => {
+    return () => {
+      isUnmountingRef.current = true;
+    };
+  }, []);
 
   return {
     isPlaying,

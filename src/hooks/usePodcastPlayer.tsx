@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { usePodcastData } from "./usePodcastData";
 import { useAudioPlayback } from "./useAudioPlayback";
@@ -13,6 +13,7 @@ export function usePodcastPlayer() {
   const { podcastId } = useParams<{ podcastId: string }>();
   const [audioInitialized, setAudioInitialized] = useState(false);
   const audioStore = useAudioStore();
+  const mountedRef = useRef(true);
   
   // Get podcast data
   const {
@@ -67,6 +68,14 @@ export function usePodcastPlayer() {
       }
     }
   }, [audioRef.current, initialPosition, audioInitialized, ready, setCurrentTime]);
+
+  // Track mounted state
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // IMPORTANT: Don't stop playback when unmounting the component
   useEffect(() => {

@@ -15,6 +15,14 @@ export function useAudioControls({
   toast 
 }: UseAudioControlsProps) {
   const isPlayAttemptedRef = useRef(false);
+  const timeoutRef = useRef<number | null>(null);
+
+  const clearPlayTimeout = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  };
 
   const play = () => {
     if (!audioRef.current) {
@@ -24,14 +32,17 @@ export function useAudioControls({
     
     console.log("Playing audio");
     isPlayAttemptedRef.current = true;
+    clearPlayTimeout();
     
     // Check if the audio is actually loaded and ready
     if (audioRef.current.readyState < 2) {
       console.log("Audio not ready yet, loading...");
       
       const canPlayHandler = () => {
+        if (!audioRef.current) return;
+        
         console.log("Audio is now ready to play");
-        audioRef.current?.play()
+        audioRef.current.play()
           .then(() => {
             console.log("Audio playback started successfully");
             setIsPlaying(true);
@@ -46,29 +57,42 @@ export function useAudioControls({
           });
         
         // Remove event listener
-        audioRef.current?.removeEventListener('canplay', canPlayHandler);
+        audioRef.current.removeEventListener('canplay', canPlayHandler);
       };
       
       // Add event listener for when audio can play
       audioRef.current.addEventListener('canplay', canPlayHandler);
       
       // Also set a timeout in case canplay never fires
-      setTimeout(() => {
-        if (!isPlayAttemptedRef.current) return;
+      timeoutRef.current = window.setTimeout(() => {
+        if (!isPlayAttemptedRef.current || !audioRef.current) return;
         
         console.log("Timeout: trying to play anyway");
-        audioRef.current?.play()
+        audioRef.current.play()
           .then(() => {
             console.log("Audio playback started successfully after timeout");
             setIsPlaying(true);
           })
           .catch(err => {
             console.error("Error playing audio after timeout:", err);
-            toast({
-              title: "Playback Error",
-              description: "Could not play audio. Try reloading the page.",
-              variant: "destructive"
-            });
+            // Try once more after a longer delay
+            timeoutRef.current = window.setTimeout(() => {
+              if (audioRef.current) {
+                audioRef.current.play()
+                  .then(() => {
+                    console.log("Audio playback started successfully after second attempt");
+                    setIsPlaying(true);
+                  })
+                  .catch(finalErr => {
+                    console.error("Final error playing audio:", finalErr);
+                    toast({
+                      title: "Playback Error",
+                      description: "Could not play audio. Try reloading the page.",
+                      variant: "destructive"
+                    });
+                  });
+              }
+            }, 1000);
           });
       }, 2000);
       
@@ -92,6 +116,8 @@ export function useAudioControls({
   };
   
   const pause = () => {
+    clearPlayTimeout();
+    
     if (audioRef.current) {
       console.log("Pausing audio");
       audioRef.current.pause();

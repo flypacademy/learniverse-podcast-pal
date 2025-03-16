@@ -1,5 +1,5 @@
 
-import { RefObject, useEffect } from "react";
+import { RefObject, useEffect, useRef } from "react";
 
 interface UseAudioEventsProps {
   audioRef: RefObject<HTMLAudioElement>;
@@ -10,8 +10,18 @@ export function useAudioEvents({
   audioRef, 
   setIsPlaying 
 }: UseAudioEventsProps) {
+  const mountedRef = useRef(true);
   
   useEffect(() => {
+    mountedRef.current = true;
+    
+    // Safely update state only if the component is still mounted
+    const safeSetIsPlaying = (value: boolean) => {
+      if (mountedRef.current) {
+        setIsPlaying(value);
+      }
+    };
+    
     const audioElement = audioRef.current;
     
     if (!audioElement) {
@@ -19,9 +29,9 @@ export function useAudioEvents({
     }
     
     // Define event handlers
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
-    const handleEnded = () => setIsPlaying(false);
+    const handlePlay = () => safeSetIsPlaying(true);
+    const handlePause = () => safeSetIsPlaying(false);
+    const handleEnded = () => safeSetIsPlaying(false);
     const handleCanPlay = () => {
       console.log("Audio is ready to play");
     };
@@ -34,10 +44,14 @@ export function useAudioEvents({
     
     // Cleanup on unmount
     return () => {
-      audioElement.removeEventListener('play', handlePlay);
-      audioElement.removeEventListener('pause', handlePause);
-      audioElement.removeEventListener('ended', handleEnded);
-      audioElement.removeEventListener('canplay', handleCanPlay);
+      mountedRef.current = false;
+      
+      if (audioElement) {
+        audioElement.removeEventListener('play', handlePlay);
+        audioElement.removeEventListener('pause', handlePause);
+        audioElement.removeEventListener('ended', handleEnded);
+        audioElement.removeEventListener('canplay', handleCanPlay);
+      }
     };
   }, [audioRef, setIsPlaying]);
   
