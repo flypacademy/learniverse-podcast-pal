@@ -6,7 +6,7 @@ import { createAudioPlaybackSlice } from './audioPlayback';
 import { createAudioLifecycleSlice } from './audioLifecycle';
 
 // Create the combined audio store with all the slices
-export const useAudioStore = create<AudioState>((set, get) => ({
+export const useAudioStore = create<AudioState>((set, get, api) => ({
   // Initial state
   audioElement: null,
   isPlaying: false,
@@ -17,7 +17,7 @@ export const useAudioStore = create<AudioState>((set, get) => ({
   podcastMeta: null,
   
   // Include all the slices
-  ...createAudioSetupSlice(set, get),
-  ...createAudioPlaybackSlice(set, get),
-  ...createAudioLifecycleSlice(set, get),
+  ...createAudioSetupSlice(set, get, api),
+  ...createAudioPlaybackSlice(set, get, api),
+  ...createAudioLifecycleSlice(set, get, api),
 }));

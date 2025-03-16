@@ -1,4 +1,3 @@
-
 import { StateCreator } from 'zustand';
 import { AudioState } from './types';
 
@@ -13,7 +12,7 @@ export const createAudioLifecycleSlice: StateCreator<
   [],
   [],
   AudioLifecycleSlice
-> = (set, get) => ({
+> = (set, get, api) => ({
   // Method to continue playback using stored metadata
   continuePlayback: () => {
     const meta = get().podcastMeta;

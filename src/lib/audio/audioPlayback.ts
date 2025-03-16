@@ -1,4 +1,3 @@
-
 import { StateCreator } from 'zustand';
 import { AudioState } from './types';
 
@@ -16,7 +15,7 @@ export const createAudioPlaybackSlice: StateCreator<
   [],
   [],
   AudioPlaybackSlice
-> = (set, get) => ({
+> = (set, get, api) => ({
   play: () => {
     const { audioElement, podcastMeta } = get();
     

@@ -1,4 +1,3 @@
-
 import { StateCreator } from 'zustand';
 import { AudioState, PodcastMeta } from './types';
 
@@ -13,7 +12,7 @@ export const createAudioSetupSlice: StateCreator<
   [],
   [],
   AudioSetupSlice
-> = (set, get) => ({
+> = (set, get, api) => ({
   setAudio: (audioElement, podcastId, meta) => {
     // If this is the same podcast that's already playing, don't reset
     const currentAudio = get().audioElement;
