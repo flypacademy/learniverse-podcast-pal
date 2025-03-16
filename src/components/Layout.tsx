@@ -19,7 +19,7 @@ const Layout = ({ children }: LayoutProps) => {
   
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-white to-gray-50">
-      <main className="flex-1 pb-24 pt-6 px-4 max-w-md mx-auto w-full">
+      <main className={`flex-1 pb-24 pt-6 px-4 max-w-md mx-auto w-full ${showMiniPlayer ? 'pb-32' : ''}`}>
         {children}
       </main>
       
