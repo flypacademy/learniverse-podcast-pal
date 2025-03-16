@@ -25,7 +25,7 @@ const Layout = ({ children }: LayoutProps) => {
       
       {/* Mini Player */}
       {showMiniPlayer && podcastMeta && (
-        <div className="fixed bottom-16 left-0 right-0 z-20">
+        <div className="fixed bottom-36 left-0 right-0 z-20">
           <div className="max-w-md mx-auto px-4">
             <MiniPlayer 
               podcastId={podcastMeta.id}
