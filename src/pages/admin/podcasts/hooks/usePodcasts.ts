@@ -137,16 +137,25 @@ export const usePodcasts = (courseId: string | undefined) => {
         throw error;
       }
       
-      // Process podcasts to include header_text from course_headers
+      // Process podcasts - IMPORTANT: For now, assign all podcasts to the first header
+      // In a real implementation, you would have a separate table linking podcasts to headers
       const processedPodcasts = (data || []).map(podcast => {
-        // We'll assign each podcast to its first header alphabetically for now
-        // In a real app, you'd have a podcast_header table to manage this relationship
-        const header = headers.length > 0 ? headers[0] : null;
+        if (headers.length === 0) {
+          return {
+            ...podcast,
+            header_text: null,
+            course_header_id: null
+          };
+        }
+        
+        // For this implementation, let's use only the first header
+        // In a real app, this would be determined by a podcast_header relationship table
+        const header = headers[0];
         
         return {
           ...podcast,
-          header_text: header ? header.header_text : null,
-          course_header_id: header ? header.id : null
+          header_text: header.header_text,
+          course_header_id: header.id
         };
       });
       

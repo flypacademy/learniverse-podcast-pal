@@ -118,9 +118,8 @@ export const useCourseDetail = (courseId: string | undefined): UseCourseDetailRe
         }, 0);
         
         // Assign headers to podcasts
-        // In a real app, you'd have a podcast_header table to manage this relationship
-        // For now, we'll assign the first header to all podcasts
-        const headerText = headers.length > 0 ? headers[0].header_text : null;
+        // For now, assign all podcasts to the first header if one exists
+        const firstHeader = headers.length > 0 ? headers[0] : null;
         
         // Format course data
         const formattedCourse: Course = {
@@ -144,7 +143,7 @@ export const useCourseDetail = (courseId: string | undefined): UseCourseDetailRe
             progress: 0,
             completed: false,
             image: podcast.image_url || courseData.image_url || "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png",
-            header_text: headerText
+            header_text: firstHeader ? firstHeader.header_text : null
           }))
         };
         
