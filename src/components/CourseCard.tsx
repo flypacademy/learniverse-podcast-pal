@@ -106,9 +106,14 @@ const CourseCard = ({
             </span>
           </div>
           
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col items-start justify-end p-4">
-            <h3 className="text-white font-medium text-lg">{title}</h3>
-            <p className="text-white/80 text-sm">{subject} Course</p>
+          {/* Course title overlay - updated for better visibility */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent flex flex-col items-start justify-end p-4">
+            <h3 className="text-white font-semibold text-lg leading-tight">{title}</h3>
+            <div className="flex items-center mt-1">
+              <span className="text-white/90 text-sm px-2 py-0.5 bg-primary/30 rounded-full backdrop-blur-sm">
+                {subject} Course
+              </span>
+            </div>
           </div>
           
           {/* Frosted glass progress overlay */}

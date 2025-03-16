@@ -61,7 +61,7 @@ const streakData = [
   { date: "2023-06-18", completed: false }
 ];
 
-// Mock leaderboard data
+// Mock leaderboard data - fix type error by using string literals for change values
 const leaderboardData = [
   { id: "user1", name: "Alex", xp: 2430, rank: 1, change: "same" as const },
   { id: "user2", name: "Jordan", xp: 2180, rank: 2, change: "up" as const },
