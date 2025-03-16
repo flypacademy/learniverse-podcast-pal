@@ -1,7 +1,9 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ui/use-toast";
+import { useAudioStore } from "@/lib/audioContext";
 
 export interface PodcastData {
   id: string;
@@ -44,22 +46,50 @@ export function usePodcastPlayer() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
   useEffect(() => {
+    console.log("usePodcastPlayer hook - Initial render with podcastId:", podcastId);
+    
     async function fetchPodcastData() {
-      if (!podcastId) return;
+      if (!podcastId) {
+        console.error("No podcastId provided");
+        setError("No podcast ID found");
+        setLoading(false);
+        return;
+      }
+      
+      console.log("Fetching podcast data for ID:", podcastId);
       
       try {
-        const { data: podcastData, error: podcastError } = await supabase
+        // Fetch podcast data with timeout handling
+        const podcastPromise = supabase
           .from('podcasts')
           .select('*')
           .eq('id', podcastId)
           .single();
+          
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Podcast fetch timed out")), 10000)
+        );
         
-        if (podcastError) throw podcastError;
-        if (!podcastData) throw new Error('Podcast not found');
+        const { data: podcastData, error: podcastError } = await Promise.race([
+          podcastPromise,
+          timeoutPromise
+        ]) as any;
         
+        if (podcastError) {
+          console.error("Error fetching podcast:", podcastError);
+          throw podcastError;
+        }
+        
+        if (!podcastData) {
+          console.error("Podcast not found");
+          throw new Error('Podcast not found');
+        }
+        
+        console.log("Podcast data fetched successfully:", podcastData);
         setPodcastData(podcastData);
         
         if (podcastData.course_id) {
+          console.log("Fetching course data for course ID:", podcastData.course_id);
           const { data: courseData, error: courseError } = await supabase
             .from('courses')
             .select('id, title, image_url')
@@ -69,6 +99,7 @@ export function usePodcastPlayer() {
           if (courseError) {
             console.error("Error fetching course:", courseError);
           } else if (courseData) {
+            console.log("Course data fetched successfully:", courseData);
             const formattedCourseData: CourseData = {
               id: courseData.id,
               title: courseData.title,
@@ -86,11 +117,13 @@ export function usePodcastPlayer() {
         if (quizError) {
           console.error("Error checking quiz:", quizError);
         } else {
+          console.log("Quiz questions count:", count);
           setIsQuizAvailable(!!count && count > 0);
         }
         
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
+          console.log("User session found, fetching progress data");
           const { data: progressData } = await supabase
             .from('user_progress')
             .select('last_position, completed')
@@ -99,16 +132,17 @@ export function usePodcastPlayer() {
             .maybeSingle();
           
           if (progressData) {
+            console.log("Progress data found:", progressData);
             handleProgressData(progressData);
           }
         }
         
       } catch (error: any) {
-        console.error("Error fetching podcast:", error);
+        console.error("Error in fetchPodcastData:", error);
         setError(error.message || "Failed to load podcast");
         toast({
           title: "Error",
-          description: "Failed to load podcast",
+          description: "Failed to load podcast: " + (error.message || "Unknown error"),
           variant: "destructive"
         });
       } finally {
@@ -117,10 +151,20 @@ export function usePodcastPlayer() {
     }
     
     fetchPodcastData();
+    
+    // Cleanup function
+    return () => {
+      console.log("usePodcastPlayer hook - Cleaning up");
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+      }
+    };
   }, [podcastId, toast]);
   
   const handleProgressData = (progressData: PodcastProgressData) => {
     if (progressData.last_position > 0) {
+      console.log("Setting initial time from progress data:", progressData.last_position);
       setCurrentTime(progressData.last_position);
       if (audioRef.current) {
         audioRef.current.currentTime = progressData.last_position;
@@ -130,19 +174,37 @@ export function usePodcastPlayer() {
   
   const play = () => {
     if (audioRef.current) {
-      audioRef.current.play();
+      console.log("Playing audio");
+      audioRef.current.play()
+        .then(() => {
+          console.log("Audio playback started successfully");
+        })
+        .catch(err => {
+          console.error("Error playing audio:", err);
+          toast({
+            title: "Playback Error",
+            description: "Could not play audio: " + err.message,
+            variant: "destructive"
+          });
+        });
       setIsPlaying(true);
+    } else {
+      console.warn("Play called but audioRef is null");
     }
   };
   
   const pause = () => {
     if (audioRef.current) {
+      console.log("Pausing audio");
       audioRef.current.pause();
       setIsPlaying(false);
+    } else {
+      console.warn("Pause called but audioRef is null");
     }
   };
   
   const togglePlayPause = () => {
+    console.log("Toggle play/pause, current state:", isPlaying);
     if (isPlaying) {
       pause();
     } else {
@@ -152,42 +214,62 @@ export function usePodcastPlayer() {
   
   const seek = (time: number) => {
     if (audioRef.current) {
+      console.log("Seeking to time:", time);
       audioRef.current.currentTime = time;
       setCurrentTime(time);
+    } else {
+      console.warn("Seek called but audioRef is null");
     }
   };
   
   const changeVolume = (value: number) => {
     if (audioRef.current) {
+      console.log("Changing volume to:", value);
       audioRef.current.volume = value;
       setVolume(value);
+    } else {
+      console.warn("changeVolume called but audioRef is null");
     }
   };
   
   const skipForward = () => {
     if (audioRef.current) {
       const newTime = Math.min(audioRef.current.duration, audioRef.current.currentTime + 15);
+      console.log("Skipping forward to:", newTime);
       audioRef.current.currentTime = newTime;
       setCurrentTime(newTime);
+    } else {
+      console.warn("skipForward called but audioRef is null");
     }
   };
   
   const skipBackward = () => {
     if (audioRef.current) {
       const newTime = Math.max(0, audioRef.current.currentTime - 15);
+      console.log("Skipping backward to:", newTime);
       audioRef.current.currentTime = newTime;
       setCurrentTime(newTime);
+    } else {
+      console.warn("skipBackward called but audioRef is null");
     }
   };
   
   const saveProgress = async (completed = false) => {
-    if (!audioRef.current || !podcastId) return;
+    if (!audioRef.current || !podcastId) {
+      console.warn("saveProgress called but audioRef or podcastId is null");
+      return;
+    }
     
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return;
+    if (!session?.user) {
+      console.log("No user session found, not saving progress");
+      return;
+    }
     
     const userId = session.user.id;
     const last_position = Math.floor(audioRef.current.currentTime);
+    
+    console.log("Saving progress:", { podcastId, userId, last_position, completed });
     
     try {
       const { error } = await supabase
@@ -204,6 +286,8 @@ export function usePodcastPlayer() {
       
       if (error) {
         console.error("Error saving progress:", error);
+      } else {
+        console.log("Progress saved successfully");
       }
     } catch (error) {
       console.error("Exception saving progress:", error);
@@ -221,6 +305,7 @@ export function usePodcastPlayer() {
   }, [isPlaying, podcastId]);
   
   const handleCompletion = async () => {
+    console.log("Handling podcast completion");
     await saveProgress(true);
     setShowXPModal(true);
   };

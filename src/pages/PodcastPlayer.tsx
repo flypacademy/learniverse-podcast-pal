@@ -12,6 +12,7 @@ import PodcastDescription from "@/components/podcast/PodcastDescription";
 import QuizButton from "@/components/podcast/QuizButton";
 import XPModal from "@/components/podcast/XPModal";
 import { usePodcastPlayer } from "@/hooks/usePodcastPlayer";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const PodcastPlayer = () => {
   const navigate = useNavigate();
@@ -42,6 +43,17 @@ const PodcastPlayer = () => {
     skipBackward,
     handleCompletion
   } = usePodcastPlayer();
+  
+  // Debug logs to help diagnose issues
+  useEffect(() => {
+    console.log("PodcastPlayer render state:", { 
+      loading, 
+      error, 
+      podcastDataExists: !!podcastData,
+      courseDataExists: !!courseData,
+      ready
+    });
+  }, [loading, error, podcastData, courseData, ready]);
   
   // If there's an error, show it
   if (error) {
@@ -103,9 +115,16 @@ const PodcastPlayer = () => {
               src={podcastData.audio_url}
               onLoadedMetadata={() => {
                 if (audioRef.current) {
+                  console.log("Audio loaded metadata:", {
+                    duration: audioRef.current.duration,
+                    src: audioRef.current.src
+                  });
                   setDuration(audioRef.current.duration);
                   setReady(true);
                 }
+              }}
+              onError={(e) => {
+                console.error("Audio element error:", e);
               }}
               onTimeUpdate={() => {
                 if (audioRef.current) {
