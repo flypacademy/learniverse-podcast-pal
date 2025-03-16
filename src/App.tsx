@@ -8,8 +8,6 @@ import PodcastPlayer from "./pages/PodcastPlayer";
 import PodcastSample from "./pages/PodcastSample";
 import CourseDetail from "./pages/CourseDetail";
 import NotFound from "./pages/NotFound";
-import Auth from "./pages/Auth";
-import AuthCallback from "./pages/AuthCallback";
 
 // Admin pages
 import AdminLogin from "./pages/admin/AdminLogin";
@@ -28,10 +26,6 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Auth Routes */}
-        <Route path="/auth" element={<Auth />} />
-        <Route path="/auth/callback" element={<AuthCallback />} />
-        
         {/* User Routes */}
         <Route path="/" element={<Index />} />
         <Route path="/courses" element={<Courses />} />

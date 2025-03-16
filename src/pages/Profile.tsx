@@ -5,7 +5,6 @@ import Layout from "@/components/Layout";
 import ProgressBar from "@/components/ProgressBar";
 import StreakCalendar from "@/components/StreakCalendar";
 import AchievementBadge from "@/components/AchievementBadge";
-import { useAuth } from "@/context/AuthContext";
 
 // Mock data
 const userData = {
@@ -76,15 +75,9 @@ const activityDays = [
 ];
 
 const Profile = () => {
-  const { user } = useAuth();
-  
-  // Use user data if available
-  const displayName = user ? (user.email?.split('@')[0] || "User") : userData.name;
-  const displayEmail = user ? user.email : userData.email;
-
   return (
     <Layout>
-      <div className="space-y-6 animate-slide-up pb-16">
+      <div className="space-y-6 animate-slide-up">
         <div className="pt-4 flex justify-between items-start">
           <div>
             <h1 className="font-display font-bold text-2xl text-gray-900">
@@ -101,14 +94,14 @@ const Profile = () => {
         <div className="glass-card p-5 rounded-xl">
           <div className="flex items-center gap-4">
             <div className="h-16 w-16 rounded-full bg-gradient-to-r from-brand-blue to-brand-purple text-white flex items-center justify-center font-display font-bold text-xl">
-              {displayName.charAt(0)}
+              {userData.name.charAt(0)}
             </div>
             
             <div className="flex-1">
               <h2 className="font-display font-semibold text-xl">
-                {displayName}
+                {userData.name}
               </h2>
-              <p className="text-gray-500 text-sm">{displayEmail}</p>
+              <p className="text-gray-500 text-sm">{userData.email}</p>
               
               <div className="mt-1.5">
                 <div className="flex justify-between text-xs mb-1">
@@ -208,9 +201,6 @@ const Profile = () => {
             </div>
           </div>
         </div>
-        
-        {/* Bottom spacing to prevent overlap with navigation */}
-        <div className="h-20"></div>
       </div>
     </Layout>
   );
