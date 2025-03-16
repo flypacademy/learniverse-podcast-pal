@@ -27,7 +27,7 @@ export interface CourseData {
 }
 
 export function usePodcastPlayer() {
-  const { podcastId } = useParams();
+  const { podcastId } = useParams<{ podcastId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   

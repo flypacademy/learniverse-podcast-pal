@@ -45,7 +45,7 @@ function App() {
         <Route path="/" element={<Index />} />
         <Route path="/courses" element={<Courses />} />
         <Route path="/course/:courseId" element={<CourseDetail />} />
-        <Route path="/podcast/:id" element={<PodcastPlayer />} />
+        <Route path="/podcast/:podcastId" element={<PodcastPlayer />} />
         <Route path="/podcast-sample" element={<PodcastSample />} />
 
         {/* Student routes */}

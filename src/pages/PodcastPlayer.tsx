@@ -1,6 +1,6 @@
 
 import React, { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import Layout from "@/components/Layout";
 import PodcastHeader from "@/components/podcast/PodcastHeader";
 import PodcastCover from "@/components/podcast/PodcastCover";
@@ -15,7 +15,13 @@ import { usePodcastPlayer } from "@/hooks/usePodcastPlayer";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const PodcastPlayer = () => {
+  const { podcastId } = useParams<{ podcastId: string }>();
   const navigate = useNavigate();
+  
+  useEffect(() => {
+    console.log("PodcastPlayer rendered with podcastId:", podcastId);
+  }, [podcastId]);
+  
   const {
     podcastData,
     courseData,
@@ -51,9 +57,10 @@ const PodcastPlayer = () => {
       error, 
       podcastDataExists: !!podcastData,
       courseDataExists: !!courseData,
-      ready
+      ready,
+      podcastId
     });
-  }, [loading, error, podcastData, courseData, ready]);
+  }, [loading, error, podcastData, courseData, ready, podcastId]);
   
   // If there's an error, show it
   if (error) {
