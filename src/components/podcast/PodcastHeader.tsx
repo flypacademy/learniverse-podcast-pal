@@ -5,9 +5,10 @@ import { ChevronLeft } from "lucide-react";
 
 interface PodcastHeaderProps {
   courseName: string;
+  title?: string; // Make title optional to maintain backward compatibility
 }
 
-const PodcastHeader = ({ courseName }: PodcastHeaderProps) => {
+const PodcastHeader = ({ courseName, title }: PodcastHeaderProps) => {
   const navigate = useNavigate();
   
   return (
@@ -20,7 +21,7 @@ const PodcastHeader = ({ courseName }: PodcastHeaderProps) => {
       </button>
       <div>
         <h1 className="font-display font-semibold text-lg text-gray-900">
-          Now Playing
+          {title || "Now Playing"}
         </h1>
         <p className="text-sm text-gray-500">{courseName}</p>
       </div>

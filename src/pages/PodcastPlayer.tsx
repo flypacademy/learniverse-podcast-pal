@@ -34,6 +34,7 @@ const PodcastPlayer = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showXPModal, setShowXPModal] = useState(false);
+  const [courseName, setCourseName] = useState(""); // Add state for course name
   
   const {
     audioRef,
@@ -62,7 +63,7 @@ const PodcastPlayer = () => {
         
         const { data, error } = await supabase
           .from('podcasts')
-          .select('*')
+          .select('*, courses:course_id(name)')
           .eq('id', id)
           .single();
         
@@ -75,6 +76,22 @@ const PodcastPlayer = () => {
         
         console.log("Podcast data fetched:", data);
         setPodcast(data);
+        
+        // Set course name if available in the joined data
+        if (data.courses && data.courses.name) {
+          setCourseName(data.courses.name);
+        } else {
+          // Fetch course name separately if not available in join
+          const courseResponse = await supabase
+            .from('courses')
+            .select('name')
+            .eq('id', data.course_id)
+            .single();
+          
+          if (!courseResponse.error && courseResponse.data) {
+            setCourseName(courseResponse.data.name);
+          }
+        }
         
         // Set as current podcast and load audio if it's a different podcast
         if (currentPodcastId !== id) {
@@ -139,7 +156,7 @@ const PodcastPlayer = () => {
         </Button>
         
         <div className="space-y-8">
-          <PodcastHeader title={podcast.title} />
+          <PodcastHeader courseName={courseName} />
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-1">
@@ -178,10 +195,7 @@ const PodcastPlayer = () => {
           <div className="space-y-6 mt-8">
             <PodcastDescription description={podcast.description} />
             
-            <QuizButton 
-              podcastId={podcast.id} 
-              onQuizComplete={handleQuizComplete}
-            />
+            <QuizButton onClick={() => handleQuizComplete()} />
           </div>
         </div>
       </div>
