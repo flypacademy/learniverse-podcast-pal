@@ -1,10 +1,10 @@
 
 import { useEffect, useRef } from "react";
 import { useAudioStore } from "@/lib/audioContext";
-import { AudioStore } from "@/lib/audio/types";
+import { AudioState } from "@/lib/audio/types";
 
 interface UseAudioSyncProps {
-  globalAudioStore: AudioStore;
+  globalAudioStore: AudioState;
   setIsPlaying: (isPlaying: boolean) => void;
   setCurrentTime: (time: number) => void;
   setDuration: (duration: number) => void;

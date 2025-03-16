@@ -37,7 +37,7 @@ const AudioElement = ({
     
     // Clear the interval if it exists
     if (timeUpdateIntervalRef.current) {
-      clearInterval(timeUpdateIntervalRef.current);
+      window.clearInterval(timeUpdateIntervalRef.current);
       timeUpdateIntervalRef.current = null;
     }
     
@@ -120,7 +120,11 @@ const AudioElement = ({
     const handleEnded = () => {
       if (!isUnmountedRef.current) {
         setIsPlaying(false);
-        onAudioEnded();
+        try {
+          onAudioEnded();
+        } catch (err) {
+          console.error("Error in audio ended handler:", err);
+        }
       }
     };
     
@@ -158,11 +162,15 @@ const AudioElement = ({
         }, retryDelay);
       } else {
         setHasError(true);
-        toast({
-          title: "Audio Error",
-          description: "Could not load audio file",
-          variant: "destructive"
-        });
+        try {
+          toast({
+            title: "Audio Error",
+            description: "Could not load audio file",
+            variant: "destructive"
+          });
+        } catch (toastErr) {
+          console.error("Toast error:", toastErr);
+        }
       }
     };
     

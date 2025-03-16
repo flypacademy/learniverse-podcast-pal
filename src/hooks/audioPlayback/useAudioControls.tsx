@@ -1,4 +1,3 @@
-
 import { RefObject, useRef } from "react";
 
 interface UseAudioControlsProps {
@@ -19,7 +18,7 @@ export function useAudioControls({
 
   const clearPlayTimeout = () => {
     if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
+      window.clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
   };
@@ -42,19 +41,29 @@ export function useAudioControls({
         if (!audioRef.current) return;
         
         console.log("Audio is now ready to play");
-        audioRef.current.play()
-          .then(() => {
-            console.log("Audio playback started successfully");
-            setIsPlaying(true);
-          })
-          .catch(err => {
-            console.error("Error playing audio:", err);
-            toast({
-              title: "Playback Error",
-              description: "Could not play audio: " + err.message,
-              variant: "destructive"
+        const playPromise = audioRef.current.play();
+        
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              console.log("Audio playback started successfully");
+              setIsPlaying(true);
+            })
+            .catch(err => {
+              console.error("Error playing audio:", err);
+              
+              // Avoid toast errors that might crash the app
+              try {
+                toast({
+                  title: "Playback Error",
+                  description: "Could not play audio: " + err.message,
+                  variant: "destructive"
+                });
+              } catch (toastErr) {
+                console.error("Toast error:", toastErr);
+              }
             });
-          });
+        }
         
         // Remove event listener
         audioRef.current.removeEventListener('canplay', canPlayHandler);
@@ -68,51 +77,76 @@ export function useAudioControls({
         if (!isPlayAttemptedRef.current || !audioRef.current) return;
         
         console.log("Timeout: trying to play anyway");
-        audioRef.current.play()
-          .then(() => {
-            console.log("Audio playback started successfully after timeout");
-            setIsPlaying(true);
-          })
-          .catch(err => {
-            console.error("Error playing audio after timeout:", err);
-            // Try once more after a longer delay
-            timeoutRef.current = window.setTimeout(() => {
-              if (audioRef.current) {
-                audioRef.current.play()
-                  .then(() => {
-                    console.log("Audio playback started successfully after second attempt");
-                    setIsPlaying(true);
-                  })
-                  .catch(finalErr => {
-                    console.error("Final error playing audio:", finalErr);
-                    toast({
-                      title: "Playback Error",
-                      description: "Could not play audio. Try reloading the page.",
-                      variant: "destructive"
-                    });
-                  });
-              }
-            }, 1000);
-          });
+        const playPromise = audioRef.current.play();
+        
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              console.log("Audio playback started successfully after timeout");
+              setIsPlaying(true);
+            })
+            .catch(err => {
+              console.error("Error playing audio after timeout:", err);
+              
+              // Try once more after a longer delay
+              timeoutRef.current = window.setTimeout(() => {
+                if (audioRef.current) {
+                  const finalPlayPromise = audioRef.current.play();
+                  
+                  if (finalPlayPromise !== undefined) {
+                    finalPlayPromise
+                      .then(() => {
+                        console.log("Audio playback started successfully after second attempt");
+                        setIsPlaying(true);
+                      })
+                      .catch(finalErr => {
+                        console.error("Final error playing audio:", finalErr);
+                        
+                        // Avoid toast errors that might crash the app
+                        try {
+                          toast({
+                            title: "Playback Error",
+                            description: "Could not play audio. Try reloading the page.",
+                            variant: "destructive"
+                          });
+                        } catch (toastErr) {
+                          console.error("Toast error:", toastErr);
+                        }
+                      });
+                  }
+                }
+              }, 1000);
+            });
+        }
       }, 2000);
       
       return;
     }
     
     // If audio is already loaded, try to play directly
-    audioRef.current.play()
-      .then(() => {
-        console.log("Audio playback started successfully");
-        setIsPlaying(true);
-      })
-      .catch(err => {
-        console.error("Error playing audio:", err);
-        toast({
-          title: "Playback Error",
-          description: "Could not play audio: " + err.message,
-          variant: "destructive"
+    const playPromise = audioRef.current.play();
+    
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          console.log("Audio playback started successfully");
+          setIsPlaying(true);
+        })
+        .catch(err => {
+          console.error("Error playing audio:", err);
+          
+          // Avoid toast errors that might crash the app
+          try {
+            toast({
+              title: "Playback Error",
+              description: "Could not play audio: " + err.message,
+              variant: "destructive"
+            });
+          } catch (toastErr) {
+            console.error("Toast error:", toastErr);
+          }
         });
-      });
+    }
   };
   
   const pause = () => {
