@@ -12,6 +12,7 @@ interface Podcast {
   progress: number;
   completed: boolean;
   image: string;
+  header_text?: string | null;
 }
 
 interface Course {
@@ -81,6 +82,21 @@ export const useCourseDetail = (courseId: string | undefined): UseCourseDetailRe
         
         console.log("Course data fetched successfully:", courseData);
         
+        // Fetch course headers
+        const { data: headersData, error: headersError } = await supabase
+          .from('course_headers')
+          .select('*')
+          .eq('course_id', courseId)
+          .order('display_order', { ascending: true });
+          
+        if (headersError) {
+          console.error("Error fetching headers:", headersError);
+          // Continue even if headers fetch fails
+        }
+        
+        const headers = headersData || [];
+        console.log("Fetched headers:", headers);
+        
         // Fetch podcasts data
         const { data: podcastsData, error: podcastsError } = await supabase
           .from('podcasts')
@@ -100,6 +116,11 @@ export const useCourseDetail = (courseId: string | undefined): UseCourseDetailRe
         const totalDuration = podcasts.reduce((sum, podcast) => {
           return sum + (podcast.duration || 0);
         }, 0);
+        
+        // Assign headers to podcasts
+        // In a real app, you'd have a podcast_header table to manage this relationship
+        // For now, we'll assign the first header to all podcasts
+        const headerText = headers.length > 0 ? headers[0].header_text : null;
         
         // Format course data
         const formattedCourse: Course = {
@@ -122,7 +143,8 @@ export const useCourseDetail = (courseId: string | undefined): UseCourseDetailRe
             duration: podcast.duration || 0,
             progress: 0,
             completed: false,
-            image: podcast.image_url || courseData.image_url || "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png"
+            image: podcast.image_url || courseData.image_url || "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png",
+            header_text: headerText
           }))
         };
         

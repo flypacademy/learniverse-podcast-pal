@@ -13,6 +13,7 @@ interface Podcast {
   question_count?: number;
   header_text?: string | null;
   display_order?: number;
+  course_header_id?: string | null;
 }
 
 interface Section {
@@ -123,6 +124,7 @@ export const usePodcasts = (courseId: string | undefined) => {
       }
       
       const headers = headersData || [];
+      console.log("Fetched headers:", headers);
       
       // Now fetch podcasts
       const { data, error } = await supabase
@@ -137,12 +139,18 @@ export const usePodcasts = (courseId: string | undefined) => {
       
       // Process podcasts to include header_text from course_headers
       const processedPodcasts = (data || []).map(podcast => {
-        // For now, no header mapping
+        // We'll assign each podcast to its first header alphabetically for now
+        // In a real app, you'd have a podcast_header table to manage this relationship
+        const header = headers.length > 0 ? headers[0] : null;
+        
         return {
           ...podcast,
-          header_text: null
+          header_text: header ? header.header_text : null,
+          course_header_id: header ? header.id : null
         };
       });
+      
+      console.log("Processed podcasts with headers:", processedPodcasts);
       
       // Count quiz questions for each podcast
       const podcastsWithQuizCount = await Promise.all(
@@ -168,7 +176,9 @@ export const usePodcasts = (courseId: string | undefined) => {
       );
       
       setPodcasts(podcastsWithQuizCount);
-      setSections(organizePodcastsByHeader(podcastsWithQuizCount));
+      const organizedSections = organizePodcastsByHeader(podcastsWithQuizCount);
+      console.log("Organized sections:", organizedSections);
+      setSections(organizedSections);
     } catch (error: any) {
       console.error("Error fetching podcasts:", error);
       setError("Failed to load podcasts");
