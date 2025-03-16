@@ -67,8 +67,6 @@ const CourseCard = ({
     return imgSrc;
   };
 
-  console.log("Rendering CourseCard with title:", title, "and id:", id);
-
   return (
     <Link 
       to={`/course/${id}`} 
@@ -87,8 +85,6 @@ const CourseCard = ({
           ) : (
             <div className={`w-full h-full ${getCardGradient()}`} />
           )}
-          {/* Add a subtle overlay to ensure text visibility */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
         </div>
         
         {/* Achievements icons */}
@@ -110,7 +106,7 @@ const CourseCard = ({
         )}
         
         {/* Bottom section with blurry glass effect */}
-        <div className="absolute bottom-0 left-0 right-0 bg-white/70 backdrop-blur-md p-4 z-10">
+        <div className="absolute bottom-0 left-0 right-0 bg-white/70 backdrop-blur-md border-t border-white/20 p-4 z-10">
           <h3 className="text-gray-900 font-bold text-xl leading-tight mb-3">
             {title}
           </h3>

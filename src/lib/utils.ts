@@ -13,5 +13,5 @@ export function formatTime(seconds: number): string {
 }
 
 export function createGlassMorphism(opacity: number = 70, blur: number = 8): string {
-  return `bg-white/${opacity} backdrop-blur-${blur}px border border-white/20`
+  return `bg-white/${opacity} backdrop-blur-${blur}md border border-white/20`
 }

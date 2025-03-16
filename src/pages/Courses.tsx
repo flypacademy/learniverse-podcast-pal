@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Search, BookOpen, Plus } from "lucide-react";
 import Layout from "@/components/Layout";
@@ -57,32 +56,9 @@ const Courses = () => {
       console.log("Courses fetched:", coursesData);
       
       if (!coursesData || coursesData.length === 0) {
-        // If no courses in database, use mock data for development
-        const mockCourses: Course[] = [
-          {
-            id: "mock-1",
-            title: "GCSE Mathematics",
-            subject: "math",
-            totalPodcasts: 12,
-            completedPodcasts: 4,
-            description: "Complete mathematics course covering all GCSE topics",
-            image: "/lovable-uploads/0770156f-b934-4cce-b8f4-a67af547cc38.png",
-            enrolled: true
-          },
-          {
-            id: "mock-2",
-            title: "GCSE English Language",
-            subject: "english",
-            totalPodcasts: 10,
-            completedPodcasts: 2,
-            description: "Master English language skills for GCSE exams",
-            image: "",
-            enrolled: false
-          },
-        ];
-        
-        setMyCourses(mockCourses.filter(c => c.enrolled));
-        setAvailableCourses(mockCourses.filter(c => !c.enrolled));
+        // If no courses in database, use the mock data
+        setMyCourses([]);
+        setAvailableCourses([]);
         setLoading(false);
         return;
       }
@@ -99,9 +75,9 @@ const Courses = () => {
           console.error("Error counting podcasts:", countError);
         }
         
-        // For now, just mark first course as enrolled
+        // For now, just mark first two courses as enrolled
         // In a real app, you'd check if the user is enrolled in the course
-        const enrolled = coursesData.indexOf(course) === 0;
+        const enrolled = coursesData.indexOf(course) < 2;
         
         return {
           id: course.id,
@@ -127,32 +103,9 @@ const Courses = () => {
         variant: "destructive"
       });
       
-      // Fallback to mock data for error cases
-      const mockCourses: Course[] = [
-        {
-          id: "mock-fallback-1",
-          title: "GCSE Mathematics",
-          subject: "math",
-          totalPodcasts: 12,
-          completedPodcasts: 4,
-          description: "Complete mathematics course covering all GCSE topics",
-          image: "/lovable-uploads/0770156f-b934-4cce-b8f4-a67af547cc38.png",
-          enrolled: true
-        },
-        {
-          id: "mock-fallback-2",
-          title: "GCSE English Language",
-          subject: "english",
-          totalPodcasts: 10,
-          completedPodcasts: 2,
-          description: "Master English language skills for GCSE exams",
-          image: "",
-          enrolled: false
-        },
-      ];
-      
-      setMyCourses(mockCourses.filter(c => c.enrolled));
-      setAvailableCourses(mockCourses.filter(c => !c.enrolled));
+      // Fallback to empty lists
+      setMyCourses([]);
+      setAvailableCourses([]);
     } finally {
       setLoading(false);
     }
@@ -260,21 +213,33 @@ const Courses = () => {
                   </p>
                 </div>
               ) : (
-                <div className="grid gap-4">
-                  {filteredMyCourses.map((course) => (
-                    <div key={course.id} className="mb-4">
-                      <CourseCard 
-                        id={course.id}
-                        title={course.title}
-                        subject={course.subject}
-                        totalPodcasts={course.totalPodcasts}
-                        completedPodcasts={course.completedPodcasts}
-                        image={course.image}
-                        size="large"
-                      />
+                <Carousel className="w-full">
+                  <CarouselContent>
+                    {filteredMyCourses.map((course) => (
+                      <CarouselItem key={course.id} className="basis-full">
+                        <CourseCard 
+                          id={course.id}
+                          title={course.title}
+                          subject={course.subject}
+                          totalPodcasts={course.totalPodcasts}
+                          completedPodcasts={course.completedPodcasts}
+                          image={course.image}
+                          size="large"
+                        />
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <div className="flex justify-center mt-3">
+                    <div className="flex gap-1.5">
+                      {filteredMyCourses.map((_, index) => (
+                        <div 
+                          key={index} 
+                          className={`h-1.5 rounded-full ${index === 0 ? 'w-4 bg-primary' : 'w-1.5 bg-gray-200'}`}
+                        />
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                </Carousel>
               )}
             </TabsContent>
             
@@ -289,27 +254,39 @@ const Courses = () => {
                   </p>
                 </div>
               ) : (
-                <div className="grid gap-4">
-                  {filteredAvailableCourses.map((course) => (
-                    <div key={course.id} className="mb-4 relative">
-                      <CourseCard 
-                        id={course.id}
-                        title={course.title}
-                        subject={course.subject}
-                        totalPodcasts={course.totalPodcasts}
-                        completedPodcasts={course.completedPodcasts}
-                        image={course.image}
-                        size="large"
-                      />
-                      <button 
-                        onClick={() => handleEnrollCourse(course.id)}
-                        className="absolute top-3 right-3 bg-white rounded-full p-1 shadow-md z-20"
-                      >
-                        <Plus className="h-5 w-5 text-primary" />
-                      </button>
+                <Carousel className="w-full">
+                  <CarouselContent>
+                    {filteredAvailableCourses.map((course) => (
+                      <CarouselItem key={course.id} className="basis-full relative">
+                        <CourseCard 
+                          id={course.id}
+                          title={course.title}
+                          subject={course.subject}
+                          totalPodcasts={course.totalPodcasts}
+                          completedPodcasts={course.completedPodcasts}
+                          image={course.image}
+                          size="large"
+                        />
+                        <button 
+                          onClick={() => handleEnrollCourse(course.id)}
+                          className="absolute top-3 right-3 bg-white rounded-full p-1 shadow-md"
+                        >
+                          <Plus className="h-5 w-5 text-primary" />
+                        </button>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <div className="flex justify-center mt-3">
+                    <div className="flex gap-1.5">
+                      {filteredAvailableCourses.map((_, index) => (
+                        <div 
+                          key={index} 
+                          className={`h-1.5 rounded-full ${index === 0 ? 'w-4 bg-primary' : 'w-1.5 bg-gray-200'}`}
+                        />
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                </Carousel>
               )}
             </TabsContent>
           </Tabs>
