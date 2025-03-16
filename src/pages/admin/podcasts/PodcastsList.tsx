@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
 import { Plus } from "lucide-react";
@@ -13,9 +13,17 @@ import { Link } from "react-router-dom";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+
+interface CourseHeader {
+  id: string;
+  header_text: string;
+  course_id: string;
+}
 
 const PodcastsList = () => {
   const { courseId } = useParams<{ courseId: string }>();
+  const [headers, setHeaders] = useState<CourseHeader[]>([]);
   const { 
     courseName, 
     podcasts, 
@@ -24,13 +32,55 @@ const PodcastsList = () => {
     sections,
     addHeader,
     assignPodcastToHeader,
+    deleteHeader,
     error
   } = usePodcasts(courseId);
+  
+  useEffect(() => {
+    const fetchHeaders = async () => {
+      if (!courseId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('course_headers')
+          .select('*')
+          .eq('course_id', courseId);
+        
+        if (error) throw error;
+        setHeaders(data || []);
+      } catch (err) {
+        console.error("Error fetching headers:", err);
+      }
+    };
+    
+    fetchHeaders();
+  }, [courseId]);
   
   const handleAddHeader = async (headerText: string) => {
     console.log("PodcastsList - handleAddHeader called with:", headerText);
     if (courseId && headerText) {
-      await addHeader(headerText);
+      const result = await addHeader(headerText);
+      // Refresh headers list
+      const { data } = await supabase
+        .from('course_headers')
+        .select('*')
+        .eq('course_id', courseId);
+      
+      setHeaders(data || []);
+      return result;
+    }
+  };
+  
+  const handleDeleteHeader = async (headerId: string) => {
+    if (courseId) {
+      await deleteHeader(headerId);
+      // Refresh headers list
+      const { data } = await supabase
+        .from('course_headers')
+        .select('*')
+        .eq('course_id', courseId);
+      
+      setHeaders(data || []);
     }
   };
   
@@ -46,7 +96,11 @@ const PodcastsList = () => {
         <PageHeader courseName={courseName} courseId={courseId || ""} />
         
         <div className="flex justify-between items-center">
-          <PodcastHeader onAddHeader={handleAddHeader} />
+          <PodcastHeader 
+            onAddHeader={handleAddHeader}
+            onDeleteHeader={handleDeleteHeader}
+            headers={headers}
+          />
           
           <Button asChild>
             <Link to={`/admin/courses/${courseId}/podcasts/new`}>

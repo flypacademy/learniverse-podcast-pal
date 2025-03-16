@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
@@ -18,6 +17,7 @@ interface Podcast {
 
 interface Section {
   header: string | null;
+  headerId?: string | null;
   podcasts: Podcast[];
 }
 
@@ -63,11 +63,9 @@ export const usePodcasts = (courseId: string | undefined) => {
   };
   
   const organizePodcastsByHeader = (podcastsList: Podcast[]) => {
-    // Group podcasts by header_text
-    const groupedPodcasts: Record<string, Podcast[]> = {};
+    const groupedPodcasts: Record<string, { podcasts: Podcast[], headerId?: string }> = {};
     const noHeaderKey = "no_header";
     
-    // Sort podcasts by display_order first, then by title
     const sortedPodcasts = [...podcastsList].sort((a, b) => {
       const orderA = a.display_order || 0;
       const orderB = b.display_order || 0;
@@ -79,32 +77,32 @@ export const usePodcasts = (courseId: string | undefined) => {
       return a.title.localeCompare(b.title);
     });
     
-    // Group podcasts by header
     sortedPodcasts.forEach(podcast => {
       const key = podcast.header_text || noHeaderKey;
       if (!groupedPodcasts[key]) {
-        groupedPodcasts[key] = [];
+        groupedPodcasts[key] = { 
+          podcasts: [], 
+          headerId: podcast.course_header_id 
+        };
       }
-      groupedPodcasts[key].push(podcast);
+      groupedPodcasts[key].podcasts.push(podcast);
     });
     
-    // Convert grouped podcasts to sections array
     const sectionsArray: Section[] = [];
     
-    // Add podcasts with no header first if they exist
     if (groupedPodcasts[noHeaderKey]) {
       sectionsArray.push({
         header: null,
-        podcasts: groupedPodcasts[noHeaderKey]
+        podcasts: groupedPodcasts[noHeaderKey].podcasts
       });
       delete groupedPodcasts[noHeaderKey];
     }
     
-    // Add the rest of the sections
-    Object.entries(groupedPodcasts).forEach(([header, podcastList]) => {
+    Object.entries(groupedPodcasts).forEach(([header, data]) => {
       sectionsArray.push({
         header,
-        podcasts: podcastList
+        headerId: data.headerId,
+        podcasts: data.podcasts
       });
     });
     
@@ -118,7 +116,6 @@ export const usePodcasts = (courseId: string | undefined) => {
     setError(null);
     
     try {
-      // First fetch course headers for this course
       const { data: headersData, error: headersError } = await supabase
         .from('course_headers')
         .select('*')
@@ -133,7 +130,6 @@ export const usePodcasts = (courseId: string | undefined) => {
       const headers = headersData || [];
       console.log("Fetched headers:", headers);
       
-      // Now fetch podcasts
       const { data, error } = await supabase
         .from('podcasts')
         .select('*')
@@ -144,7 +140,6 @@ export const usePodcasts = (courseId: string | undefined) => {
         throw error;
       }
       
-      // Fetch podcast-header relationships
       const { data: podcastHeadersData, error: podcastHeadersError } = await supabase
         .from('podcast_headers')
         .select('*, course_headers!inner(id, header_text)')
@@ -156,7 +151,6 @@ export const usePodcasts = (courseId: string | undefined) => {
       
       console.log("Fetched podcast-header relationships:", podcastHeadersData);
       
-      // Create a map of podcast_id to header_text
       const podcastToHeaderMap: Record<string, { header_id: string, header_text: string }> = {};
       
       if (podcastHeadersData) {
@@ -173,7 +167,6 @@ export const usePodcasts = (courseId: string | undefined) => {
       
       console.log("Podcast to header map:", podcastToHeaderMap);
       
-      // Process podcasts with header relationships
       const processedPodcasts = (data || []).map(podcast => {
         const headerInfo = podcastToHeaderMap[podcast.id];
         
@@ -186,7 +179,6 @@ export const usePodcasts = (courseId: string | undefined) => {
       
       console.log("Processed podcasts with headers:", processedPodcasts);
       
-      // Count quiz questions for each podcast
       const podcastsWithQuizCount = await Promise.all(
         processedPodcasts.map(async (podcast) => {
           try {
@@ -268,7 +260,6 @@ export const usePodcasts = (courseId: string | undefined) => {
     try {
       console.log("Adding header with text:", headerText, "for course:", courseId);
       
-      // Validate header text before submission
       if (!headerText || typeof headerText !== 'string' || headerText.trim() === '') {
         const errorMsg = "Header text cannot be empty";
         console.error(errorMsg);
@@ -281,7 +272,6 @@ export const usePodcasts = (courseId: string | undefined) => {
         throw new Error(errorMsg);
       }
       
-      // Insert the new header into the course_headers table
       const { data, error } = await supabase
         .from('course_headers')
         .insert([
@@ -318,7 +308,6 @@ export const usePodcasts = (courseId: string | undefined) => {
       
       console.log("Header added successfully:", data[0]);
       
-      // After adding the header, refresh the podcasts to update the UI
       await fetchPodcasts();
       
       toast({
@@ -344,7 +333,6 @@ export const usePodcasts = (courseId: string | undefined) => {
     try {
       console.log(`Assigning podcast ${podcastId} to header ${headerId}`);
       
-      // First, remove any existing header assignments for this podcast
       const { error: deleteError } = await supabase
         .from('podcast_headers')
         .delete()
@@ -355,7 +343,6 @@ export const usePodcasts = (courseId: string | undefined) => {
         throw deleteError;
       }
       
-      // Then, insert the new relationship
       const { data, error } = await supabase
         .from('podcast_headers')
         .insert([
@@ -371,7 +358,6 @@ export const usePodcasts = (courseId: string | undefined) => {
         throw error;
       }
       
-      // Refresh podcasts to update the UI
       await fetchPodcasts();
       
       toast({
@@ -385,6 +371,48 @@ export const usePodcasts = (courseId: string | undefined) => {
       toast({
         title: "Error",
         description: "Failed to assign podcast to header",
+        variant: "destructive"
+      });
+      throw error;
+    }
+  };
+  
+  const deleteHeader = async (headerId: string) => {
+    try {
+      console.log(`Deleting header with ID: ${headerId}`);
+      
+      const { error: relationshipError } = await supabase
+        .from('podcast_headers')
+        .delete()
+        .eq('header_id', headerId);
+      
+      if (relationshipError) {
+        console.error("Error removing podcast-header relationships:", relationshipError);
+        throw relationshipError;
+      }
+      
+      const { error } = await supabase
+        .from('course_headers')
+        .delete()
+        .eq('id', headerId);
+      
+      if (error) {
+        console.error("Error deleting header:", error);
+        throw error;
+      }
+      
+      await fetchPodcasts();
+      
+      toast({
+        title: "Header deleted",
+        description: "The header has been successfully deleted"
+      });
+      
+    } catch (error: any) {
+      console.error("Error in deleteHeader:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete header",
         variant: "destructive"
       });
       throw error;
@@ -406,6 +434,7 @@ export const usePodcasts = (courseId: string | undefined) => {
     error,
     deletePodcast,
     addHeader,
-    assignPodcastToHeader
+    assignPodcastToHeader,
+    deleteHeader
   };
 };

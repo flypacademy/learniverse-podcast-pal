@@ -2,17 +2,34 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Save, X } from "lucide-react";
+import { Plus, Save, X, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface PodcastHeaderProps {
   onAddHeader: (headerText: string) => Promise<void>;
+  onDeleteHeader?: (headerId: string) => Promise<void>;
+  headers?: { id: string; header_text: string }[];
 }
 
-const PodcastHeader: React.FC<PodcastHeaderProps> = ({ onAddHeader }) => {
+const PodcastHeader: React.FC<PodcastHeaderProps> = ({ 
+  onAddHeader, 
+  onDeleteHeader,
+  headers = []
+}) => {
   const [isAddingHeader, setIsAddingHeader] = useState(false);
   const [headerText, setHeaderText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [headerToDelete, setHeaderToDelete] = useState<string | null>(null);
   const { toast } = useToast();
   
   const handleAddHeader = async () => {
@@ -38,6 +55,21 @@ const PodcastHeader: React.FC<PodcastHeaderProps> = ({ onAddHeader }) => {
     } catch (error: any) {
       console.error("Error in handleAddHeader:", error);
       // Error toast handled in the hook
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  const handleDeleteHeader = async () => {
+    if (!headerToDelete || !onDeleteHeader) return;
+    
+    setIsSubmitting(true);
+    try {
+      await onDeleteHeader(headerToDelete);
+      setHeaderToDelete(null);
+      setIsOpen(false);
+    } catch (error) {
+      console.error("Error deleting header:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -93,15 +125,72 @@ const PodcastHeader: React.FC<PodcastHeaderProps> = ({ onAddHeader }) => {
   }
   
   return (
-    <Button 
-      variant="outline" 
-      size="sm" 
-      onClick={() => setIsAddingHeader(true)}
-      className="mb-4"
-    >
-      <Plus className="h-4 w-4 mr-1" />
-      Add Header
-    </Button>
+    <div className="flex items-center gap-2 mb-4">
+      <Button 
+        variant="outline" 
+        size="sm" 
+        onClick={() => setIsAddingHeader(true)}
+      >
+        <Plus className="h-4 w-4 mr-1" />
+        Add Header
+      </Button>
+      
+      {headers.length > 0 && onDeleteHeader && (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <DialogTrigger asChild>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="text-destructive"
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              Delete Header
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Header</DialogTitle>
+              <DialogDescription>
+                Select a header to delete. This will remove the header, but not the podcasts associated with it.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {headers.map(header => (
+                  <div 
+                    key={header.id} 
+                    className={`p-2 rounded cursor-pointer hover:bg-gray-100 flex justify-between ${
+                      headerToDelete === header.id ? 'bg-gray-100 border border-gray-300' : ''
+                    }`}
+                    onClick={() => setHeaderToDelete(header.id)}
+                  >
+                    <span>{header.header_text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setHeaderToDelete(null);
+                  setIsOpen(false);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={handleDeleteHeader}
+                disabled={!headerToDelete || isSubmitting}
+              >
+                {isSubmitting ? 'Deleting...' : 'Delete Header'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
   );
 };
 
