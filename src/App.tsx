@@ -43,6 +43,9 @@ function App() {
         <Route path="/admin/courses/new" element={<CourseForm />} />
         <Route path="/admin/courses/:id/edit" element={<CourseForm />} />
         <Route path="/admin/courses/:courseId/podcasts" element={<PodcastsList />} />
+        <Route path="/admin/courses/:courseId/podcasts/new" element={<NotFound />} /> {/* Add proper component later */}
+        <Route path="/admin/courses/:courseId/podcasts/:id/edit" element={<NotFound />} /> {/* Add proper component later */}
+        <Route path="/admin/podcasts/:podcastId/quiz" element={<NotFound />} /> {/* Add proper component later */}
         <Route path="/admin/users" element={<AdminUsers />} />
         <Route path="/admin/settings" element={<AdminSettings />} />
         

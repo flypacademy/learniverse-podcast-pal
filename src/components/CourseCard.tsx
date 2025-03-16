@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import ProgressBar from "./ProgressBar";
@@ -57,6 +56,16 @@ const CourseCard = ({
     }
   };
 
+  const getImageUrl = (imgSrc: string) => {
+    if (!imgSrc) return '';
+    
+    if (imgSrc.startsWith('http') || imgSrc.startsWith('/')) {
+      return imgSrc;
+    }
+    
+    return imgSrc;
+  };
+
   return (
     <Link 
       to={`/course/${id}`} 
@@ -64,12 +73,10 @@ const CourseCard = ({
       onClick={handleCardClick}
     >
       <Card className="overflow-hidden rounded-xl hover:shadow-lg transition-all duration-300 h-full">
-        {/* Card Header with Image */}
         <div className={`relative ${size === 'large' ? 'h-56' : 'h-48'}`}>
-          {/* Background image or gradient */}
           {image ? (
             <img
-              src={image}
+              src={getImageUrl(image)}
               alt={title}
               className="w-full h-full object-cover"
             />
@@ -77,10 +84,8 @@ const CourseCard = ({
             <div className={`w-full h-full ${getCardGradient()}`} />
           )}
           
-          {/* Overlay for text readability */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
           
-          {/* Achievement badges */}
           {achievements.length > 0 && (
             <div className="absolute top-3 right-3 flex gap-1">
               {achievements.map((achievement, index) => (
@@ -99,15 +104,12 @@ const CourseCard = ({
           )}
         </div>
         
-        {/* Info section with glass effect */}
         <div className="p-4 bg-white/80 backdrop-blur-md border-t border-white/20">
-          {/* Course title - moved here from image */}
           <h3 className="text-gray-900 font-bold text-xl leading-tight mb-3">
             {title}
           </h3>
           
           <div className="flex items-center justify-between mb-3">
-            {/* Exam & board info */}
             <div className="flex space-x-2">
               <Badge variant="outline" className="text-xs bg-blue-50">
                 {exam}
@@ -117,14 +119,12 @@ const CourseCard = ({
               </Badge>
             </div>
             
-            {/* Podcasts info */}
             <div className="flex items-center text-gray-600 text-sm">
               <Headphones className="h-4 w-4 mr-1" />
               <span>{totalPodcasts} podcasts</span>
             </div>
           </div>
           
-          {/* Progress bar */}
           <div className="mt-3">
             <div className="flex justify-between text-sm mb-1">
               <span className="font-medium text-gray-700">Course Progress</span>
