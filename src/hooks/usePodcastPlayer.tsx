@@ -30,6 +30,7 @@ export function usePodcastPlayer() {
   const { podcastId } = useParams<{ podcastId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const globalAudioStore = useAudioStore();
   
   const [podcastData, setPodcastData] = useState<PodcastData | null>(null);
   const [courseData, setCourseData] = useState<CourseData | null>(null);
@@ -44,6 +45,17 @@ export function usePodcastPlayer() {
   const [showXPModal, setShowXPModal] = useState(false);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  
+  // Check if this podcast is already playing in the global store
+  useEffect(() => {
+    if (podcastId && globalAudioStore.currentPodcastId === podcastId) {
+      console.log("This podcast is already in the global store, syncing state");
+      setIsPlaying(globalAudioStore.isPlaying);
+      setCurrentTime(globalAudioStore.currentTime);
+      setDuration(globalAudioStore.duration);
+      setVolume(globalAudioStore.volume / 100);
+    }
+  }, [podcastId, globalAudioStore]);
   
   useEffect(() => {
     console.log("usePodcastPlayer hook - Initial render with podcastId:", podcastId);
@@ -155,12 +167,12 @@ export function usePodcastPlayer() {
     // Cleanup function
     return () => {
       console.log("usePodcastPlayer hook - Cleaning up");
-      if (audioRef.current) {
+      if (audioRef.current && !globalAudioStore.audioElement) {
         audioRef.current.pause();
         audioRef.current.src = '';
       }
     };
-  }, [podcastId, toast]);
+  }, [podcastId, toast, globalAudioStore.audioElement]);
   
   const handleProgressData = (progressData: PodcastProgressData) => {
     if (progressData.last_position > 0) {

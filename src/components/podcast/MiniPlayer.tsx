@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAudioStore } from "@/lib/audioContext";
 import { formatTime } from "@/lib/utils";
@@ -16,12 +16,13 @@ interface MiniPlayerProps {
 
 const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerProps) => {
   const { 
+    audioElement,
     isPlaying, 
     currentTime, 
     duration,
+    setCurrentTime,
     play, 
-    pause,
-    setCurrentTime
+    pause
   } = useAudioStore();
 
   const togglePlay = () => {
@@ -33,13 +34,24 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
   };
 
   const skipForward = () => {
-    const newTime = Math.min(currentTime + 10, duration);
-    setCurrentTime(newTime);
+    if (audioElement) {
+      const newTime = Math.min(currentTime + 10, duration);
+      setCurrentTime(newTime);
+    }
   };
 
   const skipBackward = () => {
-    const newTime = Math.max(currentTime - 10, 0);
-    setCurrentTime(newTime);
+    if (audioElement) {
+      const newTime = Math.max(currentTime - 10, 0);
+      setCurrentTime(newTime);
+    }
+  };
+  
+  // Add vibration feedback to button interactions
+  const handleInteraction = () => {
+    if (navigator.vibrate) {
+      navigator.vibrate(5);
+    }
   };
 
   return (
@@ -61,7 +73,7 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
         </div>
         
         {/* Title and progress */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0" onClick={handleInteraction}>
           <Link to={`/podcast/${podcastId}`}>
             <h4 className="font-medium text-sm truncate">{title}</h4>
             <p className="text-xs text-gray-500 truncate">{courseName}</p>
@@ -88,7 +100,7 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
         </div>
         
         {/* Full-screen button */}
-        <Link to={`/podcast/${podcastId}`}>
+        <Link to={`/podcast/${podcastId}`} onClick={handleInteraction}>
           <Button size="icon" variant="ghost" className="h-8 w-8">
             <ChevronUp className="h-5 w-5" />
           </Button>

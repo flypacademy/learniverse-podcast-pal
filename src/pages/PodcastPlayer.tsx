@@ -13,10 +13,12 @@ import QuizButton from "@/components/podcast/QuizButton";
 import XPModal from "@/components/podcast/XPModal";
 import { usePodcastPlayer } from "@/hooks/usePodcastPlayer";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAudioStore } from "@/lib/audioContext";
 
 const PodcastPlayer = () => {
   const { podcastId } = useParams<{ podcastId: string }>();
   const navigate = useNavigate();
+  const audioStore = useAudioStore();
   
   useEffect(() => {
     console.log("PodcastPlayer rendered with podcastId:", podcastId);
@@ -49,6 +51,26 @@ const PodcastPlayer = () => {
     skipBackward,
     handleCompletion
   } = usePodcastPlayer();
+  
+  // Register the current podcast with the global audio store
+  useEffect(() => {
+    if (podcastData && courseData && audioRef.current && ready) {
+      console.log("Registering podcast with global audio store");
+      audioStore.setAudio(audioRef.current, podcastData.id, {
+        id: podcastData.id,
+        title: podcastData.title,
+        courseName: courseData.title,
+        image: podcastData.image_url || courseData.image
+      });
+    }
+    
+    // Cleanup function
+    return () => {
+      console.log("PodcastPlayer component unmounting, but keeping audio in global store");
+      // We don't call audioStore.cleanup() here because we want the audio to persist
+      // when navigating away from the podcast page
+    };
+  }, [podcastData, courseData, audioRef, ready, audioStore]);
   
   // Debug logs to help diagnose issues
   useEffect(() => {
@@ -106,7 +128,7 @@ const PodcastPlayer = () => {
         <div className="flex flex-col md:flex-row gap-6">
           <div className="flex-shrink-0 w-full md:w-auto">
             <PodcastCover 
-              image={podcastData.image_url || ""}
+              image={podcastData.image_url || courseData?.image || ""}
               title={podcastData.title} 
             />
           </div>
