@@ -23,8 +23,15 @@ const PodcastHeader: React.FC<PodcastHeaderProps> = ({ onAddHeader }) => {
       setIsAddingHeader(false);
     } catch (error) {
       console.error("Error adding header:", error);
+      // Error handling is done in the usePodcasts hook
     } finally {
       setIsSubmitting(false);
+    }
+  };
+  
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleAddHeader();
     }
   };
   
@@ -35,6 +42,7 @@ const PodcastHeader: React.FC<PodcastHeaderProps> = ({ onAddHeader }) => {
           placeholder="Enter header text"
           value={headerText}
           onChange={(e) => setHeaderText(e.target.value)}
+          onKeyDown={handleKeyDown}
           className="max-w-xs"
           autoFocus
         />

@@ -213,6 +213,7 @@ export const usePodcasts = (courseId: string | undefined) => {
     if (!courseId) return;
     
     try {
+      // Insert the new header into the course_headers table
       const { data, error } = await supabase
         .from('course_headers')
         .insert([
@@ -221,7 +222,10 @@ export const usePodcasts = (courseId: string | undefined) => {
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error inserting header:", error);
+        throw new Error("Failed to add header: " + error.message);
+      }
       
       // After adding the header, refresh the podcasts to update the UI
       await fetchPodcasts();
@@ -234,9 +238,10 @@ export const usePodcasts = (courseId: string | undefined) => {
       return data;
     } catch (error: any) {
       console.error("Error adding header:", error);
+      setError("Failed to add header: " + error.message);
       toast({
         title: "Error",
-        description: "Failed to add header",
+        description: "Failed to add header: " + error.message,
         variant: "destructive"
       });
       throw error;

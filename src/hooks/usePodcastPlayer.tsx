@@ -12,7 +12,8 @@ interface PodcastData {
   audio_url: string;
   image_url?: string | null;
   course_id: string;
-  courses: {
+  courseName?: string; // Add courseName directly to PodcastData
+  courses?: {
     id: string;
     title: string;
   } | {
@@ -34,6 +35,16 @@ interface UsePodcastPlayerReturn {
   seekTo: (time: number) => void;
   setVolume: (value: number) => void;
   onTimeUpdate: (time: number) => void;
+  // Add these properties to match what's used in PodcastPlayer.tsx
+  loading: boolean;
+  showXPModal: boolean;
+  showQuiz: boolean;
+  togglePlay: () => void;
+  handleVolumeChange: (value: number) => void;
+  toggleQuiz: () => void;
+  setShowQuiz: (show: boolean) => void;
+  skipForward: () => void;
+  skipBackward: () => void;
 }
 
 export const usePodcastPlayer = (podcastId: string | undefined): UsePodcastPlayerReturn => {
@@ -45,6 +56,9 @@ export const usePodcastPlayer = (podcastId: string | undefined): UsePodcastPlaye
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolumeState] = useState(0.8); // Default volume
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
+  // Add state for XP modal and quiz
+  const [showXPModal, setShowXPModal] = useState(false);
+  const [showQuiz, setShowQuiz] = useState(false);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { toast } = useToast();
@@ -86,11 +100,17 @@ export const usePodcastPlayer = (podcastId: string | undefined): UsePodcastPlaye
         if (Array.isArray(podcastData.courses) && podcastData.courses.length > 0) {
           // If it's an array, take the first element's title
           courseName = podcastData.courses[0].title || "Unknown Course";
-        } else if (typeof podcastData.courses === 'object') {
+        } else if (typeof podcastData.courses === 'object' && podcastData.courses !== null) {
           // If it's a single object with a title property
           courseName = (podcastData.courses as { title: string }).title || "Unknown Course";
         }
       }
+      
+      // Create a new podcast object with the courseName included
+      const processedPodcast: PodcastData = {
+        ...podcastData,
+        courseName: courseName
+      };
       
       // Fetch quiz questions for this podcast
       const { data: quizData, error: quizError } = await supabase
@@ -104,7 +124,7 @@ export const usePodcastPlayer = (podcastId: string | undefined): UsePodcastPlaye
         setQuizQuestions(quizData || []);
       }
       
-      setPodcast(podcastData as PodcastData);
+      setPodcast(processedPodcast);
     } catch (err: any) {
       console.error("Unexpected error in fetchPodcast:", err);
       setError(err.message || "An unexpected error occurred");
@@ -204,9 +224,35 @@ export const usePodcastPlayer = (podcastId: string | undefined): UsePodcastPlaye
     setCurrentTime(time);
   }, []);
   
+  // Skip forward function
+  const skipForward = useCallback(() => {
+    if (!audioRef.current) return;
+    const newTime = Math.min(audioRef.current.currentTime + 10, audioRef.current.duration);
+    seekTo(newTime);
+  }, [seekTo]);
+  
+  // Skip backward function
+  const skipBackward = useCallback(() => {
+    if (!audioRef.current) return;
+    const newTime = Math.max(audioRef.current.currentTime - 10, 0);
+    seekTo(newTime);
+  }, [seekTo]);
+  
+  // Toggle quiz visibility
+  const toggleQuiz = useCallback(() => {
+    setShowQuiz(prev => !prev);
+  }, []);
+  
+  // Alias for togglePlayPause to match what's used in PodcastPlayer.tsx
+  const togglePlay = togglePlayPause;
+  
+  // Alias for setVolume to match what's used in PodcastPlayer.tsx
+  const handleVolumeChange = setVolume;
+  
   return {
     podcast,
     isLoading,
+    loading: isLoading, // Alias for backward compatibility
     error,
     duration,
     currentTime,
@@ -214,8 +260,16 @@ export const usePodcastPlayer = (podcastId: string | undefined): UsePodcastPlaye
     volume,
     quizQuestions,
     togglePlayPause,
+    togglePlay, // Alias
     seekTo,
     setVolume,
-    onTimeUpdate
+    handleVolumeChange, // Alias
+    onTimeUpdate,
+    showXPModal,
+    showQuiz,
+    toggleQuiz,
+    setShowQuiz,
+    skipForward,
+    skipBackward
   };
 };
