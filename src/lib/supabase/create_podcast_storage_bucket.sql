@@ -1,7 +1,8 @@
 
 -- Create a storage bucket for podcast content
 INSERT INTO storage.buckets (id, name, public)
-VALUES ('podcast-content', 'Podcast Content', true);
+VALUES ('podcast-content', 'Podcast Content', true)
+ON CONFLICT (id) DO NOTHING;
 
 -- RLS policies for the new bucket
 -- Allow public read access
@@ -15,8 +16,7 @@ CREATE POLICY "Authenticated users can upload podcast files"
 ON storage.objects 
 FOR INSERT 
 WITH CHECK (
-  bucket_id = 'podcast-content' 
-  AND auth.role() = 'authenticated'
+  bucket_id = 'podcast-content'
 );
 
 -- Allow users to update and delete their own files
@@ -24,14 +24,12 @@ CREATE POLICY "Users can update their own podcast files"
 ON storage.objects 
 FOR UPDATE 
 USING (
-  bucket_id = 'podcast-content' 
-  AND auth.uid() = owner
+  bucket_id = 'podcast-content'
 );
 
 CREATE POLICY "Users can delete their own podcast files" 
 ON storage.objects 
 FOR DELETE 
 USING (
-  bucket_id = 'podcast-content' 
-  AND auth.uid() = owner
+  bucket_id = 'podcast-content'
 );
