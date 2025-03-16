@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ChevronLeft, Play, Pause, SkipBack, SkipForward, Volume2, Award, Headphones, BrainCircuit } from "lucide-react";
@@ -85,6 +84,7 @@ const PodcastPlayer = () => {
           id: podcastData.id,
           title: podcastData.title,
           courseId: podcastData.course_id,
+          // Fix the type error here - properly access the course title
           courseName: podcastData.courses?.title || "Unknown Course",
           description: podcastData.description || "No description available",
           duration: podcastData.duration || 0,
