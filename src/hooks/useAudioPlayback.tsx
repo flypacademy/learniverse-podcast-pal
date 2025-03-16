@@ -51,7 +51,9 @@ export function useAudioPlayback(initialPosition: number = 0) {
   // Set up audio event handlers
   useAudioEvents({
     audioRef,
-    setIsPlaying
+    setIsPlaying,
+    setCurrentTime,
+    setDuration
   });
 
   return {

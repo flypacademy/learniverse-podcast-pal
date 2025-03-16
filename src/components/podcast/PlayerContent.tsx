@@ -44,7 +44,7 @@ const PlayerContent = ({
     <div className="flex flex-col md:flex-row gap-6">
       <div className="flex-shrink-0 w-full md:w-auto">
         <PodcastCover 
-          image={podcastData.image_url || courseData?.image || ""}
+          image={podcastData.image_url || courseData?.image_url || ""} 
           title={podcastData.title} 
         />
       </div>
@@ -70,7 +70,7 @@ const PlayerContent = ({
             onSeek={seek}
           />
           
-          <div className="flex justify-between">
+          <div className="flex justify-between items-center">
             <VolumeControl 
               volume={volume}
               onVolumeChange={changeVolume}
