@@ -9,7 +9,8 @@ interface AudioProgressProps {
 }
 
 const AudioProgress = ({ currentTime, duration, onSeek }: AudioProgressProps) => {
-  const progress = (currentTime / (duration || 1)) * 100;
+  // Calculate progress safely
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
   
   // Format time as mm:ss
   const formatTime = (seconds: number) => {
@@ -23,8 +24,12 @@ const AudioProgress = ({ currentTime, duration, onSeek }: AudioProgressProps) =>
     
     const progressBar = e.currentTarget;
     const rect = progressBar.getBoundingClientRect();
-    const percent = ((e.clientX - rect.left) / rect.width) * 100;
-    onSeek(Math.max(0, Math.min(100, percent)));
+    const clickPosition = e.clientX - rect.left;
+    const percent = (clickPosition / rect.width) * 100;
+    
+    // Convert percent to seconds
+    const seekTime = (percent / 100) * duration;
+    onSeek(seekTime);
   };
   
   return (

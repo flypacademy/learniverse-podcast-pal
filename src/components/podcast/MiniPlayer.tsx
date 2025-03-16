@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAudioStore } from "@/lib/audioContext";
-import { formatTime } from "@/lib/utils";
 import PlayerControls from "./PlayerControls";
 import { Button } from "@/components/ui/button";
 import { ChevronUp } from "lucide-react";
@@ -21,11 +20,9 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
   const [localDuration, setLocalDuration] = useState(0);
   
   const { 
-    audioElement,
     isPlaying, 
     currentTime, 
     duration,
-    setCurrentTime,
     play, 
     pause
   } = useAudioStore();
@@ -46,17 +43,15 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
   };
 
   const skipForward = () => {
-    if (audioElement) {
-      const newTime = Math.min(localCurrentTime + 10, localDuration);
-      setCurrentTime(newTime);
-    }
+    const { setCurrentTime } = useAudioStore();
+    const newTime = Math.min(localCurrentTime + 10, localDuration);
+    setCurrentTime(newTime);
   };
 
   const skipBackward = () => {
-    if (audioElement) {
-      const newTime = Math.max(localCurrentTime - 10, 0);
-      setCurrentTime(newTime);
-    }
+    const { setCurrentTime } = useAudioStore();
+    const newTime = Math.max(localCurrentTime - 10, 0);
+    setCurrentTime(newTime);
   };
   
   // Add vibration feedback to button interactions

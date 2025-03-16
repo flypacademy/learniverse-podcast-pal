@@ -33,7 +33,7 @@ export const useAudioStore = create<AudioState>((set, get) => ({
   currentPodcastId: null,
   currentTime: 0,
   duration: 0,
-  volume: 80,
+  volume: 0.8, // Changed to 0-1 scale
   podcastMeta: null,
   
   setAudio: (audioElement, podcastId, meta) => {
@@ -64,8 +64,11 @@ export const useAudioStore = create<AudioState>((set, get) => ({
     console.log("Setting new audio in global store:", { podcastId });
     
     // Set the volume based on store state - ensure it's between 0-1
-    const safeVolume = Math.max(0, Math.min(100, get().volume)) / 100;
+    const safeVolume = Math.max(0, Math.min(1, get().volume));
     audioElement.volume = safeVolume;
+    
+    // Make sure the audio is properly loaded before playing
+    audioElement.preload = "auto";
     
     // Set up the new audio element
     audioElement.ontimeupdate = () => {
@@ -79,6 +82,15 @@ export const useAudioStore = create<AudioState>((set, get) => ({
     
     audioElement.onloadedmetadata = () => {
       set({ duration: audioElement.duration || 0 });
+    };
+    
+    // Handle loading events
+    audioElement.onloadeddata = () => {
+      console.log("Audio loaded data successfully");
+    };
+    
+    audioElement.onerror = (e) => {
+      console.error("Audio element error:", e);
     };
     
     // Update state with new audio (in a single set call to avoid multiple rerenders)
@@ -100,10 +112,19 @@ export const useAudioStore = create<AudioState>((set, get) => ({
     const { audioElement } = get();
     if (audioElement) {
       console.log("Playing audio from global store");
-      audioElement.play().catch(error => {
-        console.error("Error playing audio from global store:", error);
-      });
-      set({ isPlaying: true });
+      
+      // Create a user interaction first by unlocking audio context
+      const playPromise = audioElement.play();
+      
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          console.log("Audio playback started successfully");
+          set({ isPlaying: true });
+        }).catch(error => {
+          console.error("Error playing audio from global store:", error);
+          // Don't update state to playing if it failed
+        });
+      }
     }
   },
   
@@ -130,12 +151,11 @@ export const useAudioStore = create<AudioState>((set, get) => ({
   },
   
   setVolume: (volume) => {
-    // Ensure volume is within valid range of 0-100
-    const safeVolume = Math.max(0, Math.min(100, volume));
+    // Ensure volume is within valid range of 0-1
+    const safeVolume = Math.max(0, Math.min(1, volume));
     const { audioElement } = get();
     if (audioElement) {
-      // Convert to 0-1 range for HTML audio element
-      audioElement.volume = safeVolume / 100;
+      audioElement.volume = safeVolume;
     }
     set({ volume: safeVolume });
   },
@@ -149,6 +169,8 @@ export const useAudioStore = create<AudioState>((set, get) => ({
       audioElement.onended = null;
       audioElement.ontimeupdate = null;
       audioElement.onloadedmetadata = null;
+      audioElement.onloadeddata = null;
+      audioElement.onerror = null;
     }
     set({ 
       audioElement: null, 
