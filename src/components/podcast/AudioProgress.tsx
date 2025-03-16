@@ -1,45 +1,39 @@
 
 import React from "react";
-import ProgressBar from "@/components/ProgressBar";
+import { formatTime } from "@/lib/utils";
 
 interface AudioProgressProps {
   currentTime: number;
   duration: number;
-  onSeek?: (percent: number) => void;
+  onSeek: (time: number) => void;
 }
 
 const AudioProgress = ({ currentTime, duration, onSeek }: AudioProgressProps) => {
-  const progress = (currentTime / (duration || 1)) * 100;
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
   
-  // Format time as mm:ss
-  const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
-  
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!onSeek) return;
-    
-    const progressBar = e.currentTarget;
-    const rect = progressBar.getBoundingClientRect();
-    const percent = ((e.clientX - rect.left) / rect.width) * 100;
-    onSeek(Math.max(0, Math.min(100, percent)));
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTime = parseFloat(e.target.value);
+    onSeek(newTime);
   };
   
   return (
-    <div className="space-y-1.5">
-      <div 
-        className="relative cursor-pointer" 
-        onClick={handleSeek}
-      >
-        <ProgressBar 
-          value={progress} 
-          size="lg" 
-          color="bg-primary"
+    <div className="space-y-2">
+      <div className="relative h-1.5 bg-gray-700 rounded-full overflow-hidden">
+        <div 
+          className="absolute h-full bg-primary rounded-full" 
+          style={{ width: `${progress}%` }}
+        />
+        <input
+          type="range"
+          min={0}
+          max={duration || 100}
+          value={currentTime}
+          onChange={handleSeek}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
         />
       </div>
-      <div className="flex justify-between text-xs text-gray-500">
+      
+      <div className="flex justify-between text-xs text-gray-400">
         <span>{formatTime(currentTime)}</span>
         <span>{formatTime(duration)}</span>
       </div>

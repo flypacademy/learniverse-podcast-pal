@@ -5,20 +5,20 @@ import { Play, Pause, SkipBack, SkipForward } from "lucide-react";
 interface PlayerControlsProps {
   isPlaying: boolean;
   onPlayPause: () => void;
-  onSkipBack?: () => void;
-  onSkipForward?: () => void;
+  onSkipBack: () => void;
+  onSkipForward: () => void;
 }
 
 const PlayerControls = ({ 
   isPlaying, 
   onPlayPause, 
-  onSkipBack = () => {}, 
-  onSkipForward = () => {} 
+  onSkipBack, 
+  onSkipForward 
 }: PlayerControlsProps) => {
   return (
     <div className="flex items-center justify-center gap-6">
       <button 
-        className="text-gray-500 hover:text-gray-700"
+        className="text-gray-300 hover:text-white"
         onClick={onSkipBack}
         aria-label="Skip back 10 seconds"
       >
@@ -37,7 +37,7 @@ const PlayerControls = ({
       </button>
       
       <button 
-        className="text-gray-500 hover:text-gray-700"
+        className="text-gray-300 hover:text-white"
         onClick={onSkipForward}
         aria-label="Skip forward 10 seconds"
       >

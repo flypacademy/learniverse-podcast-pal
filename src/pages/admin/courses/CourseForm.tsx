@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
@@ -143,11 +142,12 @@ const CourseForm = () => {
       // Upload image if a new one is selected
       if (selectedImage) {
         try {
+          console.log("Uploading image to course-content bucket");
           const path = `courses/${Date.now()}_${selectedImage.name}`;
           imageUrl = await uploadFile('course-content', path, selectedImage);
+          console.log("Image uploaded successfully:", imageUrl);
         } catch (uploadError) {
           console.error("Error uploading image:", uploadError);
-          // Continue with course creation even if image upload fails
           toast({
             title: "Warning",
             description: "Image upload failed, but course will be created",
