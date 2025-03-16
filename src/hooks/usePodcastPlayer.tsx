@@ -4,9 +4,9 @@ import { useParams } from "react-router-dom";
 import { usePodcastData } from "./usePodcastData";
 import { useAudioPlayback } from "./useAudioPlayback";
 import { useProgressTracking } from "./useProgressTracking";
-import { PodcastData, CourseData } from "@/types/podcast";
+import type { PodcastData, CourseData } from "@/types/podcast";
 
-export { PodcastData, CourseData };
+export type { PodcastData, CourseData };
 
 export function usePodcastPlayer() {
   const { podcastId } = useParams<{ podcastId: string }>();
