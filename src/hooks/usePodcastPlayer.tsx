@@ -101,6 +101,7 @@ export const usePodcastPlayer = (podcastId?: string) => {
         // Extract course name from the joined courses data
         let courseName = "Unknown Course";
         if (podcastData.courses) {
+          // Fix: Access title from the course object, not as if it's an array
           courseName = podcastData.courses.title || "Unknown Course";
         }
 
