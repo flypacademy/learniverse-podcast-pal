@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Save, X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface PodcastHeaderProps {
   onAddHeader: (headerText: string) => Promise<void>;
@@ -12,16 +13,24 @@ const PodcastHeader: React.FC<PodcastHeaderProps> = ({ onAddHeader }) => {
   const [isAddingHeader, setIsAddingHeader] = useState(false);
   const [headerText, setHeaderText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
   
   const handleAddHeader = async () => {
-    if (!headerText.trim()) return;
+    if (!headerText.trim()) {
+      toast({
+        title: "Error",
+        description: "Header text cannot be empty",
+        variant: "destructive"
+      });
+      return;
+    }
     
     setIsSubmitting(true);
     try {
       await onAddHeader(headerText);
       setHeaderText("");
       setIsAddingHeader(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding header:", error);
       // Error handling is done in the usePodcasts hook
     } finally {
@@ -32,6 +41,9 @@ const PodcastHeader: React.FC<PodcastHeaderProps> = ({ onAddHeader }) => {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       handleAddHeader();
+    } else if (e.key === 'Escape') {
+      setIsAddingHeader(false);
+      setHeaderText("");
     }
   };
   
@@ -50,7 +62,7 @@ const PodcastHeader: React.FC<PodcastHeaderProps> = ({ onAddHeader }) => {
           variant="outline" 
           size="sm" 
           onClick={handleAddHeader}
-          disabled={isSubmitting}
+          disabled={isSubmitting || !headerText.trim()}
         >
           <Save className="h-4 w-4 mr-1" />
           Save
@@ -58,7 +70,10 @@ const PodcastHeader: React.FC<PodcastHeaderProps> = ({ onAddHeader }) => {
         <Button 
           variant="ghost" 
           size="sm" 
-          onClick={() => setIsAddingHeader(false)}
+          onClick={() => {
+            setIsAddingHeader(false);
+            setHeaderText("");
+          }}
           disabled={isSubmitting}
         >
           <X className="h-4 w-4" />

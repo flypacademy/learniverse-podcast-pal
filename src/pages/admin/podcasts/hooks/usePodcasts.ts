@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 
 interface Podcast {
@@ -210,9 +210,20 @@ export const usePodcasts = (courseId: string | undefined) => {
   };
   
   const addHeader = async (headerText: string) => {
-    if (!courseId) return;
+    if (!courseId) {
+      const errorMsg = "Course ID is missing";
+      setError(errorMsg);
+      toast({
+        title: "Error",
+        description: errorMsg,
+        variant: "destructive"
+      });
+      throw new Error(errorMsg);
+    }
     
     try {
+      console.log("Adding header with text:", headerText, "for course:", courseId);
+      
       // Insert the new header into the course_headers table
       const { data, error } = await supabase
         .from('course_headers')
@@ -224,7 +235,14 @@ export const usePodcasts = (courseId: string | undefined) => {
       
       if (error) {
         console.error("Error inserting header:", error);
-        throw new Error("Failed to add header: " + error.message);
+        const errorMsg = `Failed to add header: ${error.message}`;
+        setError(errorMsg);
+        toast({
+          title: "Error",
+          description: errorMsg,
+          variant: "destructive"
+        });
+        throw new Error(errorMsg);
       }
       
       // After adding the header, refresh the podcasts to update the UI
@@ -237,11 +255,12 @@ export const usePodcasts = (courseId: string | undefined) => {
       
       return data;
     } catch (error: any) {
-      console.error("Error adding header:", error);
-      setError("Failed to add header: " + error.message);
+      const errorMsg = error.message || "Unknown error occurred";
+      console.error("Error adding header:", errorMsg);
+      setError(`Failed to add header: ${errorMsg}`);
       toast({
         title: "Error",
-        description: "Failed to add header: " + error.message,
+        description: `Failed to add header: ${errorMsg}`,
         variant: "destructive"
       });
       throw error;

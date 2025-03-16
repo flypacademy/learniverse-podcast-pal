@@ -1,138 +1,163 @@
 
-import React from "react";
-import { useParams } from "react-router-dom";
+import React, { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
-import QuizModal from "@/components/QuizModal";
-import { useToast } from "@/components/ui/use-toast";
-
-// Import custom components
 import PodcastHeader from "@/components/podcast/PodcastHeader";
 import PodcastCover from "@/components/podcast/PodcastCover";
 import PodcastInfo from "@/components/podcast/PodcastInfo";
 import PlayerControls from "@/components/podcast/PlayerControls";
 import AudioProgress from "@/components/podcast/AudioProgress";
 import VolumeControl from "@/components/podcast/VolumeControl";
-import XPModal from "@/components/podcast/XPModal";
-import QuizButton from "@/components/podcast/QuizButton";
 import PodcastDescription from "@/components/podcast/PodcastDescription";
-
-// Import custom hook
+import QuizButton from "@/components/podcast/QuizButton";
+import XPModal from "@/components/podcast/XPModal";
 import { usePodcastPlayer } from "@/hooks/usePodcastPlayer";
 
 const PodcastPlayer = () => {
-  const { id } = useParams<{ id: string }>();
-  const { toast } = useToast();
-  
-  // Use the custom hook for player state and logic
+  const navigate = useNavigate();
   const {
-    podcast,
+    podcastData,
+    courseData,
     loading,
+    error,
+    ready,
+    setReady,
     isPlaying,
+    duration,
+    setDuration,
     currentTime,
+    setCurrentTime,
     volume,
+    isQuizAvailable,
     showXPModal,
-    quizQuestions,
-    showQuiz,
-    togglePlay,
-    handleVolumeChange,
-    toggleQuiz,
-    setShowQuiz,
+    setShowXPModal,
+    audioRef,
+    play,
+    pause,
+    togglePlayPause,
+    seek,
+    changeVolume,
     skipForward,
     skipBackward,
-    seekTo
-  } = usePodcastPlayer(id);
+    handleCompletion
+  } = usePodcastPlayer();
   
-  // Handle quiz completion
-  const handleQuizComplete = (score: number) => {
-    // Show toast with the quiz score
-    toast({
-      title: "Quiz Completed!",
-      description: `You scored ${score}% on the ${podcast?.title} quiz.`,
-    });
-    
-    // Add XP based on score
-    const xpEarned = Math.floor(score / 10) * 5; // 5 XP per 10% score
-    
-    toast({
-      title: `+${xpEarned} XP Earned!`,
-      description: "Keep learning to earn more XP and level up.",
-    });
-  };
+  // If there's an error, show it
+  if (error) {
+    return (
+      <Layout>
+        <div className="flex flex-col items-center justify-center h-full">
+          <h2 className="text-xl font-bold text-red-500">Error</h2>
+          <p className="text-gray-600 mt-2">{error}</p>
+          <button 
+            onClick={() => navigate(-1)}
+            className="mt-6 px-4 py-2 bg-primary text-white rounded-md shadow hover:bg-primary/90 transition-colors"
+          >
+            Go Back
+          </button>
+        </div>
+      </Layout>
+    );
+  }
   
   // Show loading state
-  if (loading) {
+  if (loading || !podcastData) {
     return (
       <Layout>
-        <div className="h-full flex items-center justify-center">
-          <p>Loading podcast...</p>
+        <div className="flex flex-col items-center justify-center h-full">
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <p className="mt-4 text-gray-600">Loading podcast...</p>
         </div>
       </Layout>
     );
   }
   
-  // Show not found state
-  if (!podcast) {
-    return (
-      <Layout>
-        <div className="h-full flex items-center justify-center">
-          <p>Podcast not found</p>
-        </div>
-      </Layout>
-    );
-  }
+  const handleAudioEnded = () => {
+    handleCompletion();
+  };
   
   return (
     <Layout>
-      <div className="space-y-5 animate-slide-up">
-        {/* Header with back button */}
-        <PodcastHeader courseName={podcast.courseName} />
+      <div className="space-y-8 pb-32 animate-slide-up">
+        <PodcastHeader 
+          title={podcastData.title} 
+          courseName={courseData?.title || ""}
+          courseId={courseData?.id || ""}
+        />
         
-        {/* Podcast Image */}
-        <PodcastCover image={podcast.image} title={podcast.title} />
-        
-        {/* Podcast Info */}
-        <PodcastInfo title={podcast.title} courseName={podcast.courseName} />
-        
-        {/* Player Controls */}
-        <div className="space-y-4">
-          {/* Progress Bar */}
-          <AudioProgress 
-            currentTime={currentTime} 
-            duration={podcast.duration} 
-            onSeek={seekTo}
-          />
+        <div className="flex flex-col md:flex-row gap-6">
+          <div className="flex-shrink-0 w-full md:w-auto">
+            <PodcastCover 
+              src={podcastData.image_url || ""} 
+              alt={podcastData.title} 
+            />
+          </div>
           
-          {/* Control Buttons */}
-          <PlayerControls 
-            isPlaying={isPlaying} 
-            onPlayPause={togglePlay} 
-            onSkipBack={skipBackward}
-            onSkipForward={skipForward}
-          />
-          
-          {/* Volume Control */}
-          <VolumeControl volume={volume} onVolumeChange={handleVolumeChange} />
+          <div className="flex-grow space-y-6">
+            <PodcastInfo 
+              title={podcastData.title}
+              duration={duration}
+            />
+            
+            <audio
+              ref={audioRef}
+              src={podcastData.audio_url}
+              onLoadedMetadata={() => {
+                if (audioRef.current) {
+                  setDuration(audioRef.current.duration);
+                  setReady(true);
+                }
+              }}
+              onTimeUpdate={() => {
+                if (audioRef.current) {
+                  setCurrentTime(audioRef.current.currentTime);
+                }
+              }}
+              onEnded={handleAudioEnded}
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
+              preload="metadata"
+              className="hidden"
+            />
+            
+            <div className="space-y-4">
+              <PlayerControls 
+                isPlaying={isPlaying}
+                handlePlayPause={togglePlayPause}
+                handleForward={skipForward}
+                handleBackward={skipBackward}
+                disabled={!ready}
+              />
+              
+              <AudioProgress 
+                currentTime={currentTime}
+                duration={duration}
+                onSeek={seek}
+              />
+              
+              <div className="flex justify-between">
+                <VolumeControl 
+                  volume={volume}
+                  onVolumeChange={changeVolume}
+                />
+                
+                {isQuizAvailable && (
+                  <QuizButton 
+                    podcastId={podcastData.id}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
         </div>
         
-        {/* Quiz Button */}
-        {quizQuestions.length > 0 && (
-          <QuizButton onClick={toggleQuiz} />
-        )}
-        
-        {/* Podcast Description */}
-        <PodcastDescription description={podcast.description} />
+        <PodcastDescription description={podcastData.description || ""} />
       </div>
       
-      {/* XP Gained Modal */}
-      <XPModal show={showXPModal} />
-      
-      {/* Quiz Modal */}
-      {showQuiz && quizQuestions.length > 0 && (
-        <QuizModal
-          questions={quizQuestions}
-          podcastTitle={podcast.title}
-          onClose={() => setShowQuiz(false)}
-          onComplete={handleQuizComplete}
+      {showXPModal && (
+        <XPModal 
+          onClose={() => setShowXPModal(false)}
+          xpEarned={30}
         />
       )}
     </Layout>
