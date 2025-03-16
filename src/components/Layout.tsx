@@ -19,18 +19,22 @@ const Layout = ({ children }: LayoutProps) => {
   
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-white to-gray-50">
-      <main className={`flex-1 pb-24 pt-6 px-4 max-w-md mx-auto w-full ${showMiniPlayer ? 'pb-32' : ''}`}>
+      <main className={`flex-1 pt-6 px-4 max-w-md mx-auto w-full ${showMiniPlayer ? 'pb-36' : 'pb-20'}`}>
         {children}
       </main>
       
       {/* Mini Player */}
       {showMiniPlayer && podcastMeta && (
-        <MiniPlayer 
-          podcastId={podcastMeta.id}
-          title={podcastMeta.title}
-          courseName={podcastMeta.courseName}
-          thumbnailUrl={podcastMeta.image}
-        />
+        <div className="fixed bottom-16 left-0 right-0 z-20">
+          <div className="max-w-md mx-auto px-4">
+            <MiniPlayer 
+              podcastId={podcastMeta.id}
+              title={podcastMeta.title}
+              courseName={podcastMeta.courseName}
+              thumbnailUrl={podcastMeta.image}
+            />
+          </div>
+        </div>
       )}
       
       {/* Navigation Bar */}
