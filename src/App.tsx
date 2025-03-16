@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { createClient } from '@supabase/supabase-js';
@@ -19,8 +20,8 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import CoursesList from './pages/admin/courses/CoursesList';
 import CourseForm from './pages/admin/courses/CourseForm';
 import PodcastsList from './pages/admin/podcasts/PodcastsList';
-import AdminUsers from './pages/admin/AdminUsers';
-import AdminSettings from './pages/admin/AdminSettings';
+import AdminUsers from './pages/admin/users/AdminUsers';
+import AdminSettings from './pages/admin/settings/AdminSettings';
 import NotFound from './pages/NotFound';
 import PodcastForm from './pages/admin/podcasts/PodcastForm';
 
