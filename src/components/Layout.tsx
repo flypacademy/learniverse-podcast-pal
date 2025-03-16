@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Home, BookOpen, User, Target } from "lucide-react";
@@ -33,8 +34,8 @@ const Layout = ({ children }: LayoutProps) => {
       )}
       
       {/* Navigation Bar */}
-      <nav className="fixed bottom-0 left-1/2 transform -translate-x-1/2 bg-white border border-gray-100 shadow-lg rounded-full z-10 max-w-xs w-[90%]">
-        <div className="flex justify-around items-center py-2 px-3">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-10">
+        <div className="flex justify-around items-center py-2 px-3 max-w-md mx-auto">
           <NavItem 
             to="/" 
             icon={<Home className="h-5 w-5" />} 
