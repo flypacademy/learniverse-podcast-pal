@@ -15,10 +15,11 @@ interface MiniPlayerProps {
 }
 
 const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerProps) => {
-  // We'll use local state and sync it with the store to avoid recursive updates
+  // Use local state to avoid unnecessary re-renders
   const [localIsPlaying, setLocalIsPlaying] = useState(false);
   const [localCurrentTime, setLocalCurrentTime] = useState(0);
   const [localDuration, setLocalDuration] = useState(0);
+  const [recoveringAudio, setRecoveringAudio] = useState(false);
   
   const { 
     isPlaying, 
@@ -33,11 +34,22 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
 
   // Check if audio element exists, if not try to recreate it
   useEffect(() => {
-    if (!audioElement && podcastMeta?.audioUrl) {
-      console.log("No audio element in MiniPlayer, trying to continue playback");
-      continuePlayback();
+    if (!audioElement && podcastMeta?.audioUrl && !recoveringAudio) {
+      console.log("MiniPlayer: No audio element, attempting to continue playback");
+      setRecoveringAudio(true);
+      
+      // Use a timeout to avoid React state update loops
+      setTimeout(() => {
+        try {
+          continuePlayback();
+        } catch (err) {
+          console.error("Error continuing playback:", err);
+        } finally {
+          setRecoveringAudio(false);
+        }
+      }, 100);
     }
-  }, [audioElement, podcastMeta?.audioUrl, continuePlayback]);
+  }, [audioElement, podcastMeta?.audioUrl, continuePlayback, recoveringAudio]);
 
   // Sync local state with store - only when the store values change
   useEffect(() => {
@@ -47,11 +59,16 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
   }, [isPlaying, currentTime, duration]);
 
   const togglePlay = () => {
+    if (recoveringAudio) {
+      console.log("MiniPlayer: Audio recovery in progress, ignoring play request");
+      return;
+    }
+    
     if (localIsPlaying) {
       console.log("MiniPlayer: Pausing audio");
       pause();
     } else {
-      console.log("MiniPlayer: Playing audio");
+      console.log("MiniPlayer: Attempting to play audio");
       
       // Check if we have a valid audio URL
       if (!podcastMeta?.audioUrl) {
@@ -63,39 +80,79 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
         return;
       }
       
+      // If no audio element, try to recreate it before playing
       if (!audioElement) {
-        console.log("MiniPlayer: No audio element, continuing playback first");
-        continuePlayback();
-        // Add a delay to ensure audio is created before trying to play
-        setTimeout(() => {
-          const newAudioElement = useAudioStore.getState().audioElement;
-          if (newAudioElement) {
+        console.log("MiniPlayer: No audio element, recreating");
+        setRecoveringAudio(true);
+        
+        try {
+          continuePlayback();
+          
+          // Use a timeout to ensure the audio is created before playing
+          setTimeout(() => {
             try {
-              play();
+              const newAudioElement = useAudioStore.getState().audioElement;
+              if (newAudioElement) {
+                play();
+              }
             } catch (err) {
               console.error("Error during delayed play:", err);
+              toast({
+                title: "Playback error",
+                description: "Could not start playback",
+                variant: "destructive"
+              });
+            } finally {
+              setRecoveringAudio(false);
             }
-          }
-        }, 500);
+          }, 800); // Longer delay to ensure audio is ready
+        } catch (err) {
+          console.error("Error during audio continuation:", err);
+          setRecoveringAudio(false);
+        }
       } else {
+        // We have an audio element, try to play it directly
         try {
           play();
         } catch (err) {
           console.error("Error during play:", err);
-          // Try recreating the audio element and playing again
-          continuePlayback();
-          setTimeout(() => play(), 500);
+          
+          // Try recreating the audio element as a fallback
+          if (!recoveringAudio) {
+            setRecoveringAudio(true);
+            
+            try {
+              continuePlayback();
+              
+              setTimeout(() => {
+                try {
+                  play();
+                } catch (playErr) {
+                  console.error("Error during retry play:", playErr);
+                } finally {
+                  setRecoveringAudio(false);
+                }
+              }, 800);
+            } catch (continueErr) {
+              console.error("Error during audio continuation:", continueErr);
+              setRecoveringAudio(false);
+            }
+          }
         }
       }
     }
   };
 
   const skipForward = () => {
+    if (recoveringAudio) return;
+    
     const newTime = Math.min(localCurrentTime + 10, localDuration);
     useAudioStore.getState().setCurrentTime(newTime);
   };
 
   const skipBackward = () => {
+    if (recoveringAudio) return;
+    
     const newTime = Math.max(localCurrentTime - 10, 0);
     useAudioStore.getState().setCurrentTime(newTime);
   };

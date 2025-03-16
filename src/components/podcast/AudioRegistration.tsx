@@ -25,18 +25,22 @@ const AudioRegistration = ({
   const registrationTimerRef = useRef<number | null>(null);
   const hasValidatedDataRef = useRef(false);
   const lastPodcastIdRef = useRef<string | null>(null);
+  const isUnmountingRef = useRef(false);
   
   // Clean up any pending timers on unmount
   useEffect(() => {
     return () => {
       console.log("AudioRegistration component unmounting");
+      isUnmountingRef.current = true;
+      
       if (registrationTimerRef.current) {
         clearTimeout(registrationTimerRef.current);
+        registrationTimerRef.current = null;
       }
     };
   }, []);
   
-  // Validate podcast data once - only run once
+  // Validate podcast data once
   useEffect(() => {
     // Skip if we've already validated
     if (hasValidatedDataRef.current) return;
@@ -54,15 +58,15 @@ const AudioRegistration = ({
     hasValidatedDataRef.current = true;
   }, [podcastData, setHasError]);
   
-  // Audio registration with retry mechanism - careful with dependencies to avoid loops
+  // Audio registration with retry mechanism
   useEffect(() => {
-    // Skip if already initialized or too many attempts
-    if (audioInitialized || registrationAttempts >= 3) return;
+    // Skip if already initialized, unmounting, or too many attempts
+    if (audioInitialized || isUnmountingRef.current || registrationAttempts >= 3) return;
     
     // Skip if podcast ID hasn't changed (prevents duplicate registrations)
     if (lastPodcastIdRef.current === podcastData?.id) return;
     
-    // Check if we have all the required data and elements
+    // Check if we have all required data and elements
     const hasRequiredData = 
       podcastData?.audio_url && 
       courseData && 
@@ -75,7 +79,7 @@ const AudioRegistration = ({
         hasAudioRef: !!audioRef.current
       });
       
-      // Schedule a retry with increasing delay to avoid rapid retries
+      // Schedule a retry with increasing delay
       if (registrationAttempts < 3) {
         const delay = (registrationAttempts + 1) * 500;
         
@@ -86,8 +90,10 @@ const AudioRegistration = ({
         
         // Set new timer
         registrationTimerRef.current = window.setTimeout(() => {
-          setRegistrationAttempts(prev => prev + 1);
-          registrationTimerRef.current = null;
+          if (!isUnmountingRef.current) {
+            setRegistrationAttempts(prev => prev + 1);
+            registrationTimerRef.current = null;
+          }
         }, delay);
       }
       
@@ -105,8 +111,10 @@ const AudioRegistration = ({
       
       // Set new timer
       registrationTimerRef.current = window.setTimeout(() => {
-        setRegistrationAttempts(prev => prev + 1);
-        registrationTimerRef.current = null;
+        if (!isUnmountingRef.current) {
+          setRegistrationAttempts(prev => prev + 1);
+          registrationTimerRef.current = null;
+        }
       }, 500);
       
       return;
@@ -148,7 +156,7 @@ const AudioRegistration = ({
       console.error("Error registering audio with store:", err);
       
       // If we still have retries left, try again
-      if (registrationAttempts < 2) {
+      if (registrationAttempts < 2 && !isUnmountingRef.current) {
         console.log(`Retrying audio registration (attempt ${registrationAttempts + 1})`);
         
         // Clear any existing timer
@@ -158,11 +166,13 @@ const AudioRegistration = ({
         
         // Set new timer with increasing delay
         registrationTimerRef.current = window.setTimeout(() => {
-          setRegistrationAttempts(prev => prev + 1);
-          registrationTimerRef.current = null;
+          if (!isUnmountingRef.current) {
+            setRegistrationAttempts(prev => prev + 1);
+            registrationTimerRef.current = null;
+          }
         }, 500 * (registrationAttempts + 1));
         
-      } else {
+      } else if (!isUnmountingRef.current) {
         setHasError(true);
         toast({
           title: "Error",
@@ -181,7 +191,7 @@ const AudioRegistration = ({
     setHasError
   ]);
   
-  return null; // This is a functional component that doesn't render anything
+  return null; // This component doesn't render anything
 };
 
 // Memoize to prevent unnecessary rerenders

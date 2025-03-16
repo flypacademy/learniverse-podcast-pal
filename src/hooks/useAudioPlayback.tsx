@@ -8,6 +8,7 @@ import { useAudioEvents } from "./audioPlayback/useAudioEvents";
 export function useAudioPlayback(initialPosition: number = 0) {
   const { toast } = useToast();
   const globalAudioStore = useAudioStore();
+  const isUnmountingRef = useRef(false);
   
   // State
   const [isPlaying, setIsPlaying] = useState(false);
@@ -26,10 +27,14 @@ export function useAudioPlayback(initialPosition: number = 0) {
       console.log("Syncing state with global audio store");
       setIsPlaying(globalAudioStore.isPlaying);
       setCurrentTime(globalAudioStore.currentTime);
-      setDuration(globalAudioStore.duration);
+      setDuration(globalAudioStore.duration || 0);
       setVolume(globalAudioStore.volume);
       isInitialSyncRef.current = false;
     }
+    
+    return () => {
+      isUnmountingRef.current = true;
+    };
   }, [globalAudioStore]);
   
   // Set up audio controls

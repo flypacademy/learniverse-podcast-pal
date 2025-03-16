@@ -54,26 +54,30 @@ export function usePodcastPlayer() {
   
   // Apply initial position from user progress when audio is ready
   useEffect(() => {
-    if (audioRef.current && initialPosition > 0 && !audioInitialized) {
+    if (audioRef.current && initialPosition > 0 && !audioInitialized && ready) {
       console.log("Setting initial position from progress data:", initialPosition);
-      audioRef.current.currentTime = initialPosition;
-      setCurrentTime(initialPosition);
-      setAudioInitialized(true);
+      try {
+        audioRef.current.currentTime = initialPosition;
+        setCurrentTime(initialPosition);
+        setAudioInitialized(true);
+      } catch (err) {
+        console.error("Error setting initial position:", err);
+        // Still mark as initialized to avoid repeated attempts
+        setAudioInitialized(true);
+      }
     }
-  }, [audioRef.current, initialPosition, audioInitialized, setCurrentTime]);
+  }, [audioRef.current, initialPosition, audioInitialized, ready, setCurrentTime]);
 
   // IMPORTANT: Don't stop playback when unmounting the component
-  // Just let the global audio store handle it
   useEffect(() => {
     return () => {
-      console.log("usePodcastPlayer hook - Cleaning up, but preserving playback state");
+      console.log("usePodcastPlayer hook - Unmounting, preserving audio state");
       
-      // We don't pause or clean up the audio element here
+      // Don't pause or clean up the audio element
       // This allows playback to continue when navigating away
       
-      // If needed, we could save the current time to local storage or a similar mechanism here
+      // Update global store time one last time before unmounting
       if (audioRef.current && audioStore.audioElement === audioRef.current && podcastId) {
-        // Update global store time one last time before unmounting
         audioStore.setCurrentTime(audioRef.current.currentTime);
       }
     };

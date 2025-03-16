@@ -28,6 +28,24 @@ const AudioElement = ({
   const hasSetupEvents = useRef(false);
   const lastTimeUpdateRef = useRef(0);
   const timeUpdateIntervalRef = useRef<number | null>(null);
+  const isUnmountedRef = useRef(false);
+  
+  // Cleanup function for all resources
+  const cleanup = () => {
+    isUnmountedRef.current = true;
+    hasSetupEvents.current = false;
+    
+    // Clear the interval if it exists
+    if (timeUpdateIntervalRef.current) {
+      clearInterval(timeUpdateIntervalRef.current);
+      timeUpdateIntervalRef.current = null;
+    }
+    
+    // Clean up the audio element
+    if (audioRef.current) {
+      // Don't call pause() - we want playback to continue in the global store
+    }
+  };
   
   // Validate audio URL once on mount
   useEffect(() => {
@@ -50,46 +68,39 @@ const AudioElement = ({
     
     console.log("AudioElement mounted with URL:", audioUrl);
     
-    // Set up a regular interval to update the time display
-    // This ensures the time updates even if timeupdate events are inconsistent
+    // Set up a regular interval for time updates
     timeUpdateIntervalRef.current = window.setInterval(() => {
+      if (isUnmountedRef.current) return;
+      
       if (audioRef.current && !audioRef.current.paused) {
         setCurrentTime(audioRef.current.currentTime);
       }
-    }, 250); // Update 4 times per second
+    }, 250);
     
-    return () => {
-      console.log("AudioElement unmounting");
-      hasSetupEvents.current = false;
-      
-      // Clear the interval on unmount
-      if (timeUpdateIntervalRef.current) {
-        clearInterval(timeUpdateIntervalRef.current);
-      }
-    };
+    return cleanup;
   }, [audioUrl, setHasError, audioRef, setCurrentTime]);
   
-  // This useEffect sets up the event listeners only once to prevent re-renders
+  // This useEffect sets up the event listeners only once
   useEffect(() => {
-    if (!isValidUrl || !audioRef.current || hasSetupEvents.current) return;
+    if (!isValidUrl || !audioRef.current || hasSetupEvents.current || isUnmountedRef.current) return;
     
     const element = audioRef.current;
     
     // Attach event listeners
     const handleMetadataLoaded = () => {
-      if (element) {
+      if (element && !isUnmountedRef.current) {
         console.log("Audio loaded metadata:", {
           duration: element.duration,
           src: element.src
         });
-        setDuration(element.duration);
+        setDuration(element.duration || 0);
         setReady(true);
         setLoadAttempts(0);
       }
     };
     
     const handleTimeUpdate = () => {
-      if (element) {
+      if (element && !isUnmountedRef.current) {
         // Throttle time updates to reduce re-renders
         if (Math.abs(element.currentTime - lastTimeUpdateRef.current) >= 0.5) {
           lastTimeUpdateRef.current = element.currentTime;
@@ -98,20 +109,31 @@ const AudioElement = ({
       }
     };
     
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
+    const handlePlay = () => {
+      if (!isUnmountedRef.current) setIsPlaying(true);
+    };
+    
+    const handlePause = () => {
+      if (!isUnmountedRef.current) setIsPlaying(false);
+    };
     
     const handleEnded = () => {
-      setIsPlaying(false);
-      onAudioEnded();
+      if (!isUnmountedRef.current) {
+        setIsPlaying(false);
+        onAudioEnded();
+      }
     };
     
     const handleCanPlay = () => {
-      console.log("Audio is ready to play");
-      setReady(true);
+      if (!isUnmountedRef.current) {
+        console.log("Audio is ready to play");
+        setReady(true);
+      }
     };
     
     const handleError = (e: Event) => {
+      if (isUnmountedRef.current) return;
+      
       console.error("Direct audio element error:", e);
       const target = e.target as HTMLAudioElement;
       const errorCode = target.error ? target.error.code : 'unknown';
@@ -119,16 +141,28 @@ const AudioElement = ({
       
       console.error(`Direct audio error details: code=${errorCode}, message=${errorMessage}`);
       
-      // Retry logic
+      // Retry logic with increasing backoff
       if (loadAttempts < 2) {
         setLoadAttempts(prev => prev + 1);
+        const retryDelay = 1000 * (loadAttempts + 1);
+        
         setTimeout(() => {
-          if (element) {
-            element.load();
+          if (!isUnmountedRef.current && element) {
+            console.log(`Retry attempt ${loadAttempts + 1} for audio load`);
+            try {
+              element.load();
+            } catch (err) {
+              console.error("Error reloading audio:", err);
+            }
           }
-        }, 1000);
+        }, retryDelay);
       } else {
         setHasError(true);
+        toast({
+          title: "Audio Error",
+          description: "Could not load audio file",
+          variant: "destructive"
+        });
       }
     };
     
@@ -168,7 +202,7 @@ const AudioElement = ({
     setHasError
   ]);
   
-  // Skip rendering if URL is invalid
+  // If URL is invalid, don't render audio element
   if (!isValidUrl) return null;
   
   return (
@@ -181,5 +215,5 @@ const AudioElement = ({
   );
 };
 
-// Memoize the component to avoid unnecessary re-renders
+// Memoize to prevent unnecessary re-renders
 export default memo(AudioElement);

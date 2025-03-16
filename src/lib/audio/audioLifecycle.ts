@@ -15,7 +15,7 @@ export const createAudioLifecycleSlice: StateCreator<
   AudioLifecycleSlice
 > = (set, get, api) => ({
   continuePlayback: () => {
-    const { podcastMeta, currentTime, isPlaying } = get();
+    const { podcastMeta, currentTime, isPlaying, volume } = get();
     
     if (!podcastMeta?.audioUrl) {
       console.error("Cannot continue playback without audio URL");
@@ -25,30 +25,40 @@ export const createAudioLifecycleSlice: StateCreator<
     try {
       console.log("Creating new audio element for continued playback");
       
+      // Clean up existing audio element first to avoid conflicts
+      const existingAudio = get().audioElement;
+      if (existingAudio) {
+        try {
+          existingAudio.pause();
+          existingAudio.src = '';
+        } catch (err) {
+          console.warn("Non-critical error cleaning up existing audio:", err);
+        }
+      }
+      
       // Create a new audio element
       const newAudioElement = new Audio();
       
-      // Set volume based on stored value
-      newAudioElement.volume = get().volume;
+      // Set initial volume
+      const safeVolume = Math.max(0, Math.min(1, volume || 0.8));
+      newAudioElement.volume = safeVolume;
       
-      // Set up event listeners before attempting playback
-      // This helps prevent potential state update loops
+      // Important: Set up event listeners BEFORE setting the source
+      // This ensures we catch all events
       
-      // Set up time update handler that won't cause re-render loops
+      // Use a more efficient timeupdate handler that doesn't trigger state updates too often
       let lastTimeUpdate = 0;
-      const timeUpdateHandler = () => {
+      newAudioElement.addEventListener('timeupdate', () => {
         // Only update time if it's changed by at least 0.5 seconds to reduce updates
         if (Math.abs(newAudioElement.currentTime - lastTimeUpdate) >= 0.5) {
           lastTimeUpdate = newAudioElement.currentTime;
           set({ currentTime: newAudioElement.currentTime });
         }
-      };
-      
-      newAudioElement.addEventListener('timeupdate', timeUpdateHandler);
+      });
       
       newAudioElement.addEventListener('loadedmetadata', () => {
         console.log("New audio element loaded metadata, duration:", newAudioElement.duration);
-        set({ duration: newAudioElement.duration });
+        set({ duration: newAudioElement.duration || 0 });
       });
       
       newAudioElement.addEventListener('ended', () => {
@@ -57,39 +67,38 @@ export const createAudioLifecycleSlice: StateCreator<
       
       newAudioElement.addEventListener('error', (e) => {
         console.error("Error in recreated audio element:", e);
-        // Don't update state on error to avoid potential loops
       });
       
       // Set the source after adding event listeners
       newAudioElement.src = podcastMeta.audioUrl;
       
-      // Make sure the audio is loaded
+      // Ensure audio is loaded
       newAudioElement.preload = "auto";
       newAudioElement.load();
       
-      // Update state with new audio (in a single set call to avoid multiple rerenders)
+      // Update state with new audio
       set({ audioElement: newAudioElement });
       
-      // Wait for audio to be loaded before setting current time and playing
-      newAudioElement.addEventListener('canplay', () => {
+      // Wait for audio to be loaded before setting time and playing
+      const canPlayHandler = () => {
         console.log("New audio element is ready to play");
         
         // Set current time if available
         if (currentTime > 0) {
           try {
             newAudioElement.currentTime = currentTime;
-            set({ currentTime }); // Make sure store is updated too
+            set({ currentTime }); // Make sure store is in sync
           } catch (error) {
             console.error("Error setting current time on new audio element:", error);
           }
         }
         
-        // If it was playing before, resume playback
+        // If it was previously playing, resume playback
         if (isPlaying) {
           try {
-            console.log("Resuming playback on new audio element");
-            const playPromise = newAudioElement.play();
+            console.log("Attempting to resume playback on new audio element");
             
+            const playPromise = newAudioElement.play();
             if (playPromise !== undefined) {
               playPromise
                 .then(() => {
@@ -102,14 +111,30 @@ export const createAudioLifecycleSlice: StateCreator<
                 });
             }
           } catch (error) {
-            console.error("Exception resuming playback on new audio element:", error);
+            console.error("Exception during play attempt on new audio element:", error);
             set({ isPlaying: false });
           }
         }
-      });
+        
+        // Remove the handler to avoid memory leaks
+        newAudioElement.removeEventListener('canplay', canPlayHandler);
+      };
+      
+      // Add canplay event to handle ready state
+      newAudioElement.addEventListener('canplay', canPlayHandler);
+      
+      // Set a fallback timeout in case canplay doesn't trigger
+      setTimeout(() => {
+        // Only try again if canplay hasn't fired yet
+        if (newAudioElement && !newAudioElement.paused === isPlaying) {
+          console.log("Fallback: canplay event didn't fire, trying to set time and play anyway");
+          canPlayHandler();
+        }
+      }, 2000);
       
     } catch (error) {
-      console.error("Error recreating audio element:", error);
+      console.error("Fatal error recreating audio element:", error);
+      set({ isPlaying: false });
     }
   },
   
@@ -130,38 +155,42 @@ export const createAudioLifecycleSlice: StateCreator<
         console.error("Error pausing audio during cleanup:", e);
       }
       
-      // Remove event listeners to prevent memory leaks and avoid potential callbacks after cleanup
-      const clonedAudio = audioElement;
+      // Store current references before nulling in state
+      const elementToCleanup = audioElement;
       
-      // Use a more robust approach to remove all listeners
-      try {
-        clonedAudio.onended = null;
-        clonedAudio.ontimeupdate = null;
-        clonedAudio.onloadedmetadata = null;
-        clonedAudio.oncanplay = null;
-        clonedAudio.onerror = null;
-      } catch (e) {
-        console.error("Error removing event listeners during cleanup:", e);
-      }
-      
-      // Clone references before clearing state to prevent accessing nullified values
+      // Clear store state first
       set({ 
         audioElement: null,
         isPlaying: false
       });
       
-      // Clear the source on the cloned reference
+      // Clean up event listeners to prevent memory leaks
+      try {
+        elementToCleanup.onended = null;
+        elementToCleanup.ontimeupdate = null;
+        elementToCleanup.onloadedmetadata = null;
+        elementToCleanup.oncanplay = null;
+        elementToCleanup.onerror = null;
+        // Clear all events for safety
+        elementToCleanup.onplay = null;
+        elementToCleanup.onpause = null;
+      } catch (e) {
+        console.warn("Non-critical error removing event listeners:", e);
+      }
+      
+      // Clear the source last, in a setTimeout to avoid blocking
       setTimeout(() => {
         try {
-          clonedAudio.src = '';
-        } catch (e) {
-          console.log("Non-critical error cleaning audio source:", e);
+          elementToCleanup.src = '';
+        } catch (err) {
+          // This is non-critical
+          console.warn("Non-critical error cleaning audio source:", err);
         }
       }, 0);
       
     } catch (error) {
       console.error("Error during audio cleanup:", error);
-      // Still attempt to reset the state even if cleanup fails
+      // Still reset the state even if cleanup fails
       set({ 
         audioElement: null,
         isPlaying: false
