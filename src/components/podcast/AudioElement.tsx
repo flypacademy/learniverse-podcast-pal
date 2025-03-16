@@ -23,34 +23,43 @@ const AudioElement = ({
   onAudioEnded,
   setHasError
 }: AudioElementProps) => {
+  // Handle audio metadata loaded
+  const handleMetadataLoaded = () => {
+    if (audioRef.current) {
+      console.log("Audio loaded metadata:", {
+        duration: audioRef.current.duration,
+        src: audioRef.current.src
+      });
+      setDuration(audioRef.current.duration);
+      setReady(true);
+    }
+  };
+  
+  // Handle audio error
+  const handleError = (e: React.SyntheticEvent<HTMLAudioElement>) => {
+    console.error("Audio element error:", e);
+    setHasError(true);
+    toast({
+      title: "Error",
+      description: "Failed to load audio",
+      variant: "destructive"
+    });
+  };
+  
+  // Handle time updates
+  const handleTimeUpdate = () => {
+    if (audioRef.current) {
+      setCurrentTime(audioRef.current.currentTime);
+    }
+  };
+  
   return (
     <audio
       ref={audioRef}
       src={audioUrl}
-      onLoadedMetadata={() => {
-        if (audioRef.current) {
-          console.log("Audio loaded metadata:", {
-            duration: audioRef.current.duration,
-            src: audioRef.current.src
-          });
-          setDuration(audioRef.current.duration);
-          setReady(true);
-        }
-      }}
-      onError={(e) => {
-        console.error("Audio element error:", e);
-        setHasError(true);
-        toast({
-          title: "Error",
-          description: "Failed to load audio",
-          variant: "destructive"
-        });
-      }}
-      onTimeUpdate={() => {
-        if (audioRef.current) {
-          setCurrentTime(audioRef.current.currentTime);
-        }
-      }}
+      onLoadedMetadata={handleMetadataLoaded}
+      onError={handleError}
+      onTimeUpdate={handleTimeUpdate}
       onEnded={onAudioEnded}
       onPlay={() => setIsPlaying(true)}
       onPause={() => setIsPlaying(false)}
