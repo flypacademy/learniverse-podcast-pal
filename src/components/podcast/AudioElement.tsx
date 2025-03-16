@@ -1,5 +1,5 @@
 
-import React, { RefObject } from "react";
+import React, { RefObject, useEffect } from "react";
 import { toast } from "@/components/ui/use-toast";
 
 interface AudioElementProps {
@@ -23,6 +23,12 @@ const AudioElement = ({
   onAudioEnded,
   setHasError
 }: AudioElementProps) => {
+  // Log when the component mounts to track lifecycle
+  useEffect(() => {
+    console.log("AudioElement mounted with URL:", audioUrl);
+    return () => console.log("AudioElement unmounting");
+  }, [audioUrl]);
+  
   // Handle audio metadata loaded
   const handleMetadataLoaded = () => {
     if (audioRef.current) {
@@ -38,10 +44,18 @@ const AudioElement = ({
   // Handle audio error
   const handleError = (e: React.SyntheticEvent<HTMLAudioElement>) => {
     console.error("Audio element error:", e);
+    
+    // Try to get more specific error info if available
+    const target = e.target as HTMLAudioElement;
+    const errorCode = target.error ? target.error.code : 'unknown';
+    const errorMessage = target.error ? target.error.message : 'Unknown error';
+    
+    console.error(`Audio error details: code=${errorCode}, message=${errorMessage}`);
+    
     setHasError(true);
     toast({
       title: "Error",
-      description: "Failed to load audio",
+      description: "Failed to load audio. Please try again later.",
       variant: "destructive"
     });
   };

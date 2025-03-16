@@ -1,3 +1,4 @@
+
 import { StateCreator } from 'zustand';
 import { AudioState, PodcastMeta } from './types';
 
@@ -14,6 +15,17 @@ export const createAudioSetupSlice: StateCreator<
   AudioSetupSlice
 > = (set, get, api) => ({
   setAudio: (audioElement, podcastId, meta) => {
+    // Validate inputs
+    if (!audioElement) {
+      console.error("Cannot set null audio element");
+      return;
+    }
+    
+    if (!podcastId) {
+      console.error("Cannot set audio without podcast ID");
+      return;
+    }
+    
     // If this is the same podcast that's already playing, don't reset
     const currentAudio = get().audioElement;
     const currentPodcastId = get().currentPodcastId;
@@ -42,7 +54,10 @@ export const createAudioSetupSlice: StateCreator<
       currentAudio.src = '';
     }
     
-    console.log("Setting new audio in global store:", { podcastId });
+    console.log("Setting new audio in global store:", { 
+      podcastId,
+      audioSrc: audioElement.src
+    });
     
     // Set the volume based on store state - ensure it's between 0-1
     const safeVolume = Math.max(0, Math.min(1, get().volume));
@@ -92,6 +107,10 @@ export const createAudioSetupSlice: StateCreator<
   },
   
   setPodcastMeta: (meta) => {
+    if (!meta || !meta.id) {
+      console.error("Cannot set invalid podcast metadata");
+      return;
+    }
     set({ podcastMeta: meta });
   },
 });

@@ -1,3 +1,4 @@
+
 import { StateCreator } from 'zustand';
 import { AudioState } from './types';
 
@@ -22,47 +23,59 @@ export const createAudioLifecycleSlice: StateCreator<
       return;
     }
     
-    // We need to create a new audio element if the original was cleaned up
-    if (!get().audioElement) {
-      console.log("Creating new audio element to continue playback");
+    try {
+      // Validate the audio URL before creating a new element
+      new URL(meta.audioUrl); // This will throw if URL is invalid
       
-      const newAudio = new Audio(meta.audioUrl);
-      const currentTime = get().currentTime;
-      
-      // Set the current time if we had one
-      if (currentTime > 0) {
-        newAudio.currentTime = currentTime;
-      }
-      
-      // Setup the audio element similar to setAudio method
-      const safeVolume = Math.max(0, Math.min(1, get().volume));
-      newAudio.volume = safeVolume;
-      newAudio.preload = "auto";
-      
-      newAudio.ontimeupdate = () => {
-        set({ currentTime: newAudio.currentTime });
-      };
-      
-      newAudio.onended = () => {
-        set({ isPlaying: false, currentTime: 0 });
-        newAudio.currentTime = 0;
-      };
-      
-      newAudio.onloadedmetadata = () => {
-        set({ duration: newAudio.duration || 0 });
-      };
-      
-      set({ audioElement: newAudio });
-      
-      // Auto-play when ready
-      newAudio.oncanplay = () => {
-        if (get().isPlaying) {
-          newAudio.play()
-            .catch(error => {
-              console.error("Error auto-playing continued audio:", error);
-            });
+      // We need to create a new audio element if the original was cleaned up
+      if (!get().audioElement) {
+        console.log("Creating new audio element to continue playback");
+        
+        const newAudio = new Audio(meta.audioUrl);
+        const currentTime = get().currentTime;
+        
+        // Set the current time if we had one
+        if (currentTime > 0) {
+          newAudio.currentTime = currentTime;
         }
-      };
+        
+        // Setup the audio element similar to setAudio method
+        const safeVolume = Math.max(0, Math.min(1, get().volume));
+        newAudio.volume = safeVolume;
+        newAudio.preload = "auto";
+        
+        // Add error handling
+        newAudio.onerror = (e) => {
+          console.error("Error in continued playback audio:", e);
+        };
+        
+        newAudio.ontimeupdate = () => {
+          set({ currentTime: newAudio.currentTime });
+        };
+        
+        newAudio.onended = () => {
+          set({ isPlaying: false, currentTime: 0 });
+          newAudio.currentTime = 0;
+        };
+        
+        newAudio.onloadedmetadata = () => {
+          set({ duration: newAudio.duration || 0 });
+        };
+        
+        set({ audioElement: newAudio });
+        
+        // Auto-play when ready
+        newAudio.oncanplay = () => {
+          if (get().isPlaying) {
+            newAudio.play()
+              .catch(error => {
+                console.error("Error auto-playing continued audio:", error);
+              });
+          }
+        };
+      }
+    } catch (error) {
+      console.error("Invalid audio URL in metadata:", error);
     }
   },
   
