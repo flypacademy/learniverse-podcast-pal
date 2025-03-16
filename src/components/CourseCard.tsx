@@ -67,6 +67,8 @@ const CourseCard = ({
     return imgSrc;
   };
 
+  console.log("Rendering CourseCard with title:", title, "and id:", id);
+
   return (
     <Link 
       to={`/course/${id}`} 
