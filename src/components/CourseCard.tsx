@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import ProgressBar from "./ProgressBar";
 import { Headphones, Award, Star, Flame, Trophy } from "lucide-react";
 import { Card } from "./ui/card";
+import { Badge } from "./ui/badge";
 
 interface CourseCardProps {
   id: string;
@@ -39,23 +40,25 @@ const CourseCard = ({
 
   const getSubjectColor = () => {
     switch (subject) {
-      case "math": return "text-podcast-math";
-      case "english": return "text-podcast-english";
-      case "science": return "text-podcast-science";
-      case "history": return "text-podcast-history";
-      case "languages": return "text-podcast-languages";
-      default: return "text-podcast-math";
+      case "math": return "bg-blue-100 text-blue-700";
+      case "english": return "bg-purple-100 text-purple-700";
+      case "science": return "bg-teal-100 text-teal-700";
+      case "history": return "bg-amber-100 text-amber-700";
+      case "languages": return "bg-pink-100 text-pink-700";
+      default: return "bg-blue-100 text-blue-700";
     }
   };
 
-  const getGradientClass = () => {
+  const getCardGradient = () => {
+    if (image) return "";
+    
     switch (subject) {
-      case "math": return "bg-math-gradient";
-      case "english": return "bg-english-gradient";
-      case "science": return "bg-science-gradient";
-      case "history": return "bg-history-gradient";
-      case "languages": return "bg-languages-gradient";
-      default: return "bg-math-gradient";
+      case "math": return "bg-gradient-to-br from-blue-500 to-indigo-700";
+      case "english": return "bg-gradient-to-br from-purple-500 to-pink-700";
+      case "science": return "bg-gradient-to-br from-teal-500 to-blue-700";
+      case "history": return "bg-gradient-to-br from-amber-500 to-orange-700";
+      case "languages": return "bg-gradient-to-br from-pink-500 to-purple-700";
+      default: return "bg-gradient-to-br from-blue-500 to-indigo-700";
     }
   };
 
@@ -71,9 +74,18 @@ const CourseCard = ({
       className={`block w-full ${size === 'large' ? 'md:max-w-full' : 'md:max-w-sm'}`} 
       onClick={handleCardClick}
     >
-      <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 h-full relative">
-        {/* Card Header with Image/Gradient */}
-        <div className={`relative ${size === 'large' ? 'aspect-[3/2]' : 'aspect-[2/1]'}`}>
+      <Card className="overflow-hidden rounded-xl hover:shadow-lg transition-all duration-300 h-full">
+        {/* Bestseller or Featured tag - similar to the reference image */}
+        {achievements.some(a => a.type === "popular") && (
+          <div className="absolute top-4 left-4 z-10">
+            <Badge variant="default" className="bg-white/90 backdrop-blur-sm text-black font-medium px-3 py-1">
+              Bestseller
+            </Badge>
+          </div>
+        )}
+        
+        {/* Card Header with Image */}
+        <div className={`relative ${size === 'large' ? 'h-56' : 'h-48'}`}>
           {/* Background image or gradient */}
           {image ? (
             <img
@@ -82,69 +94,78 @@ const CourseCard = ({
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className={`w-full h-full ${getGradientClass()} flex items-center justify-center`}>
-              <Headphones className="h-16 w-16 text-white/80" />
+            <div className={`w-full h-full ${getCardGradient()}`} />
+          )}
+          
+          {/* Overlay for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+          
+          {/* Achievement badges */}
+          {achievements.length > 0 && (
+            <div className="absolute top-3 right-3 flex gap-1">
+              {achievements.map((achievement, index) => (
+                <div 
+                  key={index}
+                  className="h-8 w-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-md"
+                  title={`${achievement.type} ${achievement.value || ''}`}
+                >
+                  {achievement.type === "streak" && <Flame className="h-5 w-5 text-amber-500" />}
+                  {achievement.type === "recommended" && <Award className="h-5 w-5 text-blue-500" />}
+                  {achievement.type === "complete" && <Trophy className="h-5 w-5 text-green-500" />}
+                </div>
+              ))}
             </div>
           )}
           
+          {/* Subject badge */}
+          <div className="absolute bottom-20 left-4">
+            <Badge className={`${getSubjectColor()} font-semibold px-3 py-1`}>
+              {subject.charAt(0).toUpperCase() + subject.slice(1)}
+            </Badge>
+          </div>
+          
           {/* Course title - prominent display */}
-          <div className="absolute inset-0 flex flex-col justify-between">
-            {/* Top section with badges */}
-            <div className="p-3 flex justify-between items-start">
-              {/* Achievement badges */}
-              {achievements.length > 0 && (
-                <div className="flex -space-x-2">
-                  {achievements.map((achievement, index) => (
-                    <div 
-                      key={index}
-                      className="h-9 w-9 rounded-full bg-yellow-400 flex items-center justify-center shadow-md border-2 border-white"
-                      title={`${achievement.type} ${achievement.value || ''}`}
-                    >
-                      {achievement.type === "streak" && <Flame className="h-5 w-5 text-white" />}
-                      {achievement.type === "popular" && <Star className="h-5 w-5 text-white" />}
-                      {achievement.type === "recommended" && <Award className="h-5 w-5 text-white" />}
-                      {achievement.type === "complete" && <Trophy className="h-5 w-5 text-white" />}
-                    </div>
-                  ))}
-                </div>
-              )}
-              
-              {/* Exam and board badges */}
-              <div className="flex flex-col space-y-1.5">
-                <span className="text-xs font-medium px-2.5 py-1 bg-blue-100/90 text-blue-700 rounded-full backdrop-blur-sm shadow-sm">
-                  {exam}
-                </span>
-                <span className="text-xs font-medium px-2.5 py-1 bg-purple-100/90 text-purple-700 rounded-full backdrop-blur-sm shadow-sm">
-                  {board}
-                </span>
-              </div>
-            </div>
-            
-            {/* Bottom section with course name and subject badge */}
-            <div className="bg-gradient-to-t from-black via-black/70 to-transparent pt-16 pb-3 px-4">
-              <div className="bg-primary/20 backdrop-blur-sm rounded-full px-3.5 py-1 w-fit mb-2">
-                <p className="text-white font-medium text-sm">{subject} Course</p>
-              </div>
-              <h3 className="text-white font-bold text-2xl leading-tight drop-shadow-lg">
-                {title}
-              </h3>
-            </div>
+          <div className="absolute bottom-4 left-4 right-4">
+            <h3 className="text-white font-bold text-2xl leading-tight">
+              {title}
+            </h3>
           </div>
         </div>
         
-        {/* Progress section */}
+        {/* Progress and info section */}
         <div className="p-4 bg-white">
-          <div className="flex justify-between text-sm mb-1.5">
-            <span className="font-medium text-gray-700">Progress</span>
-            <span className="font-medium text-primary">{completionPercentage}%</span>
+          <div className="flex items-center justify-between mb-3">
+            {/* Exam & board info */}
+            <div className="flex space-x-2">
+              <Badge variant="outline" className="text-xs bg-blue-50">
+                {exam}
+              </Badge>
+              <Badge variant="outline" className="text-xs bg-purple-50">
+                {board}
+              </Badge>
+            </div>
+            
+            {/* Podcasts info */}
+            <div className="flex items-center text-gray-600 text-sm">
+              <Headphones className="h-4 w-4 mr-1" />
+              <span>{totalPodcasts} podcasts</span>
+            </div>
           </div>
-          <ProgressBar
-            value={completionPercentage}
-            color={`bg-primary`}
-            size="md"
-          />
-          <div className="mt-2 text-xs text-gray-600 font-medium">
-            {completedPodcasts} of {totalPodcasts} podcasts completed
+          
+          {/* Progress bar */}
+          <div className="mt-3">
+            <div className="flex justify-between text-sm mb-1">
+              <span className="font-medium text-gray-700">Course Progress</span>
+              <span className="font-medium text-primary">{completionPercentage}%</span>
+            </div>
+            <ProgressBar
+              value={completionPercentage}
+              color={`bg-primary`}
+              size="md"
+            />
+            <div className="mt-2 text-xs text-gray-600">
+              {completedPodcasts} of {totalPodcasts} podcasts completed
+            </div>
           </div>
         </div>
       </Card>
