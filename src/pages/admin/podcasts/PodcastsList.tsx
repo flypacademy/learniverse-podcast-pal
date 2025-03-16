@@ -11,6 +11,8 @@ import { formatDuration } from "./utils/formatters";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 const PodcastsList = () => {
   const { courseId } = useParams();
@@ -20,7 +22,8 @@ const PodcastsList = () => {
     loading, 
     deletePodcast,
     sections,
-    addHeader
+    addHeader,
+    error
   } = usePodcasts(courseId);
   
   return (
@@ -39,11 +42,19 @@ const PodcastsList = () => {
           </Button>
         </div>
         
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        
         {loading ? (
           <div className="flex justify-center my-8">
             <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
           </div>
-        ) : sections.length === 0 ? (
+        ) : error ? null : sections.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-gray-500 mb-4">No podcasts found for this course</p>
           </div>

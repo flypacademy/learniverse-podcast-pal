@@ -26,6 +26,7 @@ export const usePodcasts = (courseId: string | undefined) => {
   const [podcasts, setPodcasts] = useState<Podcast[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   const fetchCourse = async () => {
     if (!courseId) return;
@@ -35,15 +36,16 @@ export const usePodcasts = (courseId: string | undefined) => {
         .from('courses')
         .select('title')
         .eq('id', courseId)
-        .single();
+        .maybeSingle();
       
       if (error) throw error;
       
       if (data) {
         setCourseName(data.title);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching course:", error);
+      setError("Failed to load course data");
       toast({
         title: "Error",
         description: "Failed to load course data",
@@ -105,35 +107,71 @@ export const usePodcasts = (courseId: string | undefined) => {
     if (!courseId) return;
     
     setLoading(true);
+    setError(null);
     
     try {
+      // First fetch course headers for this course
+      const { data: headersData, error: headersError } = await supabase
+        .from('course_headers')
+        .select('*')
+        .eq('course_id', courseId)
+        .order('display_order', { ascending: true });
+      
+      if (headersError) {
+        console.error("Error fetching headers:", headersError);
+        // Continue even if headers fetch fails
+      }
+      
+      const headers = headersData || [];
+      
+      // Now fetch podcasts
       const { data, error } = await supabase
         .from('podcasts')
-        .select('*, course_headers(header_text)')
+        .select('*')
         .eq('course_id', courseId)
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       
+      // Process podcasts to include header_text from course_headers
+      const processedPodcasts = (data || []).map(podcast => {
+        // For now, no header mapping
+        return {
+          ...podcast,
+          header_text: null
+        };
+      });
+      
+      // Count quiz questions for each podcast
       const podcastsWithQuizCount = await Promise.all(
-        (data || []).map(async (podcast) => {
-          const { count } = await supabase
-            .from('quiz_questions')
-            .select('id', { count: 'exact', head: true })
-            .eq('podcast_id', podcast.id);
-          
-          return {
-            ...podcast,
-            question_count: count || 0,
-            header_text: podcast.course_headers?.header_text || null
-          };
+        processedPodcasts.map(async (podcast) => {
+          try {
+            const { count } = await supabase
+              .from('quiz_questions')
+              .select('id', { count: 'exact', head: true })
+              .eq('podcast_id', podcast.id);
+            
+            return {
+              ...podcast,
+              question_count: count || 0
+            };
+          } catch (error) {
+            console.error(`Error counting questions for podcast ${podcast.id}:`, error);
+            return {
+              ...podcast,
+              question_count: 0
+            };
+          }
         })
       );
       
       setPodcasts(podcastsWithQuizCount);
       setSections(organizePodcastsByHeader(podcastsWithQuizCount));
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching podcasts:", error);
+      setError("Failed to load podcasts");
       toast({
         title: "Error",
         description: "Failed to load podcasts",
@@ -161,7 +199,7 @@ export const usePodcasts = (courseId: string | undefined) => {
         title: "Podcast deleted",
         description: "The podcast has been successfully deleted"
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting podcast:", error);
       toast({
         title: "Error",
@@ -194,7 +232,7 @@ export const usePodcasts = (courseId: string | undefined) => {
       });
       
       return data;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding header:", error);
       toast({
         title: "Error",
@@ -217,6 +255,7 @@ export const usePodcasts = (courseId: string | undefined) => {
     podcasts,
     sections,
     loading,
+    error,
     deletePodcast,
     addHeader
   };

@@ -1,234 +1,221 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
-import { QuizQuestion } from "@/components/QuizModal";
-import { useAudioStore, PodcastMeta } from "@/lib/audioContext";
+import type { QuizQuestion } from "@/models/Quiz";
 
-interface Podcast {
+interface PodcastData {
   id: string;
   title: string;
-  courseId: string;
-  courseName: string;
-  description: string;
+  description?: string;
   duration: number;
-  image?: string;
-  audioUrl?: string;
-  quiz?: QuizQuestion[];
+  audio_url: string;
+  image_url?: string | null;
+  course_id: string;
+  courses: {
+    id: string;
+    title: string;
+  } | {
+    id: string;
+    title: string;
+  }[];
 }
 
-export const usePodcastPlayer = (podcastId?: string) => {
-  const [showXPModal, setShowXPModal] = useState(false);
-  const [podcast, setPodcast] = useState<Podcast | null>(null);
-  const [loading, setLoading] = useState(true);
+interface UsePodcastPlayerReturn {
+  podcast: PodcastData | null;
+  isLoading: boolean;
+  error: string | null;
+  duration: number;
+  currentTime: number;
+  isPlaying: boolean;
+  volume: number;
+  quizQuestions: QuizQuestion[];
+  togglePlayPause: () => void;
+  seekTo: (time: number) => void;
+  setVolume: (value: number) => void;
+  onTimeUpdate: (time: number) => void;
+}
+
+export const usePodcastPlayer = (podcastId: string | undefined): UsePodcastPlayerReturn => {
+  const [podcast, setPodcast] = useState<PodcastData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [volume, setVolumeState] = useState(0.8); // Default volume
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
-  const [showQuiz, setShowQuiz] = useState(false);
   
-  // Get audio state from the global store
-  const {
-    isPlaying,
-    currentTime,
-    duration,
-    volume,
-    currentPodcastId,
-    setAudio,
-    setPodcastMeta,
-    play,
-    pause,
-    setCurrentTime,
-    setVolume,
-    setDuration
-  } = useAudioStore();
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const { toast } = useToast();
   
-  // Fetch podcast data from Supabase
-  useEffect(() => {
-    const fetchPodcast = async () => {
-      if (!podcastId) return;
-      
+  // Function to fetch podcast data
+  const fetchPodcast = useCallback(async () => {
+    if (!podcastId) {
+      setIsLoading(false);
+      return;
+    }
+    
+    try {
       console.log("Fetching podcast with ID:", podcastId);
       
-      try {
-        // Fetch podcast data with course information
-        const { data: podcastData, error: podcastError } = await supabase
-          .from('podcasts')
-          .select(`
-            id,
-            title,
-            description,
-            duration,
-            audio_url,
-            image_url,
-            course_id,
-            courses (
-              id,
-              title
-            )
-          `)
-          .eq('id', podcastId)
-          .single();
-        
-        if (podcastError) {
-          console.error("Error fetching podcast:", podcastError);
-          setLoading(false);
-          return;
+      const { data: podcastData, error: podcastError } = await supabase
+        .from('podcasts')
+        .select('id, title, description, duration, audio_url, image_url, course_id, courses(id, title)')
+        .eq('id', podcastId)
+        .single();
+      
+      if (podcastError) {
+        console.error("Error fetching podcast:", podcastError);
+        setError(`Failed to load podcast: ${podcastError.message}`);
+        setIsLoading(false);
+        return;
+      }
+      
+      if (!podcastData) {
+        setError("Podcast not found");
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log("Podcast data fetched:", podcastData);
+      
+      // Determine course name from the courses data
+      let courseName = "Unknown Course";
+      if (podcastData.courses) {
+        if (Array.isArray(podcastData.courses) && podcastData.courses.length > 0) {
+          // If it's an array, take the first element's title
+          courseName = podcastData.courses[0].title || "Unknown Course";
+        } else if (typeof podcastData.courses === 'object') {
+          // If it's a single object with a title property
+          courseName = (podcastData.courses as { title: string }).title || "Unknown Course";
         }
-        
-        if (!podcastData) {
-          console.log("No podcast found with ID:", podcastId);
-          setLoading(false);
-          return;
-        }
-        
-        console.log("Podcast data fetched:", podcastData);
-        
-        // Fetch quiz questions for this podcast
-        const { data: quizData, error: quizError } = await supabase
-          .from('quiz_questions')
-          .select('*')
-          .eq('podcast_id', podcastId);
-        
-        if (quizError) {
-          console.error("Error fetching quiz questions:", quizError);
-        }
-        
-        // Transform quiz data to match the expected format
-        const formattedQuizQuestions: QuizQuestion[] = (quizData || []).map((question) => ({
-          id: question.id,
-          question: question.question,
-          options: question.options,
-          correctAnswer: question.correct_option
-        }));
-        
-        // Extract course name from the joined courses data
-        let courseName = "Unknown Course";
-        if (podcastData.courses) {
-          if (Array.isArray(podcastData.courses)) {
-            // If courses is an array, get the title from the first element if it exists
-            if (podcastData.courses.length > 0 && podcastData.courses[0]?.title) {
-              courseName = podcastData.courses[0].title;
-            }
-          } else if (typeof podcastData.courses === 'object' && podcastData.courses.title) {
-            // If it's a single object, access title directly
-            courseName = podcastData.courses.title;
-          }
-        }
-
-        // Format the podcast data to match what the component expects
-        const formattedPodcast = {
-          id: podcastData.id,
-          title: podcastData.title,
-          courseId: podcastData.course_id,
-          courseName: courseName,
-          description: podcastData.description || "No description available",
-          duration: podcastData.duration || 0,
-          image: podcastData.image_url,
-          quiz: formattedQuizQuestions,
-          audioUrl: podcastData.audio_url
-        };
-        
-        setPodcast(formattedPodcast);
-        setQuizQuestions(formattedQuizQuestions);
-        
-        // Set podcast metadata in the audio store
-        const podcastMeta: PodcastMeta = {
-          id: formattedPodcast.id,
-          title: formattedPodcast.title,
-          courseName: formattedPodcast.courseName,
-          image: formattedPodcast.image
-        };
-        setPodcastMeta(podcastMeta);
-        
-        // Set duration for newly fetched podcast
-        if (formattedPodcast.duration) {
-          setDuration(formattedPodcast.duration);
-        }
-        
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching podcast data:", error);
-        setLoading(false);
+      }
+      
+      // Fetch quiz questions for this podcast
+      const { data: quizData, error: quizError } = await supabase
+        .from('quiz_questions')
+        .select('*')
+        .eq('podcast_id', podcastId);
+      
+      if (quizError) {
+        console.error("Error fetching quiz questions:", quizError);
+      } else {
+        setQuizQuestions(quizData || []);
+      }
+      
+      setPodcast(podcastData as PodcastData);
+    } catch (err: any) {
+      console.error("Unexpected error in fetchPodcast:", err);
+      setError(err.message || "An unexpected error occurred");
+      toast({
+        title: "Error",
+        description: "Failed to load podcast",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [podcastId, toast]);
+  
+  // Initialize audio element
+  useEffect(() => {
+    if (!audioRef.current) {
+      audioRef.current = new Audio();
+      audioRef.current.volume = volume;
+    }
+    
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
       }
     };
-    
-    fetchPodcast();
-  }, [podcastId, setDuration, setPodcastMeta]);
+  }, [volume]);
   
-  // Initialize audio element when podcast changes
+  // Load audio when podcast changes
   useEffect(() => {
-    if (podcast?.audioUrl && podcast.id) {
-      // Check if we already have this podcast loaded
-      if (currentPodcastId !== podcast.id) {
-        const audio = new Audio(podcast.audioUrl);
-        
-        // Create podcast metadata
-        const podcastMeta: PodcastMeta = {
-          id: podcast.id,
-          title: podcast.title,
-          courseName: podcast.courseName,
-          image: podcast.image
-        };
-        
-        setAudio(audio, podcast.id, podcastMeta);
-      }
+    if (podcast && audioRef.current) {
+      audioRef.current.src = podcast.audio_url;
+      audioRef.current.load();
+      
+      audioRef.current.onloadedmetadata = () => {
+        if (audioRef.current) {
+          setDuration(audioRef.current.duration);
+        }
+      };
+      
+      audioRef.current.ontimeupdate = () => {
+        if (audioRef.current) {
+          setCurrentTime(audioRef.current.currentTime);
+        }
+      };
+      
+      audioRef.current.onended = () => {
+        setIsPlaying(false);
+      };
+    }
+  }, [podcast]);
+  
+  // Fetch podcast when ID changes
+  useEffect(() => {
+    fetchPodcast();
+  }, [fetchPodcast]);
+  
+  // Play/pause toggle
+  const togglePlayPause = useCallback(() => {
+    if (!audioRef.current) return;
+    
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play()
+        .catch(err => {
+          console.error("Error playing audio:", err);
+          toast({
+            title: "Playback Error",
+            description: "Could not play the podcast. Please try again.",
+            variant: "destructive"
+          });
+        });
     }
     
-    // Show XP modal at certain points
-    if (currentTime === 20) {
-      setShowXPModal(true);
-      setTimeout(() => setShowXPModal(false), 3000);
-    }
-  }, [podcast, currentPodcastId, setAudio, currentTime]);
+    setIsPlaying(!isPlaying);
+  }, [isPlaying, toast]);
   
-  // Toggle play/pause
-  const togglePlay = () => {
-    if (isPlaying) {
-      pause();
-    } else {
-      play();
-    }
-  };
+  // Seek to specific time
+  const seekTo = useCallback((time: number) => {
+    if (!audioRef.current) return;
+    
+    audioRef.current.currentTime = time;
+    setCurrentTime(time);
+  }, []);
   
-  // Handle volume change
-  const handleVolumeChange = (newVolume: number) => {
-    setVolume(newVolume);
-  };
+  // Update volume
+  const setVolume = useCallback((value: number) => {
+    if (!audioRef.current) return;
+    
+    audioRef.current.volume = value;
+    setVolumeState(value);
+  }, []);
   
-  // Toggle quiz display
-  const toggleQuiz = () => setShowQuiz(!showQuiz);
-  
-  // Skip forward/backward functions
-  const skipForward = () => {
-    const newTime = Math.min(currentTime + 10, duration);
-    setCurrentTime(newTime);
-  };
-  
-  const skipBackward = () => {
-    const newTime = Math.max(currentTime - 10, 0);
-    setCurrentTime(newTime);
-  };
-  
-  // Seek to a specific time
-  const seekTo = (timePercent: number) => {
-    if (duration) {
-      const seekTime = (timePercent / 100) * duration;
-      setCurrentTime(seekTime);
-    }
-  };
+  // Update time
+  const onTimeUpdate = useCallback((time: number) => {
+    setCurrentTime(time);
+  }, []);
   
   return {
     podcast,
-    loading,
-    isPlaying,
+    isLoading,
+    error,
+    duration,
     currentTime,
+    isPlaying,
     volume,
-    showXPModal,
     quizQuestions,
-    showQuiz,
-    togglePlay,
-    handleVolumeChange,
-    toggleQuiz,
-    setShowQuiz,
-    skipForward,
-    skipBackward,
-    seekTo
+    togglePlayPause,
+    seekTo,
+    setVolume,
+    onTimeUpdate
   };
 };
