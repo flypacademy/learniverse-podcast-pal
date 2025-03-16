@@ -5,6 +5,7 @@ import ProgressBar from "./ProgressBar";
 import { Headphones, Award, Star, Flame, Trophy } from "lucide-react";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
+import { createGlassMorphism } from "@/lib/utils";
 
 interface CourseCardProps {
   id: string;
