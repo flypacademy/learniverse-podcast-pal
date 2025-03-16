@@ -10,14 +10,10 @@ interface CourseErrorProps {
 }
 
 const CourseError: React.FC<CourseErrorProps> = ({ error }) => {
-  const params = useParams();
-  const courseId = params.courseId;
+  const { courseId } = useParams<{ courseId: string }>();
   
   // Log the error and courseId for debugging
   console.log("CourseError component rendering with:", { error, courseId });
-  
-  // Determine if this is a "No course ID" error
-  const isNoCourseIdError = error.includes("No course ID");
   
   return (
     <Layout>
@@ -27,10 +23,9 @@ const CourseError: React.FC<CourseErrorProps> = ({ error }) => {
         <p className="text-gray-500 mb-2 text-center max-w-md px-4">{error}</p>
         
         {/* Show the courseId if it exists */}
-        {courseId && isNoCourseIdError && (
+        {courseId && (
           <p className="text-sm text-gray-400 mb-6 text-center">
-            Request parameter: {courseId}<br/>
-            (This appears to be a routing issue)
+            Course ID: {courseId}
           </p>
         )}
         

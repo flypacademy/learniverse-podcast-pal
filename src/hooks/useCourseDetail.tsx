@@ -49,17 +49,17 @@ export const useCourseDetail = (courseId: string | undefined): UseCourseDetailRe
     
     const fetchCourseDetails = async () => {
       try {
+        console.log("fetchCourseDetails called with courseId:", courseId);
+        
         // Check if courseId exists and is not empty
-        if (!courseId || courseId.trim() === '') {
-          console.error("No courseId provided or courseId is empty string");
+        if (!courseId) {
+          console.error("No courseId provided");
           setError("No course ID provided");
           setLoading(false);
           return;
         }
         
-        console.log("Fetching course details for courseId:", courseId);
-        
-        // Fetch course data with explicit error handling
+        // Fetch course data
         const { data: courseData, error: courseError } = await supabase
           .from('courses')
           .select('*')
@@ -79,7 +79,7 @@ export const useCourseDetail = (courseId: string | undefined): UseCourseDetailRe
           return; // Don't set an error, let the component handle this case
         }
         
-        console.log("Course data fetched:", courseData);
+        console.log("Course data fetched successfully:", courseData);
         
         // Fetch podcasts data
         const { data: podcastsData, error: podcastsError } = await supabase
@@ -95,7 +95,6 @@ export const useCourseDetail = (courseId: string | undefined): UseCourseDetailRe
         }
         
         const podcasts = podcastsData || [];
-        console.log("Podcasts data fetched:", podcasts);
         
         // Calculate total duration
         const totalDuration = podcasts.reduce((sum, podcast) => {

@@ -17,14 +17,10 @@ import CourseNotFound from "@/components/course/CourseNotFound";
 import { useCourseDetail } from "@/hooks/useCourseDetail";
 
 const CourseDetail = () => {
-  // Ensure we're getting courseId as a string from URL params
-  const params = useParams();
-  const courseId = params.courseId;
+  // Get the courseId from URL parameters
+  const { courseId } = useParams<{ courseId: string }>();
   
-  // Add extensive console logging for debugging
-  console.log("CourseDetail component rendering with courseId:", courseId);
-  console.log("courseId type:", typeof courseId);
-  console.log("params object:", params);
+  console.log("CourseDetail - courseId from params:", courseId);
   
   // Use the hook with our courseId
   const { course, loading, error } = useCourseDetail(courseId);
