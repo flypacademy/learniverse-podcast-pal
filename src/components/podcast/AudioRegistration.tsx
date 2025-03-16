@@ -1,5 +1,5 @@
 
-import { useEffect, RefObject, useState } from "react";
+import { useEffect, RefObject, useState, memo } from "react";
 import { useAudioStore } from "@/lib/audio/audioStore";
 import { PodcastData, CourseData } from "@/types/podcast";
 import { toast } from "@/components/ui/use-toast";
@@ -36,7 +36,7 @@ const AudioRegistration = ({
     };
   }, []);
   
-  // Validate podcast data early
+  // Validate podcast data early - only run once
   useEffect(() => {
     if (!podcastData || !podcastData.audio_url) {
       console.error("Invalid podcast data - missing audio URL");
@@ -49,7 +49,7 @@ const AudioRegistration = ({
     }
   }, [podcastData, setHasError]);
   
-  // Audio registration with retry mechanism
+  // Audio registration with retry mechanism - careful with dependencies to avoid loops
   useEffect(() => {
     // If already initialized, don't try again
     if (audioInitialized) return;
@@ -95,18 +95,6 @@ const AudioRegistration = ({
       // Check if audio URL is valid
       if (!podcastData.audio_url) {
         throw new Error("Missing audio URL");
-      }
-      
-      // Verify the URL is well-formed
-      try {
-        new URL(podcastData.audio_url);
-      } catch (err) {
-        throw new Error(`Invalid audio URL format: ${err.message}`);
-      }
-
-      // Check if the audio element has a valid src and is properly initialized
-      if (!audioRef.current.src) {
-        throw new Error("Audio element has no source");
       }
       
       // Only register if it's not the same podcast already playing
@@ -157,9 +145,10 @@ const AudioRegistration = ({
         });
       }
     }
-  }, [podcastData, courseData, audioRef, ready, audioStore, audioInitialized, registrationAttempts, setHasError]);
+  }, [podcastData?.id, courseData?.title, audioStore, ready, audioInitialized, registrationAttempts, setHasError]);
   
   return null; // This is a functional component that doesn't render anything
 };
 
-export default AudioRegistration;
+// Memoize to prevent unnecessary rerenders
+export default memo(AudioRegistration);

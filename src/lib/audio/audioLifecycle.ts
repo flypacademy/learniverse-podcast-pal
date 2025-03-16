@@ -1,154 +1,122 @@
+
 import { StateCreator } from 'zustand';
 import { AudioState } from './types';
 
-// Slice for audio lifecycle management (continuation and cleanup)
+// Slice for audio lifecycle management
 export interface AudioLifecycleSlice {
   continuePlayback: () => void;
   cleanup: () => void;
 }
 
 export const createAudioLifecycleSlice: StateCreator<
-  AudioState,
+  AudioState, 
   [],
   [],
   AudioLifecycleSlice
 > = (set, get, api) => ({
-  // Method to continue playback using stored metadata
   continuePlayback: () => {
-    const meta = get().podcastMeta;
+    const { podcastMeta } = get();
     
-    if (!meta || !meta.audioUrl) {
-      console.warn("Cannot continue playback: missing podcast metadata or audio URL");
+    if (!podcastMeta?.audioUrl) {
+      console.error("Cannot continue playback without audio URL");
       return;
     }
     
     try {
-      // Validate the audio URL before creating a new element
-      new URL(meta.audioUrl); // This will throw if URL is invalid
+      console.log("Creating new audio element for continued playback");
       
-      // We need to create a new audio element if the original was cleaned up
-      if (!get().audioElement) {
-        console.log("Creating new audio element to continue playback");
+      // Create a new audio element
+      const newAudioElement = new Audio(podcastMeta.audioUrl);
+      
+      // Set volume based on stored value
+      newAudioElement.volume = get().volume;
+      
+      // Wait for audio to be loaded before playing
+      newAudioElement.addEventListener('canplay', () => {
+        console.log("New audio element is ready to play");
         
-        const newAudio = new Audio();
+        // Set current time if available
+        if (get().currentTime > 0) {
+          newAudioElement.currentTime = get().currentTime;
+        }
         
-        // Setup event handlers before setting src to avoid race conditions
-        newAudio.preload = "auto";
+        // Try to play
+        const playPromise = newAudioElement.play();
         
-        // Set up error handling first
-        newAudio.onerror = (e) => {
-          console.error("Error in continued playback audio:", e);
-          
-          // Try to recover
-          setTimeout(() => {
-            console.log("Attempting to recover from playback error");
-            newAudio.load();
-          }, 1000);
-        };
-        
-        newAudio.ontimeupdate = () => {
-          set({ currentTime: newAudio.currentTime });
-        };
-        
-        newAudio.onended = () => {
-          set({ isPlaying: false, currentTime: 0 });
-          newAudio.currentTime = 0;
-        };
-        
-        newAudio.onloadedmetadata = () => {
-          set({ duration: newAudio.duration || 0 });
-        };
-        
-        // Set volume before loading content
-        const safeVolume = Math.max(0, Math.min(1, get().volume));
-        newAudio.volume = safeVolume;
-        
-        // Only set the src after all handlers are in place
-        newAudio.src = meta.audioUrl;
-        
-        // Set audio element in state
-        set({ audioElement: newAudio });
-        
-        // Set current time after load is complete
-        const currentTime = get().currentTime;
-        newAudio.oncanplaythrough = () => {
-          console.log("Audio can play through, setting current time:", currentTime);
-          if (currentTime > 0) {
-            try {
-              newAudio.currentTime = currentTime;
-            } catch (err) {
-              console.error("Failed to set current time:", err);
-            }
-          }
-          
-          // Auto-play when ready if isPlaying is true
-          if (get().isPlaying) {
-            newAudio.play()
-              .catch(error => {
-                console.error("Error auto-playing continued audio:", error);
-              });
-          }
-        };
-        
-        // Start loading the audio
-        newAudio.load();
-      }
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              set({ isPlaying: true });
+            })
+            .catch(error => {
+              console.error("Error playing continued audio:", error);
+            });
+        }
+      });
+      
+      // Add other necessary event listeners
+      newAudioElement.addEventListener('timeupdate', () => {
+        set({ currentTime: newAudioElement.currentTime });
+      });
+      
+      newAudioElement.addEventListener('loadedmetadata', () => {
+        set({ duration: newAudioElement.duration });
+      });
+      
+      newAudioElement.addEventListener('ended', () => {
+        set({ isPlaying: false, currentTime: 0 });
+      });
+      
+      newAudioElement.addEventListener('error', (e) => {
+        console.error("Error in recreated audio element:", e);
+        // Don't update state on error to avoid potential loops
+      });
+      
+      // Set the new audio element in the store
+      set({ audioElement: newAudioElement });
+      
     } catch (error) {
-      console.error("Invalid audio URL in metadata:", error);
+      console.error("Error recreating audio element:", error);
     }
   },
   
   cleanup: () => {
     const { audioElement } = get();
-    if (audioElement) {
-      console.log("Cleaning up global audio store");
-      try {
-        audioElement.pause();
-        
-        // Remove all event listeners
-        audioElement.onended = null;
-        audioElement.ontimeupdate = null;
-        audioElement.onloadedmetadata = null;
-        audioElement.onloadeddata = null;
-        audioElement.onerror = null;
-        audioElement.oncanplay = null;
-        audioElement.oncanplaythrough = null;
-        
-        // Store current state before cleanup if metadata exists
-        const meta = get().podcastMeta;
-        const currentTime = get().currentTime;
-        const isPlaying = get().isPlaying;
-        
-        // Set src to empty to avoid pending network operations
-        audioElement.src = '';
-        
-        // Clear audio element but maintain state if possible
-        set({ 
-          audioElement: null,
-          isPlaying: meta ? isPlaying : false,
-          currentPodcastId: meta ? get().currentPodcastId : null,
-          currentTime: meta ? currentTime : 0
-          // We keep podcastMeta if it exists
-        });
-      } catch (error) {
-        console.error("Error during audio cleanup:", error);
-        // Fallback to full cleanup on error
-        set({ 
-          audioElement: null,
-          isPlaying: false, 
-          currentPodcastId: null,
-          currentTime: 0,
-          podcastMeta: null
-        });
-      }
-    } else {
-      // Full cleanup if no audio element
+    
+    if (!audioElement) {
+      return;
+    }
+    
+    try {
+      console.log("Cleaning up audio in store");
+      
+      // Pause playback
+      audioElement.pause();
+      
+      // Remove event listeners to prevent memory leaks
+      audioElement.onended = null;
+      audioElement.ontimeupdate = null;
+      audioElement.onloadedmetadata = null;
+      audioElement.oncanplay = null;
+      audioElement.onerror = null;
+      
+      // Clear the source
+      audioElement.src = '';
+      
+      // Nullify the element reference
       set({ 
-        audioElement: null, 
-        isPlaying: false, 
-        currentPodcastId: null,
-        currentTime: 0,
-        podcastMeta: null
+        audioElement: null,
+        isPlaying: false,
+        currentPodcastId: null
+      });
+      
+    } catch (error) {
+      console.error("Error during audio cleanup:", error);
+      // Still attempt to reset the state even if cleanup fails
+      set({ 
+        audioElement: null,
+        isPlaying: false,
+        currentPodcastId: null
       });
     }
   }
