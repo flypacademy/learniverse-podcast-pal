@@ -1,6 +1,7 @@
 
 import { useEffect, useRef } from "react";
-import { AudioStore } from "@/lib/audioContext";
+import { useAudioStore } from "@/lib/audioContext";
+import { AudioStore } from "@/lib/audio/types";
 
 interface UseAudioSyncProps {
   globalAudioStore: AudioStore;
