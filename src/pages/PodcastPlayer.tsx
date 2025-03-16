@@ -156,7 +156,7 @@ const PodcastPlayer = () => {
         </Button>
         
         <div className="space-y-8">
-          <PodcastHeader courseName={courseName} />
+          <PodcastHeader courseName={courseName} title={podcast.title} />
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-1">

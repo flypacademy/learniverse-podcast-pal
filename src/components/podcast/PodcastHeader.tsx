@@ -15,15 +15,15 @@ const PodcastHeader = ({ courseName, title }: PodcastHeaderProps) => {
     <div className="pt-2 flex items-center">
       <button 
         onClick={() => navigate(-1)} 
-        className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center mr-3"
+        className="h-8 w-8 rounded-full bg-gray-800 flex items-center justify-center mr-3"
       >
-        <ChevronLeft className="h-5 w-5" />
+        <ChevronLeft className="h-5 w-5 text-gray-300" />
       </button>
       <div>
-        <h1 className="font-display font-semibold text-lg text-gray-900">
+        <h1 className="font-display font-semibold text-lg text-white">
           {title || "Now Playing"}
         </h1>
-        <p className="text-sm text-gray-500">{courseName}</p>
+        <p className="text-sm text-gray-400">{courseName}</p>
       </div>
     </div>
   );
