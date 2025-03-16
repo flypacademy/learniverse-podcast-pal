@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/Layout";
 import PodcastHeader from "@/components/podcast/PodcastHeader";
@@ -18,13 +18,15 @@ const PodcastPlayer = () => {
   const [hasError, setHasError] = useState(false);
   const [renderError, setRenderError] = useState<Error | null>(null);
   const [hasRendered, setHasRendered] = useState(false);
+  const firstRenderRef = useRef(true);
   
-  // Wrap the component in an error boundary
+  // Wrap the component in error handling
   useEffect(() => {
     console.log("PodcastPlayer mounted, id:", podcastId);
     
     // Mark component as rendered to prevent flashing
     setHasRendered(true);
+    firstRenderRef.current = false;
     
     return () => {
       console.log("PodcastPlayer unmounting");
@@ -59,9 +61,9 @@ const PodcastPlayer = () => {
     handleCompletion
   } = usePodcastPlayer();
   
-  // Debug logs to help diagnose issues
+  // Debug logs to help diagnose issues - run only on state change, not every render
   useEffect(() => {
-    if (hasRendered) {
+    if (hasRendered && !firstRenderRef.current) {
       console.log("PodcastPlayer render state:", { 
         loading, 
         error, 
@@ -89,7 +91,7 @@ const PodcastPlayer = () => {
         variant: "destructive"
       });
     }
-  }, [togglePlayPause, toast]);
+  }, [togglePlayPause]);
   
   // If there's an error, show error component
   if (error || hasError || renderError) {
@@ -136,7 +138,7 @@ const PodcastPlayer = () => {
           setHasError={setHasError}
         />
         
-        {/* Main player content */}
+        {/* Main player content - memoized to prevent unnecessary re-renders */}
         <PlayerContent 
           podcastData={podcastData}
           courseData={courseData}

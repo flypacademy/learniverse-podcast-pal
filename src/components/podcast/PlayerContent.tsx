@@ -40,7 +40,7 @@ const PlayerContent = ({
 }: PlayerContentProps) => {
   const navigate = useNavigate();
   
-  // Safe rendering of podcast content - we don't need try/catch here as it can cause infinite re-renders
+  // Safe rendering of podcast content
   return (
     <div className="flex flex-col md:flex-row gap-6">
       <div className="flex-shrink-0 w-full md:w-auto">
@@ -91,5 +91,14 @@ const PlayerContent = ({
   );
 };
 
-// Memoize the component to prevent unnecessary re-renders
-export default memo(PlayerContent);
+// Use React.memo with a custom comparison function to prevent unnecessary re-renders
+export default memo(PlayerContent, (prevProps, nextProps) => {
+  // Only re-render if any of these props have changed
+  return (
+    prevProps.isPlaying === nextProps.isPlaying &&
+    prevProps.currentTime === nextProps.currentTime &&
+    prevProps.duration === nextProps.duration &&
+    prevProps.volume === nextProps.volume &&
+    prevProps.podcastData?.id === nextProps.podcastData?.id
+  );
+});

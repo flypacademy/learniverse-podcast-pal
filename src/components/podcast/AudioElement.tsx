@@ -1,5 +1,5 @@
 
-import React, { RefObject, useEffect, useState, memo } from "react";
+import React, { RefObject, useEffect, useState, memo, useRef } from "react";
 import { toast } from "@/components/ui/use-toast";
 
 interface AudioElementProps {
@@ -25,6 +25,8 @@ const AudioElement = ({
 }: AudioElementProps) => {
   const [loadAttempts, setLoadAttempts] = useState(0);
   const [isValidUrl, setIsValidUrl] = useState(true);
+  const hasSetupEvents = useRef(false);
+  const lastTimeUpdateRef = useRef(0);
   
   // Validate audio URL once on mount
   useEffect(() => {
@@ -49,17 +51,53 @@ const AudioElement = ({
     
     return () => {
       console.log("AudioElement unmounting");
+      hasSetupEvents.current = false;
     };
   }, [audioUrl, setHasError]);
   
-  // Attach error handler to audio element - separate effect to avoid dependencies on setters
+  // This useEffect sets up the event listeners only once to prevent re-renders
   useEffect(() => {
-    if (!isValidUrl || !audioRef.current) return;
+    if (!isValidUrl || !audioRef.current || hasSetupEvents.current) return;
     
-    // Attach an error handler to the audio element directly
     const element = audioRef.current;
     
-    const errorHandler = (e: Event) => {
+    // Attach event listeners
+    const handleMetadataLoaded = () => {
+      if (element) {
+        console.log("Audio loaded metadata:", {
+          duration: element.duration,
+          src: element.src
+        });
+        setDuration(element.duration);
+        setReady(true);
+        setLoadAttempts(0);
+      }
+    };
+    
+    const handleTimeUpdate = () => {
+      if (element) {
+        // Throttle time updates to reduce re-renders
+        if (Math.abs(element.currentTime - lastTimeUpdateRef.current) >= 0.5) {
+          lastTimeUpdateRef.current = element.currentTime;
+          setCurrentTime(element.currentTime);
+        }
+      }
+    };
+    
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+    
+    const handleEnded = () => {
+      setIsPlaying(false);
+      onAudioEnded();
+    };
+    
+    const handleCanPlay = () => {
+      console.log("Audio is ready to play");
+      setReady(true);
+    };
+    
+    const handleError = (e: Event) => {
       console.error("Direct audio element error:", e);
       const target = e.target as HTMLAudioElement;
       const errorCode = target.error ? target.error.code : 'unknown';
@@ -67,7 +105,7 @@ const AudioElement = ({
       
       console.error(`Direct audio error details: code=${errorCode}, message=${errorMessage}`);
       
-      // Handle based on error code if needed
+      // Retry logic
       if (loadAttempts < 2) {
         setLoadAttempts(prev => prev + 1);
         setTimeout(() => {
@@ -80,85 +118,49 @@ const AudioElement = ({
       }
     };
     
-    element.addEventListener('error', errorHandler);
+    // Add event listeners
+    element.addEventListener('loadedmetadata', handleMetadataLoaded);
+    element.addEventListener('timeupdate', handleTimeUpdate);
+    element.addEventListener('play', handlePlay);
+    element.addEventListener('pause', handlePause);
+    element.addEventListener('ended', handleEnded);
+    element.addEventListener('canplay', handleCanPlay);
+    element.addEventListener('error', handleError);
     
+    // Mark that we've set up events
+    hasSetupEvents.current = true;
+    
+    // Clean up function
     return () => {
-      element.removeEventListener('error', errorHandler);
+      if (element) {
+        element.removeEventListener('loadedmetadata', handleMetadataLoaded);
+        element.removeEventListener('timeupdate', handleTimeUpdate);
+        element.removeEventListener('play', handlePlay);
+        element.removeEventListener('pause', handlePause);
+        element.removeEventListener('ended', handleEnded);
+        element.removeEventListener('canplay', handleCanPlay);
+        element.removeEventListener('error', handleError);
+      }
     };
-  }, [audioRef, isValidUrl, loadAttempts, setHasError]);
+  }, [
+    audioRef, 
+    isValidUrl, 
+    setDuration, 
+    setReady, 
+    setCurrentTime, 
+    setIsPlaying, 
+    onAudioEnded, 
+    loadAttempts, 
+    setHasError
+  ]);
   
   // Skip rendering if URL is invalid
   if (!isValidUrl) return null;
-  
-  // Handle audio metadata loaded
-  const handleMetadataLoaded = () => {
-    if (audioRef.current) {
-      console.log("Audio loaded metadata:", {
-        duration: audioRef.current.duration,
-        src: audioRef.current.src
-      });
-      setDuration(audioRef.current.duration);
-      setReady(true);
-      // Reset load attempts on successful load
-      setLoadAttempts(0);
-    }
-  };
-  
-  // Handle audio error with retry logic
-  const handleError = (e: React.SyntheticEvent<HTMLAudioElement>) => {
-    console.error("Audio element error:", e);
-    
-    // Try to get more specific error info if available
-    const target = e.target as HTMLAudioElement;
-    const errorCode = target.error ? target.error.code : 'unknown';
-    const errorMessage = target.error ? target.error.message : 'Unknown error';
-    
-    console.error(`Audio error details: code=${errorCode}, message=${errorMessage}`);
-    
-    // Implement retry logic for recoverable errors (up to 2 retries)
-    if (loadAttempts < 2) {
-      console.log(`Retrying audio load (attempt ${loadAttempts + 1})`);
-      setLoadAttempts(prev => prev + 1);
-      
-      // Small delay before retry
-      setTimeout(() => {
-        if (audioRef.current) {
-          audioRef.current.load();
-        }
-      }, 1000);
-      
-      return;
-    }
-    
-    setHasError(true);
-    toast({
-      title: "Error",
-      description: "Failed to load audio. Please try again later.",
-      variant: "destructive"
-    });
-  };
-  
-  // Handle time updates
-  const handleTimeUpdate = () => {
-    if (audioRef.current) {
-      setCurrentTime(audioRef.current.currentTime);
-    }
-  };
   
   return (
     <audio
       ref={audioRef}
       src={audioUrl}
-      onLoadedMetadata={handleMetadataLoaded}
-      onError={handleError}
-      onTimeUpdate={handleTimeUpdate}
-      onEnded={onAudioEnded}
-      onPlay={() => setIsPlaying(true)}
-      onPause={() => setIsPlaying(false)}
-      onCanPlay={() => {
-        console.log("Audio is ready to play");
-        setReady(true);
-      }}
       preload="auto"
       className="hidden"
     />

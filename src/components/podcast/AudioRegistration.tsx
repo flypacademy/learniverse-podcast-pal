@@ -1,5 +1,5 @@
 
-import { useEffect, RefObject, useState, memo } from "react";
+import { useEffect, RefObject, useState, memo, useRef } from "react";
 import { useAudioStore } from "@/lib/audio/audioStore";
 import { PodcastData, CourseData } from "@/types/podcast";
 import { toast } from "@/components/ui/use-toast";
@@ -22,22 +22,24 @@ const AudioRegistration = ({
   const audioStore = useAudioStore();
   const [audioInitialized, setAudioInitialized] = useState(false);
   const [registrationAttempts, setRegistrationAttempts] = useState(0);
+  const registrationTimerRef = useRef<number | null>(null);
+  const hasValidatedDataRef = useRef(false);
   
-  // Log component lifecycle
+  // Clean up any pending timers on unmount
   useEffect(() => {
-    console.log("AudioRegistration mounted", { 
-      podcastId: podcastData?.id,
-      audioReady: ready,
-      audioRefExists: !!audioRef.current
-    });
-    
     return () => {
       console.log("AudioRegistration component unmounting");
+      if (registrationTimerRef.current) {
+        clearTimeout(registrationTimerRef.current);
+      }
     };
   }, []);
   
-  // Validate podcast data early - only run once
+  // Validate podcast data once - only run once
   useEffect(() => {
+    // Skip if we've already validated
+    if (hasValidatedDataRef.current) return;
+    
     if (!podcastData || !podcastData.audio_url) {
       console.error("Invalid podcast data - missing audio URL");
       setHasError(true);
@@ -47,45 +49,63 @@ const AudioRegistration = ({
         variant: "destructive"
       });
     }
+    
+    hasValidatedDataRef.current = true;
   }, [podcastData, setHasError]);
   
   // Audio registration with retry mechanism - careful with dependencies to avoid loops
   useEffect(() => {
-    // If already initialized, don't try again
-    if (audioInitialized) return;
-    
-    // If we've tried too many times, give up
-    if (registrationAttempts >= 3) {
-      console.error("Failed to initialize audio after multiple attempts");
-      setHasError(true);
-      return;
-    }
+    // If already initialized or too many attempts, don't continue
+    if (audioInitialized || registrationAttempts >= 3) return;
     
     // Check if we have all the required data and elements
-    if (!podcastData?.audio_url || !courseData || !audioRef.current) {
+    const hasRequiredData = 
+      podcastData?.audio_url && 
+      courseData && 
+      audioRef.current;
+    
+    if (!hasRequiredData) {
       console.log("Waiting for required data before registering audio...", {
         hasAudioUrl: !!podcastData?.audio_url,
         hasCourseData: !!courseData, 
         hasAudioRef: !!audioRef.current
       });
       
-      // Retry after a delay
+      // Schedule a retry with increasing delay to avoid rapid retries
       if (registrationAttempts < 3) {
-        const timer = setTimeout(() => {
+        const delay = (registrationAttempts + 1) * 500;
+        
+        // Clear any existing timer
+        if (registrationTimerRef.current) {
+          clearTimeout(registrationTimerRef.current);
+        }
+        
+        // Set new timer
+        registrationTimerRef.current = window.setTimeout(() => {
           setRegistrationAttempts(prev => prev + 1);
-        }, 500);
-        return () => clearTimeout(timer);
+          registrationTimerRef.current = null;
+        }, delay);
       }
+      
       return;
     }
     
     // If audio is not ready yet but we have all data, wait for it
     if (!ready && registrationAttempts < 3) {
       console.log("Audio element not ready yet, waiting...");
-      const timer = setTimeout(() => {
+      
+      // Clear any existing timer
+      if (registrationTimerRef.current) {
+        clearTimeout(registrationTimerRef.current);
+      }
+      
+      // Set new timer
+      registrationTimerRef.current = window.setTimeout(() => {
         setRegistrationAttempts(prev => prev + 1);
+        registrationTimerRef.current = null;
       }, 500);
-      return () => clearTimeout(timer);
+      
+      return;
     }
     
     // Now attempt to register with the store
@@ -132,10 +152,18 @@ const AudioRegistration = ({
       // If we still have retries left, try again
       if (registrationAttempts < 2) {
         console.log(`Retrying audio registration (attempt ${registrationAttempts + 1})`);
-        const timer = setTimeout(() => {
+        
+        // Clear any existing timer
+        if (registrationTimerRef.current) {
+          clearTimeout(registrationTimerRef.current);
+        }
+        
+        // Set new timer with increasing delay
+        registrationTimerRef.current = window.setTimeout(() => {
           setRegistrationAttempts(prev => prev + 1);
-        }, 500);
-        return () => clearTimeout(timer);
+          registrationTimerRef.current = null;
+        }, 500 * (registrationAttempts + 1));
+        
       } else {
         setHasError(true);
         toast({
@@ -145,7 +173,15 @@ const AudioRegistration = ({
         });
       }
     }
-  }, [podcastData?.id, courseData?.title, audioStore, ready, audioInitialized, registrationAttempts, setHasError]);
+  }, [
+    podcastData?.id, 
+    courseData?.title, 
+    audioStore, 
+    ready, 
+    audioInitialized, 
+    registrationAttempts, 
+    setHasError
+  ]);
   
   return null; // This is a functional component that doesn't render anything
 };
