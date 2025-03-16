@@ -101,12 +101,14 @@ export const usePodcastPlayer = (podcastId?: string) => {
         // Extract course name from the joined courses data
         let courseName = "Unknown Course";
         if (podcastData.courses) {
-          // Fix: Check if courses is an array and access the first element if it exists
-          if (Array.isArray(podcastData.courses) && podcastData.courses.length > 0) {
-            courseName = podcastData.courses[0].title || "Unknown Course";
+          if (Array.isArray(podcastData.courses)) {
+            // If courses is an array, get the title from the first element if it exists
+            if (podcastData.courses.length > 0 && podcastData.courses[0]?.title) {
+              courseName = podcastData.courses[0].title;
+            }
           } else if (typeof podcastData.courses === 'object' && podcastData.courses.title) {
             // If it's a single object, access title directly
-            courseName = podcastData.courses.title || "Unknown Course";
+            courseName = podcastData.courses.title;
           }
         }
 

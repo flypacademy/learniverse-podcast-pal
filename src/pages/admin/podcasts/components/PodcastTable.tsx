@@ -3,7 +3,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { TableHead, TableRow, TableHeader, TableCell, TableBody, Table } from "@/components/ui/table";
-import { Trash2, Edit, FileQuestion, Plus } from "lucide-react";
+import { Trash2, Edit, FileQuestion } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface Podcast {
@@ -41,14 +41,8 @@ const PodcastTable = ({
   
   if (podcasts.length === 0) {
     return (
-      <div className="text-center py-8">
-        <p className="text-gray-500 mb-4">No podcasts found for this course</p>
-        <Button asChild>
-          <Link to={`/admin/courses/${courseId}/podcasts/new`}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Your First Podcast
-          </Link>
-        </Button>
+      <div className="text-center py-4">
+        <p className="text-gray-500">No podcasts in this section</p>
       </div>
     );
   }
