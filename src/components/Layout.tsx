@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Home, BookOpen, User, Target } from "lucide-react";
@@ -11,20 +10,11 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
-  const { currentPodcastId, isPlaying } = useAudioStore();
-  
-  // Mock data for currently playing podcast
-  // In a real app, you would fetch this from the server based on currentPodcastId
-  const currentlyPlaying = currentPodcastId ? {
-    id: currentPodcastId,
-    title: "How to Solve Quadratic Equations",
-    courseName: "Mathematics GCSE",
-    thumbnailUrl: ""
-  } : null;
+  const { currentPodcastId, podcastMeta } = useAudioStore();
   
   // Don't show mini player on the podcast page
   const isPodcastPage = location.pathname.includes('/podcast/');
-  const showMiniPlayer = currentlyPlaying && !isPodcastPage;
+  const showMiniPlayer = currentPodcastId && podcastMeta && !isPodcastPage;
   
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-white to-gray-50">
@@ -33,16 +23,17 @@ const Layout = ({ children }: LayoutProps) => {
       </main>
       
       {/* Mini Player */}
-      {showMiniPlayer && (
+      {showMiniPlayer && podcastMeta && (
         <MiniPlayer 
-          podcastId={currentlyPlaying.id}
-          title={currentlyPlaying.title}
-          courseName={currentlyPlaying.courseName}
-          thumbnailUrl={currentlyPlaying.thumbnailUrl}
+          podcastId={podcastMeta.id}
+          title={podcastMeta.title}
+          courseName={podcastMeta.courseName}
+          thumbnailUrl={podcastMeta.image}
         />
       )}
       
-      <nav className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-white border border-gray-100 shadow-lg rounded-full z-10 max-w-xs w-[90%]">
+      {/* Navigation Bar */}
+      <nav className="fixed bottom-0 left-1/2 transform -translate-x-1/2 bg-white border border-gray-100 shadow-lg rounded-full z-10 max-w-xs w-[90%]">
         <div className="flex justify-around items-center py-2 px-3">
           <NavItem 
             to="/" 

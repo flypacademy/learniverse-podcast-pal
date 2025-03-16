@@ -43,7 +43,7 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
   };
 
   return (
-    <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 w-[92%] max-w-md bg-white border border-gray-100 shadow-lg rounded-lg z-20 p-3">
+    <div className="fixed bottom-16 left-1/2 transform -translate-x-1/2 w-[92%] max-w-md bg-white border border-gray-100 shadow-lg rounded-lg z-20 p-3">
       <div className="flex items-center gap-3">
         {/* Thumbnail or default icon */}
         <div className="w-10 h-10 rounded-md bg-primary/10 flex-shrink-0 overflow-hidden">
