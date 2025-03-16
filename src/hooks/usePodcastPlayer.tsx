@@ -40,20 +40,23 @@ export function usePodcastPlayer() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
-  const [volume, setVolume] = useState(1);
+  const [volume, setVolume] = useState(0.8);
   const [isQuizAvailable, setIsQuizAvailable] = useState(false);
   const [showXPModal, setShowXPModal] = useState(false);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const isInitialSyncRef = useRef(true);
   
   // Check if this podcast is already playing in the global store
   useEffect(() => {
-    if (podcastId && globalAudioStore.currentPodcastId === podcastId) {
+    if (podcastId && globalAudioStore.currentPodcastId === podcastId && isInitialSyncRef.current) {
       console.log("This podcast is already in the global store, syncing state");
       setIsPlaying(globalAudioStore.isPlaying);
       setCurrentTime(globalAudioStore.currentTime);
       setDuration(globalAudioStore.duration);
+      // Convert the global volume value (0-100) to a local volume value (0-1)
       setVolume(globalAudioStore.volume / 100);
+      isInitialSyncRef.current = false;
     }
   }, [podcastId, globalAudioStore]);
   
@@ -236,9 +239,11 @@ export function usePodcastPlayer() {
   
   const changeVolume = (value: number) => {
     if (audioRef.current) {
-      console.log("Changing volume to:", value);
-      audioRef.current.volume = value;
-      setVolume(value);
+      // Ensure value is between 0 and 1
+      const safeValue = Math.max(0, Math.min(1, value));
+      console.log("Changing volume to:", safeValue);
+      audioRef.current.volume = safeValue;
+      setVolume(safeValue);
     } else {
       console.warn("changeVolume called but audioRef is null");
     }

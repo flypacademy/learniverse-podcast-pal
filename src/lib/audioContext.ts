@@ -60,8 +60,9 @@ export const useAudioStore = create<AudioState>((set, get) => ({
     
     console.log("Setting new audio in global store:", { podcastId });
     
-    // Set the volume based on store state
-    audioElement.volume = get().volume / 100;
+    // Set the volume based on store state - ensure it's between 0-1
+    const safeVolume = Math.max(0, Math.min(100, get().volume)) / 100;
+    audioElement.volume = safeVolume;
     
     // Update state with new audio
     set({ 
@@ -126,11 +127,14 @@ export const useAudioStore = create<AudioState>((set, get) => ({
   },
   
   setVolume: (volume) => {
+    // Ensure volume is within valid range of 0-100
+    const safeVolume = Math.max(0, Math.min(100, volume));
     const { audioElement } = get();
     if (audioElement) {
-      audioElement.volume = volume / 100;
+      // Convert to 0-1 range for HTML audio element
+      audioElement.volume = safeVolume / 100;
     }
-    set({ volume });
+    set({ volume: safeVolume });
   },
   
   cleanup: () => {

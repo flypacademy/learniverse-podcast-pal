@@ -54,6 +54,12 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
     }
   };
 
+  // Calculate progress safely
+  const calculateProgress = () => {
+    if (!duration || duration === 0) return 0;
+    return (currentTime / duration) * 100;
+  };
+
   return (
     <div className="bg-white border border-gray-100 shadow-lg rounded-lg z-20 p-3">
       <div className="flex items-center gap-3">
@@ -83,7 +89,7 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
           <div className="mt-1 w-full h-1 bg-gray-200 rounded-full overflow-hidden">
             <div 
               className="h-full bg-primary rounded-full"
-              style={{ width: `${(currentTime / duration) * 100}%` }}
+              style={{ width: `${calculateProgress()}%` }}
             ></div>
           </div>
         </div>
