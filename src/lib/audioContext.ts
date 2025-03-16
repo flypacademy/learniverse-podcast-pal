@@ -1,6 +1,14 @@
 
 import { create } from 'zustand';
 
+// Add podcast metadata type
+export interface PodcastMeta {
+  id: string;
+  title: string;
+  courseName: string;
+  image?: string;
+}
+
 interface AudioState {
   audioElement: HTMLAudioElement | null;
   isPlaying: boolean;
@@ -8,7 +16,9 @@ interface AudioState {
   currentTime: number;
   duration: number;
   volume: number;
-  setAudio: (audioElement: HTMLAudioElement, podcastId: string) => void;
+  podcastMeta: PodcastMeta | null;
+  setAudio: (audioElement: HTMLAudioElement, podcastId: string, meta?: PodcastMeta) => void;
+  setPodcastMeta: (meta: PodcastMeta) => void;
   play: () => void;
   pause: () => void;
   setCurrentTime: (time: number) => void;
@@ -24,8 +34,9 @@ export const useAudioStore = create<AudioState>((set, get) => ({
   currentTime: 0,
   duration: 0,
   volume: 80,
+  podcastMeta: null,
   
-  setAudio: (audioElement, podcastId) => {
+  setAudio: (audioElement, podcastId, meta) => {
     // Clean up existing audio if there is one
     const currentAudio = get().audioElement;
     if (currentAudio) {
@@ -44,7 +55,8 @@ export const useAudioStore = create<AudioState>((set, get) => ({
       currentPodcastId: podcastId,
       isPlaying: false,
       currentTime: 0,
-      duration: audioElement.duration || 0
+      duration: audioElement.duration || 0,
+      podcastMeta: meta || null
     });
     
     // Add event listeners
@@ -60,6 +72,10 @@ export const useAudioStore = create<AudioState>((set, get) => ({
     audioElement.addEventListener('loadedmetadata', () => {
       set({ duration: audioElement.duration });
     });
+  },
+  
+  setPodcastMeta: (meta) => {
+    set({ podcastMeta: meta });
   },
   
   play: () => {
@@ -112,7 +128,8 @@ export const useAudioStore = create<AudioState>((set, get) => ({
       audioElement: null, 
       isPlaying: false, 
       currentPodcastId: null,
-      currentTime: 0
+      currentTime: 0,
+      podcastMeta: null
     });
   }
 }));

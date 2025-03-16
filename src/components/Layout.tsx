@@ -2,6 +2,8 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Home, BookOpen, User, Target } from "lucide-react";
+import { useAudioStore } from "@/lib/audioContext";
+import MiniPlayer from "./podcast/MiniPlayer";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -9,12 +11,36 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
+  const { currentPodcastId, isPlaying } = useAudioStore();
+  
+  // Mock data for currently playing podcast
+  // In a real app, you would fetch this from the server based on currentPodcastId
+  const currentlyPlaying = currentPodcastId ? {
+    id: currentPodcastId,
+    title: "How to Solve Quadratic Equations",
+    courseName: "Mathematics GCSE",
+    thumbnailUrl: ""
+  } : null;
+  
+  // Don't show mini player on the podcast page
+  const isPodcastPage = location.pathname.includes('/podcast/');
+  const showMiniPlayer = currentlyPlaying && !isPodcastPage;
   
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-white to-gray-50">
       <main className="flex-1 pb-24 pt-6 px-4 max-w-md mx-auto w-full">
         {children}
       </main>
+      
+      {/* Mini Player */}
+      {showMiniPlayer && (
+        <MiniPlayer 
+          podcastId={currentlyPlaying.id}
+          title={currentlyPlaying.title}
+          courseName={currentlyPlaying.courseName}
+          thumbnailUrl={currentlyPlaying.thumbnailUrl}
+        />
+      )}
       
       <nav className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-white border border-gray-100 shadow-lg rounded-full z-10 max-w-xs w-[90%]">
         <div className="flex justify-around items-center py-2 px-3">

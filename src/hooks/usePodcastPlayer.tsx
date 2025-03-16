@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { QuizQuestion } from "@/components/QuizModal";
-import { useAudioStore } from "@/lib/audioContext";
+import { useAudioStore, PodcastMeta } from "@/lib/audioContext";
 
 interface Podcast {
   id: string;
@@ -31,6 +30,7 @@ export const usePodcastPlayer = (podcastId?: string) => {
     volume,
     currentPodcastId,
     setAudio,
+    setPodcastMeta,
     play,
     pause,
     setCurrentTime,
@@ -118,6 +118,15 @@ export const usePodcastPlayer = (podcastId?: string) => {
         setPodcast(formattedPodcast);
         setQuizQuestions(formattedQuizQuestions);
         
+        // Set podcast metadata in the audio store
+        const podcastMeta: PodcastMeta = {
+          id: formattedPodcast.id,
+          title: formattedPodcast.title,
+          courseName: formattedPodcast.courseName,
+          image: formattedPodcast.image
+        };
+        setPodcastMeta(podcastMeta);
+        
         // Set duration for newly fetched podcast
         if (formattedPodcast.duration) {
           setDuration(formattedPodcast.duration);
@@ -131,7 +140,7 @@ export const usePodcastPlayer = (podcastId?: string) => {
     };
     
     fetchPodcast();
-  }, [podcastId, setDuration]);
+  }, [podcastId, setDuration, setPodcastMeta]);
   
   // Initialize audio element when podcast changes
   useEffect(() => {
@@ -139,7 +148,16 @@ export const usePodcastPlayer = (podcastId?: string) => {
       // Check if we already have this podcast loaded
       if (currentPodcastId !== podcast.id) {
         const audio = new Audio(podcast.audioUrl);
-        setAudio(audio, podcast.id);
+        
+        // Create podcast metadata
+        const podcastMeta: PodcastMeta = {
+          id: podcast.id,
+          title: podcast.title,
+          courseName: podcast.courseName,
+          image: podcast.image
+        };
+        
+        setAudio(audio, podcast.id, podcastMeta);
       }
     }
     
