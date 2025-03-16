@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ChevronLeft, Play, BookOpen, Clock, BarChart3 } from "lucide-react";
 import Layout from "@/components/Layout";
@@ -7,90 +7,137 @@ import PodcastCard from "@/components/PodcastCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import ProgressBar from "@/components/ProgressBar";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/components/ui/use-toast";
 
-// Mock data
-const coursesData = {
-  "math-gcse": {
-    id: "math-gcse",
-    title: "Mathematics GCSE",
-    subject: "math" as const,
-    description: "Master key mathematical concepts and prepare for your GCSE exams with our comprehensive audio lessons.",
-    totalPodcasts: 12,
-    completedPodcasts: 5,
-    totalDuration: 540, // in minutes
-    difficulty: "Intermediate",
-    image: "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png",
-    podcasts: [
-      {
-        id: "math-algebra-1",
-        title: "Algebra Fundamentals",
-        courseId: "math-gcse",
-        courseName: "Mathematics GCSE",
-        duration: 840,
-        progress: 65,
-        completed: false,
-        image: "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png"
-      },
-      {
-        id: "math-geometry-1",
-        title: "Geometry Basics",
-        courseId: "math-gcse",
-        courseName: "Mathematics GCSE",
-        duration: 760,
-        progress: 100,
-        completed: true,
-        image: "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png"
-      },
-      {
-        id: "math-trigonometry-1",
-        title: "Introduction to Trigonometry",
-        courseId: "math-gcse",
-        courseName: "Mathematics GCSE",
-        duration: 920,
-        progress: 0,
-        completed: false,
-        image: "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png"
-      }
-    ]
-  },
-  "english-gcse": {
-    id: "english-gcse",
-    title: "English GCSE",
-    subject: "english" as const,
-    description: "Improve your English language and literature skills with our engaging audio lessons designed for GCSE success.",
-    totalPodcasts: 10,
-    completedPodcasts: 2,
-    totalDuration: 450, // in minutes
-    difficulty: "Intermediate",
-    image: "/lovable-uploads/b8505be1-663c-4327-9a5f-8c5bb7419180.png",
-    podcasts: [
-      {
-        id: "english-shakespeare-1",
-        title: "Introduction to Shakespeare",
-        courseId: "english-gcse",
-        courseName: "English GCSE",
-        duration: 720,
-        progress: 0,
-        completed: false,
-        image: "/lovable-uploads/b8505be1-663c-4327-9a5f-8c5bb7419180.png"
-      },
-      {
-        id: "english-poetry-1",
-        title: "Poetry Analysis Techniques",
-        courseId: "english-gcse",
-        courseName: "English GCSE",
-        duration: 680,
-        progress: 100,
-        completed: true,
-        image: "/lovable-uploads/b8505be1-663c-4327-9a5f-8c5bb7419180.png"
-      }
-    ]
-  }
-};
+interface Podcast {
+  id: string;
+  title: string;
+  courseId: string;
+  courseName: string;
+  duration: number;
+  progress: number;
+  completed: boolean;
+  image: string;
+}
+
+interface Course {
+  id: string;
+  title: string;
+  subject: string;
+  description: string;
+  totalPodcasts: number;
+  completedPodcasts: number;
+  totalDuration: number;
+  difficulty: string;
+  image: string;
+  podcasts: Podcast[];
+  exam?: string;
+  board?: string;
+}
 
 const CourseDetail = () => {
   const { courseId } = useParams<{ courseId: string }>();
-  const course = courseId ? coursesData[courseId as keyof typeof coursesData] : null;
+  const [course, setCourse] = useState<Course | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+  
+  useEffect(() => {
+    const fetchCourseDetails = async () => {
+      if (!courseId) return;
+      
+      try {
+        setLoading(true);
+        console.log("Fetching course details for:", courseId);
+        
+        // Fetch course
+        const { data: courseData, error: courseError } = await supabase
+          .from('courses')
+          .select('*')
+          .eq('id', courseId)
+          .single();
+        
+        if (courseError) {
+          console.error("Error fetching course:", courseError);
+          throw courseError;
+        }
+        
+        if (!courseData) {
+          console.log("No course found with ID:", courseId);
+          setLoading(false);
+          return;
+        }
+        
+        console.log("Course data fetched:", courseData);
+        
+        // Fetch podcasts for the course
+        const { data: podcastsData, error: podcastsError } = await supabase
+          .from('podcasts')
+          .select('*')
+          .eq('course_id', courseId);
+        
+        if (podcastsError) {
+          console.error("Error fetching podcasts:", podcastsError);
+          throw podcastsError;
+        }
+        
+        console.log("Podcasts data fetched:", podcastsData);
+        
+        // Calculate total duration
+        const totalDuration = podcastsData?.reduce((sum, podcast) => sum + (podcast.duration || 0), 0) || 0;
+        
+        // Transform podcasts data to match the expected format
+        const formattedPodcasts: Podcast[] = (podcastsData || []).map(podcast => ({
+          id: podcast.id,
+          title: podcast.title,
+          courseId: podcast.course_id,
+          courseName: courseData.title,
+          duration: podcast.duration || 0,
+          progress: 0, // We'll fetch this from user_progress in a real app
+          completed: false, // We'll fetch this from user_progress in a real app
+          image: podcast.image_url || courseData.image_url || "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png"
+        }));
+        
+        // Set course with formatted data
+        setCourse({
+          id: courseData.id,
+          title: courseData.title,
+          subject: courseData.subject || "math",
+          description: courseData.description || "No description available",
+          totalPodcasts: podcastsData?.length || 0,
+          completedPodcasts: 0, // Will be fetched from user_progress in a real app
+          totalDuration: totalDuration,
+          difficulty: "Intermediate", // Hardcoded for now
+          image: courseData.image_url || "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png",
+          podcasts: formattedPodcasts,
+          exam: courseData.exam || "GCSE",
+          board: courseData.board || "AQA"
+        });
+      } catch (error: any) {
+        console.error("Error in fetchCourseDetails:", error);
+        toast({
+          title: "Error",
+          description: error.message || "Failed to load course details",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchCourseDetails();
+  }, [courseId, toast]);
+  
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex flex-col items-center justify-center h-full py-12">
+          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+          <p className="mt-4 text-gray-500">Loading course details...</p>
+        </div>
+      </Layout>
+    );
+  }
   
   if (!course) {
     return (
@@ -106,7 +153,7 @@ const CourseDetail = () => {
     );
   }
   
-  const completionPercentage = Math.round((course.completedPodcasts / course.totalPodcasts) * 100);
+  const completionPercentage = Math.round((course.completedPodcasts / course.totalPodcasts) * 100) || 0;
   const subjectGradient = course.subject === "math" ? "bg-math-gradient" : 
                          course.subject === "english" ? "bg-english-gradient" : 
                          "bg-science-gradient";
@@ -183,12 +230,22 @@ const CourseDetail = () => {
           </TabsList>
           
           <TabsContent value="episodes" className="space-y-4 pt-4">
-            {course.podcasts.map((podcast) => (
-              <PodcastCard 
-                key={podcast.id}
-                {...podcast}
-              />
-            ))}
+            {course.podcasts.length > 0 ? (
+              course.podcasts.map((podcast) => (
+                <PodcastCard 
+                  key={podcast.id}
+                  {...podcast}
+                />
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <Play className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                <h3 className="font-medium text-gray-700">No episodes yet</h3>
+                <p className="text-gray-500 text-sm mt-1">
+                  Check back later for new content
+                </p>
+              </div>
+            )}
           </TabsContent>
           
           <TabsContent value="about" className="pt-4">
@@ -213,7 +270,7 @@ const CourseDetail = () => {
                   </li>
                   <li className="flex items-start">
                     <div className="mr-2 mt-0.5 text-primary">•</div>
-                    <p>Build confidence for your GCSE exams</p>
+                    <p>Build confidence for your {course.exam} exams</p>
                   </li>
                 </ul>
               </div>
