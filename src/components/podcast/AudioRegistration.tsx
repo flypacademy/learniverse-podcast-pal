@@ -24,6 +24,7 @@ const AudioRegistration = ({
   const [registrationAttempts, setRegistrationAttempts] = useState(0);
   const registrationTimerRef = useRef<number | null>(null);
   const hasValidatedDataRef = useRef(false);
+  const lastPodcastIdRef = useRef<string | null>(null);
   
   // Clean up any pending timers on unmount
   useEffect(() => {
@@ -55,8 +56,11 @@ const AudioRegistration = ({
   
   // Audio registration with retry mechanism - careful with dependencies to avoid loops
   useEffect(() => {
-    // If already initialized or too many attempts, don't continue
+    // Skip if already initialized or too many attempts
     if (audioInitialized || registrationAttempts >= 3) return;
+    
+    // Skip if podcast ID hasn't changed (prevents duplicate registrations)
+    if (lastPodcastIdRef.current === podcastData?.id) return;
     
     // Check if we have all the required data and elements
     const hasRequiredData = 
@@ -108,6 +112,9 @@ const AudioRegistration = ({
       return;
     }
     
+    // Store current podcast ID to prevent duplicate registrations
+    lastPodcastIdRef.current = podcastData.id;
+    
     // Now attempt to register with the store
     console.log("Attempting to register podcast with global audio store");
     
@@ -126,15 +133,6 @@ const AudioRegistration = ({
         });
         
         audioStore.setAudio(audioRef.current, podcastData.id, {
-          id: podcastData.id,
-          title: podcastData.title,
-          courseName: courseData.title,
-          image: podcastData.image_url || courseData.image,
-          audioUrl: podcastData.audio_url
-        });
-      } else {
-        console.log("Podcast already registered with store, updating metadata only");
-        audioStore.setPodcastMeta({
           id: podcastData.id,
           title: podcastData.title,
           courseName: courseData.title,

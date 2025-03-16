@@ -96,7 +96,7 @@ export default memo(PlayerContent, (prevProps, nextProps) => {
   // Only re-render if any of these props have changed
   return (
     prevProps.isPlaying === nextProps.isPlaying &&
-    prevProps.currentTime === nextProps.currentTime &&
+    Math.abs(prevProps.currentTime - nextProps.currentTime) < 0.5 &&
     prevProps.duration === nextProps.duration &&
     prevProps.volume === nextProps.volume &&
     prevProps.podcastData?.id === nextProps.podcastData?.id

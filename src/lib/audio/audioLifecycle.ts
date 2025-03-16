@@ -15,7 +15,7 @@ export const createAudioLifecycleSlice: StateCreator<
   AudioLifecycleSlice
 > = (set, get, api) => ({
   continuePlayback: () => {
-    const { podcastMeta } = get();
+    const { podcastMeta, currentTime } = get();
     
     if (!podcastMeta?.audioUrl) {
       console.error("Cannot continue playback without audio URL");
@@ -36,13 +36,15 @@ export const createAudioLifecycleSlice: StateCreator<
       
       // Set up time update handler that won't cause re-render loops
       let lastTimeUpdate = 0;
-      newAudioElement.addEventListener('timeupdate', () => {
+      const timeUpdateHandler = () => {
         // Only update time if it's changed by at least 0.5 seconds to reduce updates
         if (Math.abs(newAudioElement.currentTime - lastTimeUpdate) >= 0.5) {
           lastTimeUpdate = newAudioElement.currentTime;
           set({ currentTime: newAudioElement.currentTime });
         }
-      });
+      };
+      
+      newAudioElement.addEventListener('timeupdate', timeUpdateHandler);
       
       newAudioElement.addEventListener('loadedmetadata', () => {
         set({ duration: newAudioElement.duration });
@@ -57,13 +59,16 @@ export const createAudioLifecycleSlice: StateCreator<
         // Don't update state on error to avoid potential loops
       });
       
+      // Update state with new audio (in a single set call to avoid multiple rerenders)
+      set({ audioElement: newAudioElement });
+      
       // Wait for audio to be loaded before playing
       newAudioElement.addEventListener('canplay', () => {
         console.log("New audio element is ready to play");
         
         // Set current time if available
-        if (get().currentTime > 0) {
-          newAudioElement.currentTime = get().currentTime;
+        if (currentTime > 0) {
+          newAudioElement.currentTime = currentTime;
         }
         
         // Try to play
@@ -76,12 +81,31 @@ export const createAudioLifecycleSlice: StateCreator<
             })
             .catch(error => {
               console.error("Error playing continued audio:", error);
+              
+              // If autoplay is blocked, we need to set up a user interaction handler
+              // to try playing again on the next user interaction
+              const userInteractionHandler = () => {
+                console.log("User interaction detected, trying to play audio again");
+                newAudioElement.play()
+                  .then(() => {
+                    console.log("Audio playback started after user interaction");
+                    set({ isPlaying: true });
+                    
+                    // Remove the event listeners after successful playback
+                    document.removeEventListener('click', userInteractionHandler);
+                    document.removeEventListener('touchstart', userInteractionHandler);
+                  })
+                  .catch(err => {
+                    console.error("Still cannot play audio after user interaction:", err);
+                  });
+              };
+              
+              // Add event listeners for user interaction
+              document.addEventListener('click', userInteractionHandler, { once: true });
+              document.addEventListener('touchstart', userInteractionHandler, { once: true });
             });
         }
       });
-      
-      // Set the new audio element in the store
-      set({ audioElement: newAudioElement });
       
     } catch (error) {
       console.error("Error recreating audio element:", error);
@@ -112,11 +136,10 @@ export const createAudioLifecycleSlice: StateCreator<
       clonedAudio.onerror = null;
       
       // Clone references before clearing state to prevent accessing nullified values
-      set(state => ({ 
+      set({ 
         audioElement: null,
-        isPlaying: false,
-        currentPodcastId: null
-      }));
+        isPlaying: false
+      });
       
       // Clear the source on the cloned reference
       setTimeout(() => {
@@ -132,8 +155,7 @@ export const createAudioLifecycleSlice: StateCreator<
       // Still attempt to reset the state even if cleanup fails
       set({ 
         audioElement: null,
-        isPlaying: false,
-        currentPodcastId: null
+        isPlaying: false
       });
     }
   }

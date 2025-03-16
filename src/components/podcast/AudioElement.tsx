@@ -27,6 +27,7 @@ const AudioElement = ({
   const [isValidUrl, setIsValidUrl] = useState(true);
   const hasSetupEvents = useRef(false);
   const lastTimeUpdateRef = useRef(0);
+  const timeUpdateIntervalRef = useRef<number | null>(null);
   
   // Validate audio URL once on mount
   useEffect(() => {
@@ -49,11 +50,24 @@ const AudioElement = ({
     
     console.log("AudioElement mounted with URL:", audioUrl);
     
+    // Set up a regular interval to update the time display
+    // This ensures the time updates even if timeupdate events are inconsistent
+    timeUpdateIntervalRef.current = window.setInterval(() => {
+      if (audioRef.current && !audioRef.current.paused) {
+        setCurrentTime(audioRef.current.currentTime);
+      }
+    }, 250); // Update 4 times per second
+    
     return () => {
       console.log("AudioElement unmounting");
       hasSetupEvents.current = false;
+      
+      // Clear the interval on unmount
+      if (timeUpdateIntervalRef.current) {
+        clearInterval(timeUpdateIntervalRef.current);
+      }
     };
-  }, [audioUrl, setHasError]);
+  }, [audioUrl, setHasError, audioRef, setCurrentTime]);
   
   // This useEffect sets up the event listeners only once to prevent re-renders
   useEffect(() => {

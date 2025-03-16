@@ -1,3 +1,4 @@
+
 import { StateCreator } from 'zustand';
 import { AudioState } from './types';
 
@@ -21,10 +22,9 @@ export const createAudioPlaybackSlice: StateCreator<
     
     // If no audio element but we have metadata, try to recreate it
     if (!audioElement && podcastMeta?.audioUrl) {
+      console.log("No audio element but we have metadata - recreating audio for playback");
       get().continuePlayback();
-      // The play action will be handled by the oncanplay handler
-      set({ isPlaying: true });
-      return;
+      return; // The play action will be handled by the continuePlayback function
     }
     
     if (!audioElement) {
@@ -97,7 +97,28 @@ export const createAudioPlaybackSlice: StateCreator<
         })
         .catch(error => {
           console.error("Error playing audio from global store:", error);
-          // Don't update state to playing if it failed
+          
+          // If autoplay is blocked, we need to set up a user interaction handler
+          // to try playing again on the next user interaction
+          const userInteractionHandler = () => {
+            console.log("User interaction detected, trying to play audio again");
+            audioElement.play()
+              .then(() => {
+                console.log("Audio playback started after user interaction");
+                set({ isPlaying: true });
+                
+                // Remove the event listeners after successful playback
+                document.removeEventListener('click', userInteractionHandler);
+                document.removeEventListener('touchstart', userInteractionHandler);
+              })
+              .catch(err => {
+                console.error("Still cannot play audio after user interaction:", err);
+              });
+          };
+          
+          // Add event listeners for user interaction
+          document.addEventListener('click', userInteractionHandler, { once: true });
+          document.addEventListener('touchstart', userInteractionHandler, { once: true });
         });
     }
   },
