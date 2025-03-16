@@ -5,7 +5,6 @@ import ProgressBar from "./ProgressBar";
 import { Headphones, Award, Star, Flame, Trophy } from "lucide-react";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
-import { createGlassMorphism } from "@/lib/utils";
 
 interface CourseCardProps {
   id: string;
@@ -109,7 +108,7 @@ const CourseCard = ({
         )}
         
         {/* Bottom section with blurry glass effect */}
-        <div className="absolute bottom-0 left-0 right-0 bg-white/70 backdrop-blur-md border-t border-white/20 p-4 z-10">
+        <div className="absolute bottom-0 left-0 right-0 bg-white/70 backdrop-blur-md p-4 z-10">
           <h3 className="text-gray-900 font-bold text-xl leading-tight mb-3">
             {title}
           </h3>
