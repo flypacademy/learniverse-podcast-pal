@@ -238,7 +238,6 @@ export const usePodcasts = (courseId: string | undefined) => {
       }
       
       // Insert the new header into the course_headers table
-      // Use .maybeSingle() instead of .single() to prevent errors if no rows are returned
       const { data, error } = await supabase
         .from('course_headers')
         .insert([
