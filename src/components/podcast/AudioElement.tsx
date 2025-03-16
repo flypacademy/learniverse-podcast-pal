@@ -1,5 +1,5 @@
 
-import React, { RefObject, useEffect } from "react";
+import React, { RefObject, useEffect, useState } from "react";
 import { toast } from "@/components/ui/use-toast";
 
 interface AudioElementProps {
@@ -23,11 +23,29 @@ const AudioElement = ({
   onAudioEnded,
   setHasError
 }: AudioElementProps) => {
-  // Log when the component mounts to track lifecycle
+  const [loadAttempts, setLoadAttempts] = useState(0);
+  
+  // Validate audio URL before attempting to load
   useEffect(() => {
-    console.log("AudioElement mounted with URL:", audioUrl);
+    if (!audioUrl) {
+      console.error("Invalid audio URL provided:", audioUrl);
+      setHasError(true);
+      return;
+    }
+    
+    try {
+      // Validate URL format
+      new URL(audioUrl);
+    } catch (err) {
+      console.error("Invalid audio URL format:", audioUrl, err);
+      setHasError(true);
+      return;
+    }
+    
+    console.log("AudioElement mounted with valid URL:", audioUrl);
+    
     return () => console.log("AudioElement unmounting");
-  }, [audioUrl]);
+  }, [audioUrl, setHasError]);
   
   // Handle audio metadata loaded
   const handleMetadataLoaded = () => {
@@ -38,10 +56,12 @@ const AudioElement = ({
       });
       setDuration(audioRef.current.duration);
       setReady(true);
+      // Reset load attempts on successful load
+      setLoadAttempts(0);
     }
   };
   
-  // Handle audio error
+  // Handle audio error with retry logic
   const handleError = (e: React.SyntheticEvent<HTMLAudioElement>) => {
     console.error("Audio element error:", e);
     
@@ -51,6 +71,21 @@ const AudioElement = ({
     const errorMessage = target.error ? target.error.message : 'Unknown error';
     
     console.error(`Audio error details: code=${errorCode}, message=${errorMessage}`);
+    
+    // Implement retry logic for recoverable errors (up to 2 retries)
+    if (loadAttempts < 2) {
+      console.log(`Retrying audio load (attempt ${loadAttempts + 1})`);
+      setLoadAttempts(prev => prev + 1);
+      
+      // Small delay before retry
+      setTimeout(() => {
+        if (audioRef.current) {
+          audioRef.current.load();
+        }
+      }, 1000);
+      
+      return;
+    }
     
     setHasError(true);
     toast({
@@ -79,6 +114,7 @@ const AudioElement = ({
       onPause={() => setIsPlaying(false)}
       onCanPlay={() => {
         console.log("Audio is ready to play");
+        setReady(true);
       }}
       preload="auto"
       className="hidden"

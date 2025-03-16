@@ -21,6 +21,7 @@ const AudioRegistration = ({
 }: AudioRegistrationProps) => {
   const audioStore = useAudioStore();
   const [audioInitialized, setAudioInitialized] = useState(false);
+  const [registrationAttempts, setRegistrationAttempts] = useState(0);
   
   // Log component lifecycle
   useEffect(() => {
@@ -35,6 +36,7 @@ const AudioRegistration = ({
     };
   }, []);
   
+  // Validate podcast data early
   useEffect(() => {
     if (!podcastData || !podcastData.audio_url) {
       console.error("Invalid podcast data - missing audio URL");
@@ -44,37 +46,109 @@ const AudioRegistration = ({
         description: "Audio file information is missing",
         variant: "destructive"
       });
+    }
+  }, [podcastData, setHasError]);
+  
+  // Audio registration with retry mechanism
+  useEffect(() => {
+    // If already initialized, don't try again
+    if (audioInitialized) return;
+    
+    // If we've tried too many times, give up
+    if (registrationAttempts >= 3) {
+      console.error("Failed to initialize audio after multiple attempts");
+      setHasError(true);
       return;
     }
     
-    if (podcastData && courseData && audioRef.current && ready && !audioInitialized) {
-      console.log("Registering podcast with global audio store");
+    // Check if we have all the required data and elements
+    if (!podcastData?.audio_url || !courseData || !audioRef.current) {
+      console.log("Waiting for required data before registering audio...", {
+        hasAudioUrl: !!podcastData?.audio_url,
+        hasCourseData: !!courseData, 
+        hasAudioRef: !!audioRef.current
+      });
       
+      // Retry after a delay
+      if (registrationAttempts < 3) {
+        const timer = setTimeout(() => {
+          setRegistrationAttempts(prev => prev + 1);
+        }, 500);
+        return () => clearTimeout(timer);
+      }
+      return;
+    }
+    
+    // If audio is not ready yet but we have all data, wait for it
+    if (!ready && registrationAttempts < 3) {
+      console.log("Audio element not ready yet, waiting...");
+      const timer = setTimeout(() => {
+        setRegistrationAttempts(prev => prev + 1);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+    
+    // Now attempt to register with the store
+    console.log("Attempting to register podcast with global audio store");
+    
+    try {
+      // Check if audio URL is valid
+      if (!podcastData.audio_url) {
+        throw new Error("Missing audio URL");
+      }
+      
+      // Verify the URL is well-formed
       try {
-        // Check if audio URL is valid
-        if (!podcastData.audio_url) {
-          throw new Error("Missing audio URL");
-        }
-
-        // Check if the audio element has a valid src
-        if (!audioRef.current.src) {
-          throw new Error("Audio element has no source");
-        }
-        
-        // Only register if it's not the same podcast already playing
-        if (audioStore.currentPodcastId !== podcastData.id) {
-          audioStore.setAudio(audioRef.current, podcastData.id, {
-            id: podcastData.id,
-            title: podcastData.title,
-            courseName: courseData.title,
-            image: podcastData.image_url || courseData.image,
-            audioUrl: podcastData.audio_url
-          });
-        }
-        
-        setAudioInitialized(true);
+        new URL(podcastData.audio_url);
       } catch (err) {
-        console.error("Error registering audio with store:", err);
+        throw new Error(`Invalid audio URL format: ${err.message}`);
+      }
+
+      // Check if the audio element has a valid src and is properly initialized
+      if (!audioRef.current.src) {
+        throw new Error("Audio element has no source");
+      }
+      
+      // Only register if it's not the same podcast already playing
+      if (audioStore.currentPodcastId !== podcastData.id) {
+        console.log("Registering new podcast with global audio store:", {
+          id: podcastData.id,
+          title: podcastData.title,
+          url: podcastData.audio_url
+        });
+        
+        audioStore.setAudio(audioRef.current, podcastData.id, {
+          id: podcastData.id,
+          title: podcastData.title,
+          courseName: courseData.title,
+          image: podcastData.image_url || courseData.image,
+          audioUrl: podcastData.audio_url
+        });
+      } else {
+        console.log("Podcast already registered with store, updating metadata only");
+        audioStore.setPodcastMeta({
+          id: podcastData.id,
+          title: podcastData.title,
+          courseName: courseData.title,
+          image: podcastData.image_url || courseData.image,
+          audioUrl: podcastData.audio_url
+        });
+      }
+      
+      setAudioInitialized(true);
+      console.log("Audio registration successful");
+      
+    } catch (err) {
+      console.error("Error registering audio with store:", err);
+      
+      // If we still have retries left, try again
+      if (registrationAttempts < 2) {
+        console.log(`Retrying audio registration (attempt ${registrationAttempts + 1})`);
+        const timer = setTimeout(() => {
+          setRegistrationAttempts(prev => prev + 1);
+        }, 500);
+        return () => clearTimeout(timer);
+      } else {
         setHasError(true);
         toast({
           title: "Error",
@@ -83,7 +157,7 @@ const AudioRegistration = ({
         });
       }
     }
-  }, [podcastData, courseData, audioRef, ready, audioStore, audioInitialized, setHasError]);
+  }, [podcastData, courseData, audioRef, ready, audioStore, audioInitialized, registrationAttempts, setHasError]);
   
   return null; // This is a functional component that doesn't render anything
 };
