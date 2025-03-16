@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAudioStore } from "@/lib/audioContext";
 import { formatTime } from "@/lib/utils";
@@ -15,6 +15,11 @@ interface MiniPlayerProps {
 }
 
 const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerProps) => {
+  // We'll use local state and sync it with the store to avoid recursive updates
+  const [localIsPlaying, setLocalIsPlaying] = useState(false);
+  const [localCurrentTime, setLocalCurrentTime] = useState(0);
+  const [localDuration, setLocalDuration] = useState(0);
+  
   const { 
     audioElement,
     isPlaying, 
@@ -25,8 +30,15 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
     pause
   } = useAudioStore();
 
+  // Sync local state with store - only when the store values change
+  useEffect(() => {
+    setLocalIsPlaying(isPlaying);
+    setLocalCurrentTime(currentTime);
+    setLocalDuration(duration);
+  }, [isPlaying, currentTime, duration]);
+
   const togglePlay = () => {
-    if (isPlaying) {
+    if (localIsPlaying) {
       pause();
     } else {
       play();
@@ -35,14 +47,14 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
 
   const skipForward = () => {
     if (audioElement) {
-      const newTime = Math.min(currentTime + 10, duration);
+      const newTime = Math.min(localCurrentTime + 10, localDuration);
       setCurrentTime(newTime);
     }
   };
 
   const skipBackward = () => {
     if (audioElement) {
-      const newTime = Math.max(currentTime - 10, 0);
+      const newTime = Math.max(localCurrentTime - 10, 0);
       setCurrentTime(newTime);
     }
   };
@@ -56,9 +68,12 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
 
   // Calculate progress safely
   const calculateProgress = () => {
-    if (!duration || duration === 0) return 0;
-    return (currentTime / duration) * 100;
+    if (!localDuration || localDuration === 0) return 0;
+    return (localCurrentTime / localDuration) * 100;
   };
+
+  // If there's no podcast playing, don't render the miniplayer
+  if (!podcastId) return null;
 
   return (
     <div className="bg-white border border-gray-100 shadow-lg rounded-lg z-20 p-3">
@@ -97,7 +112,7 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
         {/* Controls */}
         <div className="flex items-center">
           <PlayerControls 
-            isPlaying={isPlaying}
+            isPlaying={localIsPlaying}
             onPlayPause={togglePlay}
             onSkipBack={skipBackward}
             onSkipForward={skipForward}

@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Layout from "@/components/Layout";
 import PodcastHeader from "@/components/podcast/PodcastHeader";
@@ -14,11 +14,13 @@ import XPModal from "@/components/podcast/XPModal";
 import { usePodcastPlayer } from "@/hooks/usePodcastPlayer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAudioStore } from "@/lib/audioContext";
+import { toast } from "@/components/ui/use-toast";
 
 const PodcastPlayer = () => {
   const { podcastId } = useParams<{ podcastId: string }>();
   const navigate = useNavigate();
   const audioStore = useAudioStore();
+  const [audioInitialized, setAudioInitialized] = useState(false);
   
   useEffect(() => {
     console.log("PodcastPlayer rendered with podcastId:", podcastId);
@@ -53,24 +55,29 @@ const PodcastPlayer = () => {
   } = usePodcastPlayer();
   
   // Register the current podcast with the global audio store
+  // But only do it once to avoid infinite updates
   useEffect(() => {
-    if (podcastData && courseData && audioRef.current && ready) {
+    if (podcastData && courseData && audioRef.current && ready && !audioInitialized) {
       console.log("Registering podcast with global audio store");
-      audioStore.setAudio(audioRef.current, podcastData.id, {
-        id: podcastData.id,
-        title: podcastData.title,
-        courseName: courseData.title,
-        image: podcastData.image_url || courseData.image
-      });
+      
+      // Only register if it's not the same podcast already playing
+      if (audioStore.currentPodcastId !== podcastData.id) {
+        audioStore.setAudio(audioRef.current, podcastData.id, {
+          id: podcastData.id,
+          title: podcastData.title,
+          courseName: courseData.title,
+          image: podcastData.image_url || courseData.image
+        });
+      }
+      
+      setAudioInitialized(true);
     }
     
     // Cleanup function
     return () => {
       console.log("PodcastPlayer component unmounting, but keeping audio in global store");
-      // We don't call audioStore.cleanup() here because we want the audio to persist
-      // when navigating away from the podcast page
     };
-  }, [podcastData, courseData, audioRef, ready, audioStore]);
+  }, [podcastData, courseData, audioRef, ready, audioStore, audioInitialized]);
   
   // Debug logs to help diagnose issues
   useEffect(() => {
@@ -80,9 +87,10 @@ const PodcastPlayer = () => {
       podcastDataExists: !!podcastData,
       courseDataExists: !!courseData,
       ready,
-      podcastId
+      podcastId,
+      audioInitialized
     });
-  }, [loading, error, podcastData, courseData, ready, podcastId]);
+  }, [loading, error, podcastData, courseData, ready, podcastId, audioInitialized]);
   
   // If there's an error, show it
   if (error) {
@@ -154,6 +162,11 @@ const PodcastPlayer = () => {
               }}
               onError={(e) => {
                 console.error("Audio element error:", e);
+                toast({
+                  title: "Error",
+                  description: "Failed to load audio",
+                  variant: "destructive"
+                });
               }}
               onTimeUpdate={() => {
                 if (audioRef.current) {

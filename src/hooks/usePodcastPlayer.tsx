@@ -46,8 +46,10 @@ export function usePodcastPlayer() {
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const isInitialSyncRef = useRef(true);
+  const progressIntervalRef = useRef<number | null>(null);
   
   // Check if this podcast is already playing in the global store
+  // But only sync once to avoid infinite updates
   useEffect(() => {
     if (podcastId && globalAudioStore.currentPodcastId === podcastId && isInitialSyncRef.current) {
       console.log("This podcast is already in the global store, syncing state");
@@ -174,6 +176,12 @@ export function usePodcastPlayer() {
         audioRef.current.pause();
         audioRef.current.src = '';
       }
+      
+      // Clear any progress interval
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
     };
   }, [podcastId, toast, globalAudioStore.audioElement]);
   
@@ -251,7 +259,7 @@ export function usePodcastPlayer() {
   
   const skipForward = () => {
     if (audioRef.current) {
-      const newTime = Math.min(audioRef.current.duration, audioRef.current.currentTime + 15);
+      const newTime = Math.min(audioRef.current.duration || 0, audioRef.current.currentTime + 15);
       console.log("Skipping forward to:", newTime);
       audioRef.current.currentTime = newTime;
       setCurrentTime(newTime);
@@ -311,14 +319,27 @@ export function usePodcastPlayer() {
     }
   };
   
+  // Set up progress saving interval using ref to avoid creating new intervals
   useEffect(() => {
-    const progressInterval = setInterval(() => {
-      if (isPlaying) {
-        saveProgress();
-      }
-    }, 10000);
+    // Clean up any existing interval
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
     
-    return () => clearInterval(progressInterval);
+    // Only start a new interval if we're playing
+    if (isPlaying) {
+      progressIntervalRef.current = window.setInterval(() => {
+        saveProgress();
+      }, 10000);
+    }
+    
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+    };
   }, [isPlaying, podcastId]);
   
   const handleCompletion = async () => {

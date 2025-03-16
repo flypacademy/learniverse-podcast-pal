@@ -54,8 +54,11 @@ export const useAudioStore = create<AudioState>((set, get) => ({
       console.log("Cleaning up existing audio before setting new audio");
       currentAudio.pause();
       currentAudio.src = '';
-      currentAudio.removeEventListener('timeupdate', () => {});
-      currentAudio.removeEventListener('ended', () => {});
+      
+      // Remove event listeners - we'll recreate them for the new audio
+      currentAudio.onended = null;
+      currentAudio.ontimeupdate = null;
+      currentAudio.onloadedmetadata = null;
     }
     
     console.log("Setting new audio in global store:", { podcastId });
@@ -64,7 +67,21 @@ export const useAudioStore = create<AudioState>((set, get) => ({
     const safeVolume = Math.max(0, Math.min(100, get().volume)) / 100;
     audioElement.volume = safeVolume;
     
-    // Update state with new audio
+    // Set up the new audio element
+    audioElement.ontimeupdate = () => {
+      set({ currentTime: audioElement.currentTime });
+    };
+    
+    audioElement.onended = () => {
+      set({ isPlaying: false, currentTime: 0 });
+      audioElement.currentTime = 0;
+    };
+    
+    audioElement.onloadedmetadata = () => {
+      set({ duration: audioElement.duration || 0 });
+    };
+    
+    // Update state with new audio (in a single set call to avoid multiple rerenders)
     set({ 
       audioElement, 
       currentPodcastId: podcastId,
@@ -72,20 +89,6 @@ export const useAudioStore = create<AudioState>((set, get) => ({
       currentTime: 0,
       duration: audioElement.duration || 0,
       podcastMeta: meta || null
-    });
-    
-    // Add event listeners
-    audioElement.addEventListener('timeupdate', () => {
-      set({ currentTime: audioElement.currentTime });
-    });
-    
-    audioElement.addEventListener('ended', () => {
-      set({ isPlaying: false, currentTime: 0 });
-      audioElement.currentTime = 0;
-    });
-    
-    audioElement.addEventListener('loadedmetadata', () => {
-      set({ duration: audioElement.duration });
     });
   },
   
@@ -143,8 +146,9 @@ export const useAudioStore = create<AudioState>((set, get) => ({
       console.log("Cleaning up global audio store");
       audioElement.pause();
       audioElement.src = '';
-      audioElement.removeEventListener('timeupdate', () => {});
-      audioElement.removeEventListener('ended', () => {});
+      audioElement.onended = null;
+      audioElement.ontimeupdate = null;
+      audioElement.onloadedmetadata = null;
     }
     set({ 
       audioElement: null, 
