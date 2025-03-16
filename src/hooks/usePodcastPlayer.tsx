@@ -46,7 +46,7 @@ export const usePodcastPlayer = (podcastId?: string) => {
       console.log("Fetching podcast with ID:", podcastId);
       
       try {
-        // Fetch podcast data
+        // Fetch podcast data with course information
         const { data: podcastData, error: podcastError } = await supabase
           .from('podcasts')
           .select(`
@@ -96,18 +96,18 @@ export const usePodcastPlayer = (podcastId?: string) => {
           correctAnswer: question.correct_option
         }));
         
-        // Fixed the type error by accessing title property from the first element of the courses array
-        const courseTitle = 
-          Array.isArray(podcastData.courses) && podcastData.courses.length > 0
-            ? podcastData.courses[0].title
-            : "Unknown Course";
+        // Fix for the course name issue - ensure we have a valid course name
+        let courseName = "Unknown Course";
+        if (podcastData.courses) {
+          courseName = podcastData.courses.title || "Unknown Course";
+        }
 
         // Format the podcast data to match what the component expects
         const formattedPodcast = {
           id: podcastData.id,
           title: podcastData.title,
           courseId: podcastData.course_id,
-          courseName: courseTitle,
+          courseName: courseName,
           description: podcastData.description || "No description available",
           duration: podcastData.duration || 0,
           image: podcastData.image_url,
@@ -166,8 +166,6 @@ export const usePodcastPlayer = (podcastId?: string) => {
       setShowXPModal(true);
       setTimeout(() => setShowXPModal(false), 3000);
     }
-    
-    // Cleanup on unmount is handled by the store
   }, [podcast, currentPodcastId, setAudio, currentTime]);
   
   // Toggle play/pause
