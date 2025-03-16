@@ -44,17 +44,21 @@ export const useCourseDetail = (courseId: string | undefined): UseCourseDetailRe
   useEffect(() => {
     const fetchCourseDetails = async () => {
       try {
-        if (!courseId) {
+        // Clear previous state
+        setLoading(true);
+        setError(null);
+        
+        // Check if courseId exists and is not empty
+        if (!courseId || courseId.trim() === '') {
+          console.error("No courseId provided or courseId is empty");
           setError("No course ID provided");
           setLoading(false);
           return;
         }
         
-        setLoading(true);
-        setError(null);
         console.log("Fetching course details for:", courseId);
         
-        // Fetch course data
+        // Fetch course data with explicit error handling
         const { data: courseData, error: courseError } = await supabase
           .from('courses')
           .select('*')

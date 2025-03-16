@@ -5,7 +5,7 @@ import { Play, BookOpen } from "lucide-react";
 import Layout from "@/components/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-// Import our new components
+// Import our components
 import CourseHeader from "@/components/course/CourseHeader";
 import CourseBanner from "@/components/course/CourseBanner";
 import CourseProgress from "@/components/course/CourseProgress";
@@ -18,22 +18,35 @@ import { useCourseDetail } from "@/hooks/useCourseDetail";
 
 const CourseDetail = () => {
   const { courseId } = useParams<{ courseId: string }>();
+  
+  // Add extensive console logging for debugging
+  console.log("CourseDetail component rendering with courseId:", courseId);
+  console.log("courseId type:", typeof courseId);
+  
+  // Use the hook with our courseId
   const { course, loading, error } = useCourseDetail(courseId);
+  
+  console.log("Hook results - course:", course, "loading:", loading, "error:", error);
   
   // Handle loading state
   if (loading) {
+    console.log("Showing loading state");
     return <CourseLoading />;
   }
   
   // Handle error state
   if (error) {
+    console.log("Showing error state:", error);
     return <CourseError error={error} />;
   }
   
   // Handle course not found
   if (!course) {
+    console.log("Showing course not found state");
     return <CourseNotFound />;
   }
+  
+  console.log("Rendering full course detail");
   
   return (
     <Layout>
