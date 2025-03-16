@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
@@ -44,13 +43,11 @@ export function usePodcastPlayer() {
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
-  // Fetch podcast data
   useEffect(() => {
     async function fetchPodcastData() {
       if (!podcastId) return;
       
       try {
-        // Fetch podcast data
         const { data: podcastData, error: podcastError } = await supabase
           .from('podcasts')
           .select('*')
@@ -60,10 +57,8 @@ export function usePodcastPlayer() {
         if (podcastError) throw podcastError;
         if (!podcastData) throw new Error('Podcast not found');
         
-        // Set podcast data
         setPodcastData(podcastData);
         
-        // Fetch course data
         if (podcastData.course_id) {
           const { data: courseData, error: courseError } = await supabase
             .from('courses')
@@ -74,7 +69,6 @@ export function usePodcastPlayer() {
           if (courseError) {
             console.error("Error fetching course:", courseError);
           } else if (courseData) {
-            // Convert the course data to the expected format
             const formattedCourseData: CourseData = {
               id: courseData.id,
               title: courseData.title,
@@ -84,7 +78,6 @@ export function usePodcastPlayer() {
           }
         }
         
-        // Check if quiz is available
         const { count, error: quizError } = await supabase
           .from('quiz_questions')
           .select('id', { count: 'exact', head: true })
@@ -96,7 +89,6 @@ export function usePodcastPlayer() {
           setIsQuizAvailable(!!count && count > 0);
         }
         
-        // Get user progress if logged in
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           const { data: progressData } = await supabase
@@ -127,7 +119,6 @@ export function usePodcastPlayer() {
     fetchPodcastData();
   }, [podcastId, toast]);
   
-  // Handle found progress data
   const handleProgressData = (progressData: PodcastProgressData) => {
     if (progressData.last_position > 0) {
       setCurrentTime(progressData.last_position);
@@ -137,7 +128,6 @@ export function usePodcastPlayer() {
     }
   };
   
-  // Audio control functions
   const play = () => {
     if (audioRef.current) {
       audioRef.current.play();
@@ -190,7 +180,6 @@ export function usePodcastPlayer() {
     }
   };
   
-  // Save progress to the database
   const saveProgress = async (completed = false) => {
     if (!audioRef.current || !podcastId) return;
     
@@ -221,7 +210,6 @@ export function usePodcastPlayer() {
     }
   };
   
-  // Save progress every 10 seconds
   useEffect(() => {
     const progressInterval = setInterval(() => {
       if (isPlaying) {
@@ -232,13 +220,11 @@ export function usePodcastPlayer() {
     return () => clearInterval(progressInterval);
   }, [isPlaying, podcastId]);
   
-  // Handle completion
   const handleCompletion = async () => {
     await saveProgress(true);
     setShowXPModal(true);
   };
   
-  // Expose everything we need
   return {
     podcastData,
     courseData,
@@ -247,6 +233,7 @@ export function usePodcastPlayer() {
     ready,
     setReady,
     isPlaying,
+    setIsPlaying,
     duration,
     setDuration,
     currentTime,

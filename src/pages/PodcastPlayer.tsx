@@ -23,6 +23,7 @@ const PodcastPlayer = () => {
     ready,
     setReady,
     isPlaying,
+    setIsPlaying,
     duration,
     setDuration,
     currentTime,
@@ -80,23 +81,21 @@ const PodcastPlayer = () => {
     <Layout>
       <div className="space-y-8 pb-32 animate-slide-up">
         <PodcastHeader 
-          title={podcastData.title} 
           courseName={courseData?.title || ""}
-          courseId={courseData?.id || ""}
         />
         
         <div className="flex flex-col md:flex-row gap-6">
           <div className="flex-shrink-0 w-full md:w-auto">
             <PodcastCover 
-              src={podcastData.image_url || ""} 
-              alt={podcastData.title} 
+              image={podcastData.image_url || ""}
+              title={podcastData.title} 
             />
           </div>
           
           <div className="flex-grow space-y-6">
             <PodcastInfo 
               title={podcastData.title}
-              duration={duration}
+              courseName={courseData?.title || ""}
             />
             
             <audio
@@ -123,10 +122,10 @@ const PodcastPlayer = () => {
             <div className="space-y-4">
               <PlayerControls 
                 isPlaying={isPlaying}
-                handlePlayPause={togglePlayPause}
-                handleForward={skipForward}
-                handleBackward={skipBackward}
-                disabled={!ready}
+                onPlayPause={togglePlayPause}
+                onSkipBack={skipBackward}
+                onSkipForward={skipForward}
+                size="normal"
               />
               
               <AudioProgress 
@@ -143,7 +142,7 @@ const PodcastPlayer = () => {
                 
                 {isQuizAvailable && (
                   <QuizButton 
-                    podcastId={podcastData.id}
+                    onClick={() => navigate(`/quiz/${podcastData.id}`)}
                   />
                 )}
               </div>
@@ -154,12 +153,10 @@ const PodcastPlayer = () => {
         <PodcastDescription description={podcastData.description || ""} />
       </div>
       
-      {showXPModal && (
-        <XPModal 
-          onClose={() => setShowXPModal(false)}
-          xpEarned={30}
-        />
-      )}
+      <XPModal 
+        show={showXPModal}
+        xpAmount={30}
+      />
     </Layout>
   );
 };
