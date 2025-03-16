@@ -32,6 +32,7 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
   // Check if audio element exists, if not try to recreate it
   useEffect(() => {
     if (!audioElement && podcastId) {
+      console.log("No audio element in MiniPlayer, trying to continue playback");
       continuePlayback();
     }
   }, [audioElement, podcastId, continuePlayback]);
@@ -45,9 +46,18 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
 
   const togglePlay = () => {
     if (localIsPlaying) {
+      console.log("MiniPlayer: Pausing audio");
       pause();
     } else {
-      play();
+      console.log("MiniPlayer: Playing audio");
+      if (!audioElement) {
+        console.log("MiniPlayer: No audio element, continuing playback first");
+        continuePlayback();
+        // Add a small delay to ensure audio is loaded before playing
+        setTimeout(() => play(), 100);
+      } else {
+        play();
+      }
     }
   };
 

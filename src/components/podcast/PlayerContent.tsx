@@ -40,6 +40,16 @@ const PlayerContent = ({
 }: PlayerContentProps) => {
   const navigate = useNavigate();
   
+  // Handle play button click with error logging
+  const onPlayButtonClick = () => {
+    console.log("PlayerContent: Play button clicked, current playing state:", isPlaying);
+    try {
+      handlePlayAction();
+    } catch (error) {
+      console.error("Error in play button handler:", error);
+    }
+  };
+  
   // Safe rendering of podcast content
   return (
     <div className="flex flex-col md:flex-row gap-6">
@@ -59,7 +69,7 @@ const PlayerContent = ({
         <div className="space-y-6">
           <PlayerControls 
             isPlaying={isPlaying}
-            onPlayPause={handlePlayAction}
+            onPlayPause={onPlayButtonClick}
             onSkipBack={skipBackward}
             onSkipForward={skipForward}
             size="normal"

@@ -24,7 +24,26 @@ export const createAudioPlaybackSlice: StateCreator<
     if (!audioElement && podcastMeta?.audioUrl) {
       console.log("No audio element but we have metadata - recreating audio for playback");
       get().continuePlayback();
-      return; // The play action will be handled by the continuePlayback function
+      
+      // Add a small delay to ensure the audio element is created before attempting to play
+      setTimeout(() => {
+        const newAudioElement = get().audioElement;
+        if (newAudioElement) {
+          console.log("Playing newly created audio element after delay");
+          const playPromise = newAudioElement.play();
+          if (playPromise !== undefined) {
+            playPromise
+              .then(() => {
+                set({ isPlaying: true });
+              })
+              .catch(error => {
+                console.error("Error playing newly created audio:", error);
+              });
+          }
+        }
+      }, 300);
+      
+      return;
     }
     
     if (!audioElement) {
@@ -51,7 +70,8 @@ export const createAudioPlaybackSlice: StateCreator<
             })
             .catch(error => {
               console.error("Error playing audio from global store:", error);
-              // Don't update state to playing if it failed
+              // User interaction may be required for autoplay
+              tryPlayOnUserInteraction();
             });
         }
         
@@ -77,11 +97,12 @@ export const createAudioPlaybackSlice: StateCreator<
               })
               .catch(error => {
                 console.error("Error playing audio from global store after timeout:", error);
-                // Don't update state to playing if it failed
+                // User interaction may be required for autoplay
+                tryPlayOnUserInteraction();
               });
           }
         }
-      }, 2000);
+      }, 1000);
       
       return;
     }
@@ -97,29 +118,37 @@ export const createAudioPlaybackSlice: StateCreator<
         })
         .catch(error => {
           console.error("Error playing audio from global store:", error);
-          
-          // If autoplay is blocked, we need to set up a user interaction handler
-          // to try playing again on the next user interaction
-          const userInteractionHandler = () => {
-            console.log("User interaction detected, trying to play audio again");
-            audioElement.play()
-              .then(() => {
-                console.log("Audio playback started after user interaction");
-                set({ isPlaying: true });
-                
-                // Remove the event listeners after successful playback
-                document.removeEventListener('click', userInteractionHandler);
-                document.removeEventListener('touchstart', userInteractionHandler);
-              })
-              .catch(err => {
-                console.error("Still cannot play audio after user interaction:", err);
-              });
-          };
-          
-          // Add event listeners for user interaction
-          document.addEventListener('click', userInteractionHandler, { once: true });
-          document.addEventListener('touchstart', userInteractionHandler, { once: true });
+          tryPlayOnUserInteraction();
         });
+    }
+    
+    // Helper function to try playing on next user interaction
+    function tryPlayOnUserInteraction() {
+      // If autoplay is blocked, we need to set up a user interaction handler
+      // to try playing again on the next user interaction
+      const userInteractionHandler = () => {
+        console.log("User interaction detected, trying to play audio again");
+        
+        const currentAudio = get().audioElement;
+        if (!currentAudio) return;
+        
+        currentAudio.play()
+          .then(() => {
+            console.log("Audio playback started after user interaction");
+            set({ isPlaying: true });
+            
+            // Remove the event listeners after successful playback
+            document.removeEventListener('click', userInteractionHandler);
+            document.removeEventListener('touchstart', userInteractionHandler);
+          })
+          .catch(err => {
+            console.error("Still cannot play audio after user interaction:", err);
+          });
+      };
+      
+      // Add event listeners for user interaction
+      document.addEventListener('click', userInteractionHandler, { once: true });
+      document.addEventListener('touchstart', userInteractionHandler, { once: true });
     }
   },
   

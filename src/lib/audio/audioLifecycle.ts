@@ -47,6 +47,7 @@ export const createAudioLifecycleSlice: StateCreator<
       newAudioElement.addEventListener('timeupdate', timeUpdateHandler);
       
       newAudioElement.addEventListener('loadedmetadata', () => {
+        console.log("New audio element loaded metadata, duration:", newAudioElement.duration);
         set({ duration: newAudioElement.duration });
       });
       
@@ -59,51 +60,20 @@ export const createAudioLifecycleSlice: StateCreator<
         // Don't update state on error to avoid potential loops
       });
       
+      // Make sure the audio is loaded
+      newAudioElement.preload = "auto";
+      
       // Update state with new audio (in a single set call to avoid multiple rerenders)
       set({ audioElement: newAudioElement });
       
-      // Wait for audio to be loaded before playing
+      // Wait for audio to be loaded before setting current time
       newAudioElement.addEventListener('canplay', () => {
         console.log("New audio element is ready to play");
         
         // Set current time if available
         if (currentTime > 0) {
           newAudioElement.currentTime = currentTime;
-        }
-        
-        // Try to play
-        const playPromise = newAudioElement.play();
-        
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => {
-              set({ isPlaying: true });
-            })
-            .catch(error => {
-              console.error("Error playing continued audio:", error);
-              
-              // If autoplay is blocked, we need to set up a user interaction handler
-              // to try playing again on the next user interaction
-              const userInteractionHandler = () => {
-                console.log("User interaction detected, trying to play audio again");
-                newAudioElement.play()
-                  .then(() => {
-                    console.log("Audio playback started after user interaction");
-                    set({ isPlaying: true });
-                    
-                    // Remove the event listeners after successful playback
-                    document.removeEventListener('click', userInteractionHandler);
-                    document.removeEventListener('touchstart', userInteractionHandler);
-                  })
-                  .catch(err => {
-                    console.error("Still cannot play audio after user interaction:", err);
-                  });
-              };
-              
-              // Add event listeners for user interaction
-              document.addEventListener('click', userInteractionHandler, { once: true });
-              document.addEventListener('touchstart', userInteractionHandler, { once: true });
-            });
+          set({ currentTime }); // Make sure store is updated too
         }
       });
       
