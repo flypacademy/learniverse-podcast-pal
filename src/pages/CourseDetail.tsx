@@ -20,14 +20,17 @@ const CourseDetail = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const { course, loading, error } = useCourseDetail(courseId);
   
+  // Handle loading state
   if (loading) {
     return <CourseLoading />;
   }
   
+  // Handle error state
   if (error) {
     return <CourseError error={error} />;
   }
   
+  // Handle course not found
   if (!course) {
     return <CourseNotFound />;
   }

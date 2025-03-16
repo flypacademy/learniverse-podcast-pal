@@ -58,7 +58,8 @@ export const useCourseDetail = (courseId: string | undefined): UseCourseDetailRe
         const { data: courseData, error: courseError } = await supabase
           .from('courses')
           .select('*')
-          .eq('id', courseId);
+          .eq('id', courseId)
+          .maybeSingle();
         
         if (courseError) {
           console.error("Error fetching course:", courseError);
@@ -67,15 +68,13 @@ export const useCourseDetail = (courseId: string | undefined): UseCourseDetailRe
           return;
         }
         
-        if (!courseData || courseData.length === 0) {
+        if (!courseData) {
           console.log("No course found with ID:", courseId);
-          setError("Course not found");
           setLoading(false);
-          return;
+          return; // Don't set an error, let the component handle this case
         }
         
-        const courseItem = courseData[0];
-        console.log("Course data fetched:", courseItem);
+        console.log("Course data fetched:", courseData);
         
         // Fetch podcasts data
         const { data: podcastsData, error: podcastsError } = await supabase
@@ -100,26 +99,26 @@ export const useCourseDetail = (courseId: string | undefined): UseCourseDetailRe
         
         // Format course data
         const formattedCourse: Course = {
-          id: courseItem.id,
-          title: courseItem.title,
-          subject: courseItem.subject || "math",
-          description: courseItem.description || "No description available",
+          id: courseData.id,
+          title: courseData.title,
+          subject: courseData.subject || "math", // Default to math if subject not specified
+          description: courseData.description || "No description available",
           totalPodcasts: podcasts.length,
           completedPodcasts: 0,
           totalDuration: totalDuration,
-          difficulty: courseItem.difficulty || "Intermediate",
-          image: courseItem.image_url || "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png",
-          exam: courseItem.exam || "GCSE",
-          board: courseItem.board || "AQA",
+          difficulty: courseData.difficulty || "Intermediate",
+          image: courseData.image_url || "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png",
+          exam: courseData.exam || "GCSE",
+          board: courseData.board || "AQA",
           podcasts: podcasts.map(podcast => ({
             id: podcast.id,
             title: podcast.title || "Untitled Podcast",
             courseId: podcast.course_id,
-            courseName: courseItem.title,
+            courseName: courseData.title,
             duration: podcast.duration || 0,
             progress: 0,
             completed: false,
-            image: podcast.image_url || courseItem.image_url || "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png"
+            image: podcast.image_url || courseData.image_url || "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png"
           }))
         };
         
