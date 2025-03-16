@@ -6,25 +6,79 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIU
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Helper for file upload and URL generation
+// Enhanced file upload helper with better error handling and retry logic
 export const uploadFile = async (bucket: string, path: string, file: File) => {
-  const { data, error } = await supabase.storage
-    .from(bucket)
-    .upload(path, file, {
-      cacheControl: '3600',
-      upsert: true
-    });
+  console.log(`Starting upload to bucket: ${bucket}, path: ${path}, file size: ${file.size} bytes`);
   
-  if (error) {
-    throw error;
+  // Check if the bucket exists first
+  const { data: buckets, error: bucketsError } = await supabase.storage
+    .listBuckets();
+    
+  if (bucketsError) {
+    console.error("Error checking buckets:", bucketsError);
+    throw bucketsError;
   }
   
-  // Get public URL
-  const { data: urlData } = supabase.storage
-    .from(bucket)
-    .getPublicUrl(path);
+  const bucketExists = buckets.some(b => b.name === bucket);
+  if (!bucketExists) {
+    console.error(`Bucket "${bucket}" does not exist`);
+    throw new Error(`Bucket "${bucket}" does not exist. Please create it first.`);
+  }
   
-  return urlData.publicUrl;
+  // Attempt upload with retry logic
+  let attempts = 0;
+  const maxAttempts = 3;
+  let lastError = null;
+  
+  while (attempts < maxAttempts) {
+    attempts++;
+    console.log(`Upload attempt ${attempts}/${maxAttempts}`);
+    
+    try {
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .upload(path, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+      
+      if (error) {
+        console.error(`Upload attempt ${attempts} failed:`, error);
+        lastError = error;
+        
+        // Wait a bit before retrying (exponential backoff)
+        if (attempts < maxAttempts) {
+          const delay = Math.pow(2, attempts) * 500;
+          console.log(`Waiting ${delay}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        } else {
+          throw error;
+        }
+      }
+      
+      console.log("Upload successful:", data);
+      
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from(bucket)
+        .getPublicUrl(path);
+      
+      console.log("Generated public URL:", urlData.publicUrl);
+      return urlData.publicUrl;
+    } catch (err) {
+      console.error(`Unexpected error in attempt ${attempts}:`, err);
+      lastError = err;
+      
+      if (attempts < maxAttempts) {
+        const delay = Math.pow(2, attempts) * 500;
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  
+  console.error("All upload attempts failed");
+  throw lastError || new Error("Failed to upload file after multiple attempts");
 };
 
 // Helper to use the security-definer function for creating admin roles
