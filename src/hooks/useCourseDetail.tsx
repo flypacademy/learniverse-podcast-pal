@@ -42,21 +42,22 @@ export const useCourseDetail = (courseId: string | undefined): UseCourseDetailRe
   const { toast } = useToast();
   
   useEffect(() => {
+    // Reset state when courseId changes
+    setLoading(true);
+    setError(null);
+    setCourse(null);
+    
     const fetchCourseDetails = async () => {
       try {
-        // Clear previous state
-        setLoading(true);
-        setError(null);
-        
         // Check if courseId exists and is not empty
         if (!courseId || courseId.trim() === '') {
-          console.error("No courseId provided or courseId is empty");
+          console.error("No courseId provided or courseId is empty string");
           setError("No course ID provided");
           setLoading(false);
           return;
         }
         
-        console.log("Fetching course details for:", courseId);
+        console.log("Fetching course details for courseId:", courseId);
         
         // Fetch course data with explicit error handling
         const { data: courseData, error: courseError } = await supabase

@@ -10,7 +10,8 @@ interface CourseErrorProps {
 }
 
 const CourseError: React.FC<CourseErrorProps> = ({ error }) => {
-  const { courseId } = useParams<{ courseId: string }>();
+  const params = useParams();
+  const courseId = params.courseId;
   
   // Log the error and courseId for debugging
   console.log("CourseError component rendering with:", { error, courseId });
