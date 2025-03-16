@@ -1,7 +1,8 @@
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { QuizQuestion } from "@/components/QuizModal";
+import { useAudioStore } from "@/lib/audioContext";
 
 interface Podcast {
   id: string;
@@ -16,17 +17,26 @@ interface Podcast {
 }
 
 export const usePodcastPlayer = (podcastId?: string) => {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [volume, setVolume] = useState(80);
   const [showXPModal, setShowXPModal] = useState(false);
   const [podcast, setPodcast] = useState<Podcast | null>(null);
   const [loading, setLoading] = useState(true);
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
   const [showQuiz, setShowQuiz] = useState(false);
   
-  // Audio element reference
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Get audio state from the global store
+  const {
+    isPlaying,
+    currentTime,
+    duration,
+    volume,
+    currentPodcastId,
+    setAudio,
+    play,
+    pause,
+    setCurrentTime,
+    setVolume,
+    setDuration
+  } = useAudioStore();
   
   // Fetch podcast data from Supabase
   useEffect(() => {
@@ -107,6 +117,12 @@ export const usePodcastPlayer = (podcastId?: string) => {
         
         setPodcast(formattedPodcast);
         setQuizQuestions(formattedQuizQuestions);
+        
+        // Set duration for newly fetched podcast
+        if (formattedPodcast.duration) {
+          setDuration(formattedPodcast.duration);
+        }
+        
         setLoading(false);
       } catch (error) {
         console.error("Error fetching podcast data:", error);
@@ -115,71 +131,34 @@ export const usePodcastPlayer = (podcastId?: string) => {
     };
     
     fetchPodcast();
-  }, [podcastId]);
+  }, [podcastId, setDuration]);
   
-  // Initialize audio element
+  // Initialize audio element when podcast changes
   useEffect(() => {
-    if (podcast?.audioUrl && !audioRef.current) {
-      audioRef.current = new Audio(podcast.audioUrl);
-      audioRef.current.volume = volume / 100;
-      
-      // Add event listeners
-      audioRef.current.addEventListener('timeupdate', handleTimeUpdate);
-      audioRef.current.addEventListener('ended', handleEnded);
+    if (podcast?.audioUrl && podcast.id) {
+      // Check if we already have this podcast loaded
+      if (currentPodcastId !== podcast.id) {
+        const audio = new Audio(podcast.audioUrl);
+        setAudio(audio, podcast.id);
+      }
     }
     
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.removeEventListener('timeupdate', handleTimeUpdate);
-        audioRef.current.removeEventListener('ended', handleEnded);
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-    };
-  }, [podcast?.audioUrl]);
-  
-  // Handle time update event
-  const handleTimeUpdate = () => {
-    if (audioRef.current) {
-      setCurrentTime(audioRef.current.currentTime);
-      
-      // Show XP modal at certain points
-      if (Math.floor(audioRef.current.currentTime) === 20) {
-        setShowXPModal(true);
-        setTimeout(() => setShowXPModal(false), 3000);
-      }
+    // Show XP modal at certain points
+    if (currentTime === 20) {
+      setShowXPModal(true);
+      setTimeout(() => setShowXPModal(false), 3000);
     }
-  };
-  
-  // Handle ended event
-  const handleEnded = () => {
-    setIsPlaying(false);
-    setCurrentTime(0);
-    if (audioRef.current) {
-      audioRef.current.currentTime = 0;
-    }
-  };
-  
-  // Update volume when it changes
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = volume / 100;
-    }
-  }, [volume]);
+    
+    // Cleanup on unmount is handled by the store
+  }, [podcast, currentPodcastId, setAudio, currentTime]);
   
   // Toggle play/pause
   const togglePlay = () => {
-    if (!audioRef.current) return;
-    
     if (isPlaying) {
-      audioRef.current.pause();
+      pause();
     } else {
-      audioRef.current.play().catch(error => {
-        console.error("Error playing audio:", error);
-      });
+      play();
     }
-    
-    setIsPlaying(!isPlaying);
   };
   
   // Handle volume change
@@ -192,22 +171,19 @@ export const usePodcastPlayer = (podcastId?: string) => {
   
   // Skip forward/backward functions
   const skipForward = () => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = Math.min(audioRef.current.currentTime + 10, audioRef.current.duration);
-    }
+    const newTime = Math.min(currentTime + 10, duration);
+    setCurrentTime(newTime);
   };
   
   const skipBackward = () => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = Math.max(audioRef.current.currentTime - 10, 0);
-    }
+    const newTime = Math.max(currentTime - 10, 0);
+    setCurrentTime(newTime);
   };
   
   // Seek to a specific time
   const seekTo = (timePercent: number) => {
-    if (audioRef.current && podcast) {
-      const seekTime = (timePercent / 100) * podcast.duration;
-      audioRef.current.currentTime = seekTime;
+    if (duration) {
+      const seekTime = (timePercent / 100) * duration;
       setCurrentTime(seekTime);
     }
   };

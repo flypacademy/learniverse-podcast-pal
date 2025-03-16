@@ -143,8 +143,22 @@ const CourseForm = () => {
       // Upload image if a new one is selected
       if (selectedImage) {
         try {
+          console.log("Uploading image:", selectedImage.name);
+          // Make sure the bucket exists
+          const { data: bucketInfo, error: bucketError } = await supabase
+            .storage
+            .getBucket('course-content');
+            
+          if (bucketError && bucketError.message.includes('does not exist')) {
+            console.log("Bucket does not exist, creating bucket");
+            await supabase.storage.createBucket('course-content', {
+              public: true
+            });
+          }
+          
           const path = `courses/${Date.now()}_${selectedImage.name}`;
           imageUrl = await uploadFile('course-content', path, selectedImage);
+          console.log("Image uploaded successfully, URL:", imageUrl);
         } catch (uploadError) {
           console.error("Error uploading image:", uploadError);
           // Continue with course creation even if image upload fails
