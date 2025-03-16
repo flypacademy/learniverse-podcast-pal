@@ -1,262 +1,56 @@
-import React, { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
-import { ChevronLeft, Play, BookOpen, Clock, BarChart3 } from "lucide-react";
+
+import React from "react";
+import { useParams } from "react-router-dom";
+import { Play, BookOpen } from "lucide-react";
 import Layout from "@/components/Layout";
-import PodcastCard from "@/components/PodcastCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import ProgressBar from "@/components/ProgressBar";
-import { supabase } from "@/lib/supabase";
-import { useToast } from "@/components/ui/use-toast";
-import { Skeleton } from "@/components/ui/skeleton";
 
-interface Podcast {
-  id: string;
-  title: string;
-  courseId: string;
-  courseName: string;
-  duration: number;
-  progress: number;
-  completed: boolean;
-  image: string;
-}
-
-interface Course {
-  id: string;
-  title: string;
-  subject: string;
-  description: string;
-  totalPodcasts: number;
-  completedPodcasts: number;
-  totalDuration: number;
-  difficulty: string;
-  image: string;
-  podcasts: Podcast[];
-  exam?: string;
-  board?: string;
-}
+// Import our new components
+import CourseHeader from "@/components/course/CourseHeader";
+import CourseBanner from "@/components/course/CourseBanner";
+import CourseProgress from "@/components/course/CourseProgress";
+import CourseEpisodes from "@/components/course/CourseEpisodes";
+import CourseAbout from "@/components/course/CourseAbout";
+import CourseLoading from "@/components/course/CourseLoading";
+import CourseError from "@/components/course/CourseError";
+import CourseNotFound from "@/components/course/CourseNotFound";
+import { useCourseDetail } from "@/hooks/useCourseDetail";
 
 const CourseDetail = () => {
   const { courseId } = useParams<{ courseId: string }>();
-  const [course, setCourse] = useState<Course | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
-  
-  useEffect(() => {
-    const fetchCourseDetails = async () => {
-      try {
-        if (!courseId) {
-          setError("No course ID provided");
-          setLoading(false);
-          return;
-        }
-        
-        setLoading(true);
-        setError(null);
-        console.log("Fetching course details for:", courseId);
-        
-        const { data: courseData, error: courseError } = await supabase
-          .from('courses')
-          .select('*')
-          .eq('id', courseId);
-        
-        if (courseError) {
-          console.error("Error fetching course:", courseError);
-          setError(`Failed to load course: ${courseError.message}`);
-          setLoading(false);
-          return;
-        }
-        
-        if (!courseData || courseData.length === 0) {
-          console.log("No course found with ID:", courseId);
-          setError("Course not found");
-          setLoading(false);
-          return;
-        }
-        
-        const course = courseData[0];
-        console.log("Course data fetched:", course);
-        
-        const { data: podcastsData, error: podcastsError } = await supabase
-          .from('podcasts')
-          .select('*')
-          .eq('course_id', courseId);
-        
-        if (podcastsError) {
-          console.error("Error fetching podcasts:", podcastsError);
-          setError(`Failed to load podcasts: ${podcastsError.message}`);
-          setLoading(false);
-          return;
-        }
-        
-        const podcasts = podcastsData || [];
-        console.log("Podcasts data fetched:", podcasts);
-        
-        const totalDuration = podcasts.reduce((sum, podcast) => {
-          return sum + (podcast.duration || 0);
-        }, 0);
-        
-        const formattedCourse: Course = {
-          id: course.id,
-          title: course.title,
-          subject: course.subject || "math",
-          description: course.description || "No description available",
-          totalPodcasts: podcasts.length,
-          completedPodcasts: 0,
-          totalDuration: totalDuration,
-          difficulty: course.difficulty || "Intermediate",
-          image: course.image_url || "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png",
-          exam: course.exam || "GCSE",
-          board: course.board || "AQA",
-          podcasts: podcasts.map(podcast => ({
-            id: podcast.id,
-            title: podcast.title || "Untitled Podcast",
-            courseId: podcast.course_id,
-            courseName: course.title,
-            duration: podcast.duration || 0,
-            progress: 0,
-            completed: false,
-            image: podcast.image_url || course.image_url || "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png"
-          }))
-        };
-        
-        setCourse(formattedCourse);
-        setLoading(false);
-      } catch (err: any) {
-        console.error("Unexpected error in fetchCourseDetails:", err);
-        setError(err.message || "An unexpected error occurred");
-        setLoading(false);
-        toast({
-          title: "Error",
-          description: err.message || "Failed to load course details",
-          variant: "destructive"
-        });
-      }
-    };
-    
-    fetchCourseDetails();
-  }, [courseId, toast]);
+  const { course, loading, error } = useCourseDetail(courseId);
   
   if (loading) {
-    return (
-      <Layout>
-        <div className="space-y-6 pb-4 animate-slide-up">
-          <div className="flex items-center space-x-2 pt-4">
-            <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse"></div>
-            <div className="h-6 w-32 bg-gray-200 rounded animate-pulse"></div>
-          </div>
-          <div className="rounded-xl overflow-hidden relative h-48 bg-gray-200 animate-pulse"></div>
-          <div className="bg-white rounded-xl shadow-sm p-4">
-            <div className="flex justify-between items-center mb-2">
-              <div className="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
-              <div className="h-4 w-16 bg-gray-200 rounded animate-pulse"></div>
-            </div>
-            <Skeleton className="h-2 w-full mt-2" />
-          </div>
-          <div className="w-full">
-            <div className="grid w-full grid-cols-2 mb-4">
-              <Skeleton className="h-10 rounded-md" />
-              <Skeleton className="h-10 rounded-md" />
-            </div>
-            <div className="space-y-4 pt-4">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-20 w-full rounded-lg" />
-              ))}
-            </div>
-          </div>
-        </div>
-      </Layout>
-    );
+    return <CourseLoading />;
   }
   
   if (error) {
-    return (
-      <Layout>
-        <div className="flex flex-col items-center justify-center h-full py-12">
-          <h1 className="text-2xl font-bold mb-4">Error</h1>
-          <p className="text-gray-500 mb-6">{error}</p>
-          <Button asChild>
-            <Link to="/courses">Back to Courses</Link>
-          </Button>
-        </div>
-      </Layout>
-    );
+    return <CourseError error={error} />;
   }
   
   if (!course) {
-    return (
-      <Layout>
-        <div className="flex flex-col items-center justify-center h-full py-12">
-          <h1 className="text-2xl font-bold mb-4">Course Not Found</h1>
-          <p className="text-gray-500 mb-6">The course you're looking for doesn't exist.</p>
-          <Button asChild>
-            <Link to="/courses">Back to Courses</Link>
-          </Button>
-        </div>
-      </Layout>
-    );
+    return <CourseNotFound />;
   }
-  
-  const completionPercentage = Math.round((course?.completedPodcasts / course?.totalPodcasts) * 100) || 0;
-  const subjectGradient = course?.subject === "math" ? "bg-math-gradient" : 
-                         course?.subject === "english" ? "bg-english-gradient" : 
-                         "bg-science-gradient";
   
   return (
     <Layout>
       <div className="space-y-6 pb-4 animate-slide-up">
-        <div className="flex items-center space-x-2 pt-4">
-          <Link 
-            to="/courses"
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-white shadow-sm"
-          >
-            <ChevronLeft className="h-5 w-5 text-gray-600" />
-          </Link>
-          <h1 className="font-display font-bold text-xl text-gray-900">
-            Course Details
-          </h1>
-        </div>
+        <CourseHeader title="Course Details" />
         
-        <div className={`rounded-xl overflow-hidden relative ${subjectGradient}`}>
-          <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-black/10 p-6 flex flex-col justify-end">
-            <h2 className="font-display font-bold text-2xl text-white mb-1">
-              {course?.title}
-            </h2>
-            <p className="text-white/90 text-sm mb-4">
-              {course?.description}
-            </p>
-            <div className="flex justify-between items-center">
-              <div className="text-white text-xs font-semibold bg-white/20 rounded-full px-3 py-1">
-                {course?.difficulty}
-              </div>
-              <div className="flex items-center text-white text-xs">
-                <Clock className="w-3 h-3 mr-1" />
-                {Math.floor(course?.totalDuration / 60)}h {course?.totalDuration % 60}m
-              </div>
-            </div>
-          </div>
-          <img 
-            src={course?.image} 
-            alt={course?.title}
-            className="w-full h-48 object-cover"
-          />
-        </div>
+        <CourseBanner 
+          title={course.title}
+          description={course.description}
+          difficulty={course.difficulty}
+          totalDuration={course.totalDuration}
+          subject={course.subject}
+          image={course.image}
+        />
         
-        <div className="bg-white rounded-xl shadow-sm p-4">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="font-semibold">Your Progress</h3>
-            <span className="text-sm text-gray-500">
-              {course?.completedPodcasts}/{course?.totalPodcasts} completed
-            </span>
-          </div>
-          <ProgressBar 
-            value={completionPercentage}
-            color={course?.subject === "math" ? "bg-math-gradient" : 
-                  course?.subject === "english" ? "bg-english-gradient" : 
-                  "bg-science-gradient"}
-          />
-        </div>
+        <CourseProgress 
+          completedPodcasts={course.completedPodcasts}
+          totalPodcasts={course.totalPodcasts}
+          subject={course.subject}
+        />
         
         <Tabs defaultValue="episodes" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
@@ -270,69 +64,17 @@ const CourseDetail = () => {
             </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="episodes" className="space-y-4 pt-4">
-            {course?.podcasts.length > 0 ? (
-              course.podcasts.map((podcast) => (
-                <PodcastCard 
-                  key={podcast.id}
-                  {...podcast}
-                />
-              ))
-            ) : (
-              <div className="text-center py-8">
-                <Play className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-                <h3 className="font-medium text-gray-700">No episodes yet</h3>
-                <p className="text-gray-500 text-sm mt-1">
-                  Check back later for new content
-                </p>
-              </div>
-            )}
+          <TabsContent value="episodes">
+            <CourseEpisodes podcasts={course.podcasts} />
           </TabsContent>
           
-          <TabsContent value="about" className="pt-4">
-            <div className="bg-white rounded-xl shadow-sm p-4 space-y-4">
-              <div>
-                <h3 className="font-semibold mb-2">Course Description</h3>
-                <p className="text-gray-600 text-sm">
-                  {course?.description}
-                </p>
-              </div>
-              
-              <div>
-                <h3 className="font-semibold mb-2">What You'll Learn</h3>
-                <ul className="text-sm text-gray-600 space-y-2">
-                  <li className="flex items-start">
-                    <div className="mr-2 mt-0.5 text-primary">•</div>
-                    <p>Master key concepts and techniques</p>
-                  </li>
-                  <li className="flex items-start">
-                    <div className="mr-2 mt-0.5 text-primary">•</div>
-                    <p>Practice with exam-style questions</p>
-                  </li>
-                  <li className="flex items-start">
-                    <div className="mr-2 mt-0.5 text-primary">•</div>
-                    <p>Build confidence for your {course?.exam} exams</p>
-                  </li>
-                </ul>
-              </div>
-              
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center">
-                  <BarChart3 className="w-5 h-5 text-primary mr-3" />
-                  <div>
-                    <h4 className="font-medium text-sm">Difficulty Level</h4>
-                    <p className="text-xs text-gray-500">{course?.difficulty}</p>
-                  </div>
-                </div>
-                <div className="flex items-center">
-                  <Clock className="w-5 h-5 text-primary mr-3" />
-                  <div>
-                    <h4 className="font-medium text-sm">Total Duration</h4>
-                    <p className="text-xs text-gray-500">{Math.floor(course?.totalDuration / 60)}h {course?.totalDuration % 60}m</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <TabsContent value="about">
+            <CourseAbout 
+              description={course.description}
+              difficulty={course.difficulty}
+              totalDuration={course.totalDuration}
+              exam={course.exam}
+            />
           </TabsContent>
         </Tabs>
       </div>
