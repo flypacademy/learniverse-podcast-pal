@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import { usePodcastData } from "./usePodcastData";
 import { useAudioPlayback } from "./useAudioPlayback";
 import { useProgressTracking } from "./useProgressTracking";
+import { useAudioStore } from "@/lib/audioContext";
 import type { PodcastData, CourseData } from "@/types/podcast";
 
 export type { PodcastData, CourseData };
@@ -11,6 +12,7 @@ export type { PodcastData, CourseData };
 export function usePodcastPlayer() {
   const { podcastId } = useParams<{ podcastId: string }>();
   const [audioInitialized, setAudioInitialized] = useState(false);
+  const audioStore = useAudioStore();
   
   // Get podcast data
   const {
@@ -60,16 +62,18 @@ export function usePodcastPlayer() {
     }
   }, [audioRef.current, initialPosition, audioInitialized]);
 
-  // Cleanup on unmount
+  // Cleanup on unmount - but don't stop playback if it's in the global store
   useEffect(() => {
     return () => {
       console.log("usePodcastPlayer hook - Cleaning up");
-      if (audioRef.current) {
+      
+      // Only clean up the audio element if we're not continuing playback in the mini player
+      if (audioRef.current && (!audioStore.audioElement || audioStore.audioElement !== audioRef.current)) {
         audioRef.current.pause();
         audioRef.current.src = '';
       }
     };
-  }, []);
+  }, [audioStore.audioElement]);
 
   return {
     podcastData,

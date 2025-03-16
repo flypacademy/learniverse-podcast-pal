@@ -24,8 +24,17 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
     currentTime, 
     duration,
     play, 
-    pause
+    pause,
+    audioElement,
+    continuePlayback
   } = useAudioStore();
+
+  // Check if audio element exists, if not try to recreate it
+  useEffect(() => {
+    if (!audioElement && podcastId) {
+      continuePlayback();
+    }
+  }, [audioElement, podcastId, continuePlayback]);
 
   // Sync local state with store - only when the store values change
   useEffect(() => {

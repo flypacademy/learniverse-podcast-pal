@@ -7,6 +7,7 @@ export interface PodcastMeta {
   title: string;
   courseName: string;
   image?: string;
+  audioUrl?: string; // Add audio URL to metadata
 }
 
 interface AudioState {
@@ -25,6 +26,7 @@ interface AudioState {
   setDuration: (duration: number) => void;
   setVolume: (volume: number) => void;
   cleanup: () => void;
+  continuePlayback: () => void; // New method to create and continue playback
 }
 
 export const useAudioStore = create<AudioState>((set, get) => ({
@@ -118,8 +120,70 @@ export const useAudioStore = create<AudioState>((set, get) => ({
     set({ podcastMeta: meta });
   },
   
+  // New method to continue playback using stored metadata
+  continuePlayback: () => {
+    const meta = get().podcastMeta;
+    
+    if (!meta || !meta.audioUrl) {
+      console.warn("Cannot continue playback: missing podcast metadata or audio URL");
+      return;
+    }
+    
+    // We need to create a new audio element if the original was cleaned up
+    if (!get().audioElement) {
+      console.log("Creating new audio element to continue playback");
+      
+      const newAudio = new Audio(meta.audioUrl);
+      const currentTime = get().currentTime;
+      
+      // Set the current time if we had one
+      if (currentTime > 0) {
+        newAudio.currentTime = currentTime;
+      }
+      
+      // Setup the audio element similar to setAudio method
+      const safeVolume = Math.max(0, Math.min(1, get().volume));
+      newAudio.volume = safeVolume;
+      newAudio.preload = "auto";
+      
+      newAudio.ontimeupdate = () => {
+        set({ currentTime: newAudio.currentTime });
+      };
+      
+      newAudio.onended = () => {
+        set({ isPlaying: false, currentTime: 0 });
+        newAudio.currentTime = 0;
+      };
+      
+      newAudio.onloadedmetadata = () => {
+        set({ duration: newAudio.duration || 0 });
+      };
+      
+      set({ audioElement: newAudio });
+      
+      // Auto-play when ready
+      newAudio.oncanplay = () => {
+        if (get().isPlaying) {
+          newAudio.play()
+            .catch(error => {
+              console.error("Error auto-playing continued audio:", error);
+            });
+        }
+      };
+    }
+  },
+  
   play: () => {
-    const { audioElement } = get();
+    const { audioElement, podcastMeta } = get();
+    
+    // If no audio element but we have metadata, try to recreate it
+    if (!audioElement && podcastMeta?.audioUrl) {
+      get().continuePlayback();
+      // The play action will be handled by the oncanplay handler
+      set({ isPlaying: true });
+      return;
+    }
+    
     if (!audioElement) {
       console.warn("No audio element available in global store");
       return;

@@ -32,7 +32,8 @@ const AudioRegistration = ({
             id: podcastData.id,
             title: podcastData.title,
             courseName: courseData.title,
-            image: podcastData.image_url || courseData.image
+            image: podcastData.image_url || courseData.image,
+            audioUrl: podcastData.audio_url // Add audio URL to the metadata
           });
         }
         
@@ -43,7 +44,7 @@ const AudioRegistration = ({
       }
     }
     
-    // Cleanup function
+    // Cleanup function - but don't stop audio playback when unmounting
     return () => {
       console.log("AudioRegistration component unmounting");
     };
