@@ -224,11 +224,27 @@ export const usePodcasts = (courseId: string | undefined) => {
     try {
       console.log("Adding header with text:", headerText, "for course:", courseId);
       
+      // Validate header text before submission
+      if (!headerText || typeof headerText !== 'string' || headerText.trim() === '') {
+        const errorMsg = "Header text cannot be empty";
+        console.error(errorMsg);
+        setError(errorMsg);
+        toast({
+          title: "Error",
+          description: errorMsg,
+          variant: "destructive"
+        });
+        throw new Error(errorMsg);
+      }
+      
       // Insert the new header into the course_headers table
       const { data, error } = await supabase
         .from('course_headers')
         .insert([
-          { course_id: courseId, header_text: headerText }
+          { 
+            course_id: courseId, 
+            header_text: headerText.trim() 
+          }
         ])
         .select()
         .single();
@@ -244,6 +260,8 @@ export const usePodcasts = (courseId: string | undefined) => {
         });
         throw new Error(errorMsg);
       }
+      
+      console.log("Header added successfully:", data);
       
       // After adding the header, refresh the podcasts to update the UI
       await fetchPodcasts();

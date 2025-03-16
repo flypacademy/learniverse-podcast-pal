@@ -15,7 +15,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
 const PodcastsList = () => {
-  const { courseId } = useParams();
+  const { courseId } = useParams<{ courseId: string }>();
   const { 
     courseName, 
     podcasts, 
@@ -26,13 +26,20 @@ const PodcastsList = () => {
     error
   } = usePodcasts(courseId);
   
+  const handleAddHeader = async (headerText: string) => {
+    console.log("PodcastsList - handleAddHeader called with:", headerText);
+    if (courseId && headerText) {
+      await addHeader(headerText);
+    }
+  };
+  
   return (
     <AdminLayout>
       <div className="space-y-6">
         <PageHeader courseName={courseName} courseId={courseId || ""} />
         
         <div className="flex justify-between items-center">
-          <PodcastHeader onAddHeader={(headerText) => addHeader(headerText)} />
+          <PodcastHeader onAddHeader={handleAddHeader} />
           
           <Button asChild>
             <Link to={`/admin/courses/${courseId}/podcasts/new`}>

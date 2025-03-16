@@ -16,7 +16,9 @@ const PodcastHeader: React.FC<PodcastHeaderProps> = ({ onAddHeader }) => {
   const { toast } = useToast();
   
   const handleAddHeader = async () => {
-    if (!headerText.trim()) {
+    const trimmedHeaderText = headerText.trim();
+    
+    if (!trimmedHeaderText) {
       toast({
         title: "Error",
         description: "Header text cannot be empty",
@@ -27,12 +29,15 @@ const PodcastHeader: React.FC<PodcastHeaderProps> = ({ onAddHeader }) => {
     
     setIsSubmitting(true);
     try {
-      await onAddHeader(headerText);
+      console.log("Submitting header text:", trimmedHeaderText);
+      await onAddHeader(trimmedHeaderText);
       setHeaderText("");
       setIsAddingHeader(false);
+      
+      // Success toast handled in the hook
     } catch (error: any) {
-      console.error("Error adding header:", error);
-      // Error handling is done in the usePodcasts hook
+      console.error("Error in handleAddHeader:", error);
+      // Error toast handled in the hook
     } finally {
       setIsSubmitting(false);
     }
@@ -40,11 +45,17 @@ const PodcastHeader: React.FC<PodcastHeaderProps> = ({ onAddHeader }) => {
   
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
+      e.preventDefault();
       handleAddHeader();
     } else if (e.key === 'Escape') {
       setIsAddingHeader(false);
       setHeaderText("");
     }
+  };
+  
+  const cancelAddHeader = () => {
+    setIsAddingHeader(false);
+    setHeaderText("");
   };
   
   if (isAddingHeader) {
@@ -57,6 +68,7 @@ const PodcastHeader: React.FC<PodcastHeaderProps> = ({ onAddHeader }) => {
           onKeyDown={handleKeyDown}
           className="max-w-xs"
           autoFocus
+          disabled={isSubmitting}
         />
         <Button 
           variant="outline" 
@@ -70,11 +82,9 @@ const PodcastHeader: React.FC<PodcastHeaderProps> = ({ onAddHeader }) => {
         <Button 
           variant="ghost" 
           size="sm" 
-          onClick={() => {
-            setIsAddingHeader(false);
-            setHeaderText("");
-          }}
+          onClick={cancelAddHeader}
           disabled={isSubmitting}
+          type="button"
         >
           <X className="h-4 w-4" />
         </Button>
