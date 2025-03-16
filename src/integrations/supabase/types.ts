@@ -11,8 +11,10 @@ export type Database = {
     Tables: {
       courses: {
         Row: {
+          board: string | null
           created_at: string
           description: string | null
+          exam: string | null
           id: string
           image_url: string | null
           subject: string
@@ -20,8 +22,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          board?: string | null
           created_at?: string
           description?: string | null
+          exam?: string | null
           id?: string
           image_url?: string | null
           subject: string
@@ -29,8 +33,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          board?: string | null
           created_at?: string
           description?: string | null
+          exam?: string | null
           id?: string
           image_url?: string | null
           subject?: string

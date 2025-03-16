@@ -38,17 +38,6 @@ const CourseCard = ({
     (completedPodcasts / totalPodcasts) * 100
   );
 
-  const getSubjectColor = () => {
-    switch (subject) {
-      case "math": return "bg-blue-100 text-blue-700";
-      case "english": return "bg-purple-100 text-purple-700";
-      case "science": return "bg-teal-100 text-teal-700";
-      case "history": return "bg-amber-100 text-amber-700";
-      case "languages": return "bg-pink-100 text-pink-700";
-      default: return "bg-blue-100 text-blue-700";
-    }
-  };
-
   const getCardGradient = () => {
     if (image) return "";
     
