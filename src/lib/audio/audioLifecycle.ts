@@ -74,7 +74,11 @@ export const createAudioLifecycleSlice: StateCreator<
         newAudio.oncanplaythrough = () => {
           console.log("Audio can play through, setting current time:", currentTime);
           if (currentTime > 0) {
-            newAudio.currentTime = currentTime;
+            try {
+              newAudio.currentTime = currentTime;
+            } catch (err) {
+              console.error("Failed to set current time:", err);
+            }
           }
           
           // Auto-play when ready if isPlaying is true
@@ -98,33 +102,45 @@ export const createAudioLifecycleSlice: StateCreator<
     const { audioElement } = get();
     if (audioElement) {
       console.log("Cleaning up global audio store");
-      audioElement.pause();
-      
-      // Remove all event listeners
-      audioElement.onended = null;
-      audioElement.ontimeupdate = null;
-      audioElement.onloadedmetadata = null;
-      audioElement.onloadeddata = null;
-      audioElement.onerror = null;
-      audioElement.oncanplay = null;
-      audioElement.oncanplaythrough = null; // Added this
-      
-      // Store current state before cleanup if metadata exists
-      const meta = get().podcastMeta;
-      const currentTime = get().currentTime;
-      const isPlaying = get().isPlaying;
-      
-      // Set src to empty last to avoid pending network operations
-      audioElement.src = '';
-      
-      // Clear audio element but maintain state if possible
-      set({ 
-        audioElement: null,
-        isPlaying: meta ? isPlaying : false,
-        currentPodcastId: meta ? get().currentPodcastId : null,
-        currentTime: meta ? currentTime : 0
-        // We keep podcastMeta if it exists
-      });
+      try {
+        audioElement.pause();
+        
+        // Remove all event listeners
+        audioElement.onended = null;
+        audioElement.ontimeupdate = null;
+        audioElement.onloadedmetadata = null;
+        audioElement.onloadeddata = null;
+        audioElement.onerror = null;
+        audioElement.oncanplay = null;
+        audioElement.oncanplaythrough = null;
+        
+        // Store current state before cleanup if metadata exists
+        const meta = get().podcastMeta;
+        const currentTime = get().currentTime;
+        const isPlaying = get().isPlaying;
+        
+        // Set src to empty to avoid pending network operations
+        audioElement.src = '';
+        
+        // Clear audio element but maintain state if possible
+        set({ 
+          audioElement: null,
+          isPlaying: meta ? isPlaying : false,
+          currentPodcastId: meta ? get().currentPodcastId : null,
+          currentTime: meta ? currentTime : 0
+          // We keep podcastMeta if it exists
+        });
+      } catch (error) {
+        console.error("Error during audio cleanup:", error);
+        // Fallback to full cleanup on error
+        set({ 
+          audioElement: null,
+          isPlaying: false, 
+          currentPodcastId: null,
+          currentTime: 0,
+          podcastMeta: null
+        });
+      }
     } else {
       // Full cleanup if no audio element
       set({ 

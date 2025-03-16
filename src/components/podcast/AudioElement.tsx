@@ -44,8 +44,42 @@ const AudioElement = ({
     
     console.log("AudioElement mounted with valid URL:", audioUrl);
     
+    // Attach an error handler to the audio element directly
+    if (audioRef.current) {
+      // Clear any existing error handlers
+      const element = audioRef.current;
+      
+      const errorHandler = (e: Event) => {
+        console.error("Direct audio element error:", e);
+        const target = e.target as HTMLAudioElement;
+        const errorCode = target.error ? target.error.code : 'unknown';
+        const errorMessage = target.error ? target.error.message : 'Unknown error';
+        
+        console.error(`Direct audio error details: code=${errorCode}, message=${errorMessage}`);
+        
+        // Handle based on error code if needed
+        if (loadAttempts < 2) {
+          setLoadAttempts(prev => prev + 1);
+          setTimeout(() => {
+            if (element) {
+              element.load();
+            }
+          }, 1000);
+        } else {
+          setHasError(true);
+        }
+      };
+      
+      element.addEventListener('error', errorHandler);
+      
+      return () => {
+        element.removeEventListener('error', errorHandler);
+        console.log("AudioElement unmounting");
+      };
+    }
+    
     return () => console.log("AudioElement unmounting");
-  }, [audioUrl, setHasError]);
+  }, [audioUrl, audioRef, setHasError, loadAttempts]);
   
   // Handle audio metadata loaded
   const handleMetadataLoaded = () => {
@@ -102,24 +136,31 @@ const AudioElement = ({
     }
   };
   
-  return (
-    <audio
-      ref={audioRef}
-      src={audioUrl}
-      onLoadedMetadata={handleMetadataLoaded}
-      onError={handleError}
-      onTimeUpdate={handleTimeUpdate}
-      onEnded={onAudioEnded}
-      onPlay={() => setIsPlaying(true)}
-      onPause={() => setIsPlaying(false)}
-      onCanPlay={() => {
-        console.log("Audio is ready to play");
-        setReady(true);
-      }}
-      preload="auto"
-      className="hidden"
-    />
-  );
+  // Use a try-catch block to handle any potential render errors
+  try {
+    return (
+      <audio
+        ref={audioRef}
+        src={audioUrl}
+        onLoadedMetadata={handleMetadataLoaded}
+        onError={handleError}
+        onTimeUpdate={handleTimeUpdate}
+        onEnded={onAudioEnded}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        onCanPlay={() => {
+          console.log("Audio is ready to play");
+          setReady(true);
+        }}
+        preload="auto"
+        className="hidden"
+      />
+    );
+  } catch (error) {
+    console.error("Error rendering audio element:", error);
+    setHasError(true);
+    return null;
+  }
 };
 
 export default AudioElement;

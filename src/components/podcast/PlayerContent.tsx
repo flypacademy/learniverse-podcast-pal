@@ -40,52 +40,64 @@ const PlayerContent = ({
 }: PlayerContentProps) => {
   const navigate = useNavigate();
   
-  return (
-    <div className="flex flex-col md:flex-row gap-6">
-      <div className="flex-shrink-0 w-full md:w-auto">
-        <PodcastCover 
-          image={podcastData.image_url || (courseData?.image || "")}
-          title={podcastData.title} 
-        />
-      </div>
-      
-      <div className="flex-grow space-y-6">
-        <PodcastInfo 
-          title={podcastData.title}
-          courseName={courseData?.title || ""}
-        />
+  // Use try-catch for error handling during rendering
+  try {
+    return (
+      <div className="flex flex-col md:flex-row gap-6">
+        <div className="flex-shrink-0 w-full md:w-auto">
+          <PodcastCover 
+            image={podcastData.image_url || (courseData?.image || "")}
+            title={podcastData.title} 
+          />
+        </div>
         
-        <div className="space-y-6">
-          <PlayerControls 
-            isPlaying={isPlaying}
-            onPlayPause={handlePlayAction}
-            onSkipBack={skipBackward}
-            onSkipForward={skipForward}
-            size="normal"
+        <div className="flex-grow space-y-6">
+          <PodcastInfo 
+            title={podcastData.title}
+            courseName={courseData?.title || ""}
           />
           
-          <AudioProgress 
-            currentTime={currentTime}
-            duration={duration}
-            onSeek={seek}
-          />
-          
-          <div className="flex justify-between">
-            <VolumeControl 
-              volume={volume}
-              onVolumeChange={changeVolume}
+          <div className="space-y-6">
+            <PlayerControls 
+              isPlaying={isPlaying}
+              onPlayPause={handlePlayAction}
+              onSkipBack={skipBackward}
+              onSkipForward={skipForward}
+              size="normal"
             />
             
-            {isQuizAvailable && (
-              <QuizButton 
-                onClick={() => navigate(`/quiz/${podcastData.id}`)}
+            {duration > 0 && (
+              <AudioProgress 
+                currentTime={currentTime}
+                duration={duration}
+                onSeek={seek}
               />
             )}
+            
+            <div className="flex justify-between">
+              <VolumeControl 
+                volume={volume}
+                onVolumeChange={changeVolume}
+              />
+              
+              {isQuizAvailable && (
+                <QuizButton 
+                  onClick={() => navigate(`/quiz/${podcastData.id}`)}
+                />
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  } catch (error) {
+    console.error("Error rendering player content:", error);
+    return (
+      <div className="p-6 text-center">
+        <p className="text-red-500">Player content could not be displayed</p>
+      </div>
+    );
+  }
 };
 
 export default PlayerContent;

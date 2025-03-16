@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/Layout";
 import PodcastHeader from "@/components/podcast/PodcastHeader";
@@ -16,6 +16,16 @@ import AudioRegistration from "@/components/podcast/AudioRegistration";
 const PodcastPlayer = () => {
   const { podcastId } = useParams<{ podcastId: string }>();
   const [hasError, setHasError] = useState(false);
+  const [renderError, setRenderError] = useState<Error | null>(null);
+  
+  // Wrap the component in an error boundary
+  useEffect(() => {
+    console.log("PodcastPlayer mounted, id:", podcastId);
+    
+    return () => {
+      console.log("PodcastPlayer unmounting");
+    };
+  }, [podcastId]);
   
   const {
     podcastData,
@@ -46,7 +56,7 @@ const PodcastPlayer = () => {
   } = usePodcastPlayer();
   
   // Debug logs to help diagnose issues
-  React.useEffect(() => {
+  useEffect(() => {
     console.log("PodcastPlayer render state:", { 
       loading, 
       error, 
@@ -76,10 +86,11 @@ const PodcastPlayer = () => {
   };
   
   // If there's an error, show error component
-  if (error || hasError) {
+  if (error || hasError || renderError) {
+    const errorMessage = error || (renderError ? renderError.message : "An error occurred");
     return (
       <Layout>
-        <PodcastError error={error} />
+        <PodcastError error={errorMessage} />
       </Layout>
     );
   }
@@ -93,56 +104,68 @@ const PodcastPlayer = () => {
     );
   }
   
-  return (
-    <Layout>
-      <div className="space-y-8 pb-32 animate-slide-up">
-        <PodcastHeader courseName={courseData?.title || ""} />
+  // Render podcast player with error handling
+  try {
+    return (
+      <Layout>
+        <div className="space-y-8 pb-32 animate-slide-up">
+          <PodcastHeader courseName={courseData?.title || ""} />
+          
+          {/* Audio element and global audio store registration */}
+          <AudioElement 
+            audioRef={audioRef}
+            audioUrl={podcastData.audio_url}
+            setDuration={setDuration}
+            setReady={setReady}
+            setCurrentTime={setCurrentTime}
+            setIsPlaying={setIsPlaying}
+            onAudioEnded={handleAudioEnded}
+            setHasError={setHasError}
+          />
+          
+          <AudioRegistration 
+            audioRef={audioRef}
+            podcastData={podcastData}
+            courseData={courseData}
+            ready={ready}
+            setHasError={setHasError}
+          />
+          
+          {/* Main player content */}
+          <PlayerContent 
+            podcastData={podcastData}
+            courseData={courseData}
+            isPlaying={isPlaying}
+            currentTime={currentTime}
+            duration={duration}
+            volume={volume}
+            isQuizAvailable={isQuizAvailable}
+            handlePlayAction={handlePlayAction}
+            skipBackward={skipBackward}
+            skipForward={skipForward}
+            seek={seek}
+            changeVolume={changeVolume}
+          />
+          
+          <PodcastDescription description={podcastData.description || ""} />
+        </div>
         
-        {/* Audio element and global audio store registration */}
-        <AudioElement 
-          audioRef={audioRef}
-          audioUrl={podcastData.audio_url}
-          setDuration={setDuration}
-          setReady={setReady}
-          setCurrentTime={setCurrentTime}
-          setIsPlaying={setIsPlaying}
-          onAudioEnded={handleAudioEnded}
-          setHasError={setHasError}
+        <XPModal 
+          show={showXPModal}
+          xpAmount={30}
         />
-        
-        <AudioRegistration 
-          audioRef={audioRef}
-          podcastData={podcastData}
-          courseData={courseData}
-          ready={ready}
-          setHasError={setHasError}
-        />
-        
-        {/* Main player content */}
-        <PlayerContent 
-          podcastData={podcastData}
-          courseData={courseData}
-          isPlaying={isPlaying}
-          currentTime={currentTime}
-          duration={duration}
-          volume={volume}
-          isQuizAvailable={isQuizAvailable}
-          handlePlayAction={handlePlayAction}
-          skipBackward={skipBackward}
-          skipForward={skipForward}
-          seek={seek}
-          changeVolume={changeVolume}
-        />
-        
-        <PodcastDescription description={podcastData.description || ""} />
-      </div>
-      
-      <XPModal 
-        show={showXPModal}
-        xpAmount={30}
-      />
-    </Layout>
-  );
+      </Layout>
+    );
+  } catch (err) {
+    console.error("Error rendering podcast player:", err);
+    setRenderError(err as Error);
+    
+    return (
+      <Layout>
+        <PodcastError error="Failed to render podcast player" />
+      </Layout>
+    );
+  }
 };
 
 export default PodcastPlayer;
