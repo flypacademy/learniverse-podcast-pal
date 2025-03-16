@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { QuizQuestion } from "@/components/QuizModal";
 
@@ -24,6 +24,9 @@ export const usePodcastPlayer = (podcastId?: string) => {
   const [loading, setLoading] = useState(true);
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
   const [showQuiz, setShowQuiz] = useState(false);
+  
+  // Audio element reference
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   
   // Fetch podcast data from Supabase
   useEffect(() => {
@@ -114,34 +117,100 @@ export const usePodcastPlayer = (podcastId?: string) => {
     fetchPodcast();
   }, [podcastId]);
   
-  // Simulate playback progress
+  // Initialize audio element
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval>;
-    
-    if (isPlaying && podcast) {
-      interval = setInterval(() => {
-        setCurrentTime((prev) => {
-          const newTime = prev + 1;
-          
-          // Show XP modal when reaching certain points
-          if (newTime === 20) {
-            setShowXPModal(true);
-            setTimeout(() => setShowXPModal(false), 3000);
-          }
-          
-          return newTime < (podcast?.duration || 0) ? newTime : prev;
-        });
-      }, 1000);
+    if (podcast?.audioUrl && !audioRef.current) {
+      audioRef.current = new Audio(podcast.audioUrl);
+      audioRef.current.volume = volume / 100;
+      
+      // Add event listeners
+      audioRef.current.addEventListener('timeupdate', handleTimeUpdate);
+      audioRef.current.addEventListener('ended', handleEnded);
     }
     
     return () => {
-      if (interval) clearInterval(interval);
+      if (audioRef.current) {
+        audioRef.current.removeEventListener('timeupdate', handleTimeUpdate);
+        audioRef.current.removeEventListener('ended', handleEnded);
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
     };
-  }, [isPlaying, podcast?.duration]);
+  }, [podcast?.audioUrl]);
   
-  const togglePlay = () => setIsPlaying(!isPlaying);
-  const handleVolumeChange = (newVolume: number) => setVolume(newVolume);
+  // Handle time update event
+  const handleTimeUpdate = () => {
+    if (audioRef.current) {
+      setCurrentTime(audioRef.current.currentTime);
+      
+      // Show XP modal at certain points
+      if (Math.floor(audioRef.current.currentTime) === 20) {
+        setShowXPModal(true);
+        setTimeout(() => setShowXPModal(false), 3000);
+      }
+    }
+  };
+  
+  // Handle ended event
+  const handleEnded = () => {
+    setIsPlaying(false);
+    setCurrentTime(0);
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+    }
+  };
+  
+  // Update volume when it changes
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume / 100;
+    }
+  }, [volume]);
+  
+  // Toggle play/pause
+  const togglePlay = () => {
+    if (!audioRef.current) return;
+    
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play().catch(error => {
+        console.error("Error playing audio:", error);
+      });
+    }
+    
+    setIsPlaying(!isPlaying);
+  };
+  
+  // Handle volume change
+  const handleVolumeChange = (newVolume: number) => {
+    setVolume(newVolume);
+  };
+  
+  // Toggle quiz display
   const toggleQuiz = () => setShowQuiz(!showQuiz);
+  
+  // Skip forward/backward functions
+  const skipForward = () => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = Math.min(audioRef.current.currentTime + 10, audioRef.current.duration);
+    }
+  };
+  
+  const skipBackward = () => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = Math.max(audioRef.current.currentTime - 10, 0);
+    }
+  };
+  
+  // Seek to a specific time
+  const seekTo = (timePercent: number) => {
+    if (audioRef.current && podcast) {
+      const seekTime = (timePercent / 100) * podcast.duration;
+      audioRef.current.currentTime = seekTime;
+      setCurrentTime(seekTime);
+    }
+  };
   
   return {
     podcast,
@@ -155,6 +224,9 @@ export const usePodcastPlayer = (podcastId?: string) => {
     togglePlay,
     handleVolumeChange,
     toggleQuiz,
-    setShowQuiz
+    setShowQuiz,
+    skipForward,
+    skipBackward,
+    seekTo
   };
 };

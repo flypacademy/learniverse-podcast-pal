@@ -1,7 +1,6 @@
 
 import React from "react";
 import { useParams } from "react-router-dom";
-import { BrainCircuit } from "lucide-react";
 import Layout from "@/components/Layout";
 import QuizModal from "@/components/QuizModal";
 import { useToast } from "@/components/ui/use-toast";
@@ -37,7 +36,10 @@ const PodcastPlayer = () => {
     togglePlay,
     handleVolumeChange,
     toggleQuiz,
-    setShowQuiz
+    setShowQuiz,
+    skipForward,
+    skipBackward,
+    seekTo
   } = usePodcastPlayer(id);
   
   // Handle quiz completion
@@ -94,10 +96,19 @@ const PodcastPlayer = () => {
         {/* Player Controls */}
         <div className="space-y-4">
           {/* Progress Bar */}
-          <AudioProgress currentTime={currentTime} duration={podcast.duration} />
+          <AudioProgress 
+            currentTime={currentTime} 
+            duration={podcast.duration} 
+            onSeek={seekTo}
+          />
           
           {/* Control Buttons */}
-          <PlayerControls isPlaying={isPlaying} onPlayPause={togglePlay} />
+          <PlayerControls 
+            isPlaying={isPlaying} 
+            onPlayPause={togglePlay} 
+            onSkipBack={skipBackward}
+            onSkipForward={skipForward}
+          />
           
           {/* Volume Control */}
           <VolumeControl volume={volume} onVolumeChange={handleVolumeChange} />
@@ -109,10 +120,7 @@ const PodcastPlayer = () => {
         )}
         
         {/* Podcast Description */}
-        <PodcastDescription 
-          description={podcast.description} 
-          audioUrl={podcast.audioUrl} 
-        />
+        <PodcastDescription description={podcast.description} />
       </div>
       
       {/* XP Gained Modal */}
