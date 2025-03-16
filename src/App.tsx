@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, BrowserRouter } from 'react-router-dom';
 import { supabase } from "@/lib/supabase";
 import { Session } from '@supabase/supabase-js';
 import { Toaster } from "@/components/ui/toaster"
+import { AudioProvider } from './hooks/useAudioContext';
 
 // Import page components
 import Index from './pages/Index';
@@ -39,38 +40,42 @@ function App() {
   }, [])
 
   return (
-    <>
-      <Routes>
-        {/* Public routes */}
-        <Route path="/" element={<Index />} />
-        <Route path="/courses" element={<Courses />} />
-        <Route path="/course/:courseId" element={<CourseDetail />} />
-        <Route path="/podcast/:id" element={<PodcastPlayer />} />
-        <Route path="/podcast-sample" element={<PodcastSample />} />
+    <div className="App dark">
+      <AudioProvider>
+        <BrowserRouter>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/" element={<Index />} />
+            <Route path="/courses" element={<Courses />} />
+            <Route path="/course/:courseId" element={<CourseDetail />} />
+            <Route path="/podcast/:id" element={<PodcastPlayer />} />
+            <Route path="/podcast-sample" element={<PodcastSample />} />
 
-        {/* Student routes */}
-        <Route path="/tasks" element={<Tasks />} />
-        <Route path="/goals" element={<Goals />} />
-        <Route path="/profile" element={<Profile />} />
+            {/* Student routes */}
+            <Route path="/tasks" element={<Tasks />} />
+            <Route path="/goals" element={<Goals />} />
+            <Route path="/profile" element={<Profile />} />
 
-        {/* Admin routes */}
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin/register" element={<AdminRegister />} />
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/admin/courses" element={<CoursesList />} />
-        <Route path="/admin/courses/new" element={<CourseForm />} />
-        <Route path="/admin/courses/:id/edit" element={<CourseForm />} />
-        <Route path="/admin/courses/:courseId/podcasts" element={<PodcastsList />} />
-        <Route path="/admin/courses/:courseId/podcasts/new" element={<PodcastForm />} />
-        <Route path="/admin/courses/:courseId/podcasts/:id/edit" element={<PodcastForm />} />
-        <Route path="/admin/podcasts/:podcastId/quiz" element={<NotFound />} /> {/* Add proper component later */}
-        <Route path="/admin/users" element={<AdminUsers />} />
-        <Route path="/admin/settings" element={<AdminSettings />} />
-        
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-      <Toaster />
-    </>
+            {/* Admin routes */}
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin/register" element={<AdminRegister />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/courses" element={<CoursesList />} />
+            <Route path="/admin/courses/new" element={<CourseForm />} />
+            <Route path="/admin/courses/:id/edit" element={<CourseForm />} />
+            <Route path="/admin/courses/:courseId/podcasts" element={<PodcastsList />} />
+            <Route path="/admin/courses/:courseId/podcasts/new" element={<PodcastForm />} />
+            <Route path="/admin/courses/:courseId/podcasts/:id/edit" element={<PodcastForm />} />
+            <Route path="/admin/podcasts/:podcastId/quiz" element={<NotFound />} />
+            <Route path="/admin/users" element={<AdminUsers />} />
+            <Route path="/admin/settings" element={<AdminSettings />} />
+            
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <Toaster />
+        </BrowserRouter>
+      </AudioProvider>
+    </div>
   );
 }
 

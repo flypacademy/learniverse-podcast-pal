@@ -7,11 +7,10 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatTime(seconds: number): string {
+  if (!seconds || isNaN(seconds)) return "0:00";
+  
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = Math.floor(seconds % 60);
+  
   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-}
-
-export function createGlassMorphism(opacity: number = 70, blur: number = 8): string {
-  return `bg-white/${opacity} backdrop-blur-${blur}md border border-white/20`
 }

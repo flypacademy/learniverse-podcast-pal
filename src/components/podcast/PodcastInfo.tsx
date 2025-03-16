@@ -1,18 +1,22 @@
 
 import React from "react";
+import { Clock } from "lucide-react";
+import { formatTime } from "@/lib/utils";
 
 interface PodcastInfoProps {
   title: string;
-  courseName: string;
+  duration: number;
 }
 
-const PodcastInfo = ({ title, courseName }: PodcastInfoProps) => {
+const PodcastInfo = ({ title, duration }: PodcastInfoProps) => {
   return (
-    <div className="text-center space-y-1">
-      <h2 className="font-display font-bold text-xl text-gray-900">
-        {title}
-      </h2>
-      <p className="text-gray-500">{courseName}</p>
+    <div className="space-y-1.5">
+      <h2 className="text-xl font-medium text-white">{title}</h2>
+      
+      <div className="flex items-center text-gray-400 text-sm">
+        <Clock className="h-4 w-4 mr-1" />
+        <span>{formatTime(duration)}</span>
+      </div>
     </div>
   );
 };
