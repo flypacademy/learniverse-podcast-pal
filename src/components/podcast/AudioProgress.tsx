@@ -1,11 +1,11 @@
 
 import React from "react";
-import ProgressBar from "@/components/ProgressBar";
+import { Slider } from "@/components/ui/slider";
 
 interface AudioProgressProps {
   currentTime: number;
   duration: number;
-  onSeek?: (percent: number) => void;
+  onSeek?: (seconds: number) => void;
 }
 
 const AudioProgress = ({ currentTime, duration, onSeek }: AudioProgressProps) => {
@@ -14,36 +14,32 @@ const AudioProgress = ({ currentTime, duration, onSeek }: AudioProgressProps) =>
   
   // Format time as mm:ss
   const formatTime = (seconds: number) => {
+    if (isNaN(seconds)) return "0:00";
+    
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = Math.floor(seconds % 60);
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
   
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!onSeek) return;
+  const handleSeek = (value: number[]) => {
+    if (!onSeek || duration <= 0) return;
     
-    const progressBar = e.currentTarget;
-    const rect = progressBar.getBoundingClientRect();
-    const clickPosition = e.clientX - rect.left;
-    const percent = (clickPosition / rect.width) * 100;
-    
-    // Convert percent to seconds
-    const seekTime = (percent / 100) * duration;
-    onSeek(seekTime);
+    // Convert percentage to seconds
+    const seekTimeInSeconds = (value[0] / 100) * duration;
+    onSeek(seekTimeInSeconds);
   };
   
   return (
     <div className="space-y-1.5">
-      <div 
-        className="relative cursor-pointer" 
-        onClick={handleSeek}
-      >
-        <ProgressBar 
-          value={progress} 
-          size="lg" 
-          color="bg-primary"
-        />
-      </div>
+      <Slider
+        value={[progress]}
+        min={0}
+        max={100}
+        step={0.1}
+        onValueChange={handleSeek}
+        className="w-full"
+      />
+      
       <div className="flex justify-between text-xs text-gray-500">
         <span>{formatTime(currentTime)}</span>
         <span>{formatTime(duration)}</span>

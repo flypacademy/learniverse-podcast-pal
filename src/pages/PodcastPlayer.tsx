@@ -21,6 +21,7 @@ const PodcastPlayer = () => {
   const navigate = useNavigate();
   const audioStore = useAudioStore();
   const [audioInitialized, setAudioInitialized] = useState(false);
+  const [hasError, setHasError] = useState(false);
   
   useEffect(() => {
     console.log("PodcastPlayer rendered with podcastId:", podcastId);
@@ -60,17 +61,22 @@ const PodcastPlayer = () => {
     if (podcastData && courseData && audioRef.current && ready && !audioInitialized) {
       console.log("Registering podcast with global audio store");
       
-      // Only register if it's not the same podcast already playing
-      if (audioStore.currentPodcastId !== podcastData.id) {
-        audioStore.setAudio(audioRef.current, podcastData.id, {
-          id: podcastData.id,
-          title: podcastData.title,
-          courseName: courseData.title,
-          image: podcastData.image_url || courseData.image
-        });
+      try {
+        // Only register if it's not the same podcast already playing
+        if (audioStore.currentPodcastId !== podcastData.id) {
+          audioStore.setAudio(audioRef.current, podcastData.id, {
+            id: podcastData.id,
+            title: podcastData.title,
+            courseName: courseData.title,
+            image: podcastData.image_url || courseData.image
+          });
+        }
+        
+        setAudioInitialized(true);
+      } catch (err) {
+        console.error("Error registering audio with store:", err);
+        setHasError(true);
       }
-      
-      setAudioInitialized(true);
     }
     
     // Cleanup function
@@ -88,17 +94,18 @@ const PodcastPlayer = () => {
       courseDataExists: !!courseData,
       ready,
       podcastId,
-      audioInitialized
+      audioInitialized,
+      hasError
     });
-  }, [loading, error, podcastData, courseData, ready, podcastId, audioInitialized]);
+  }, [loading, error, podcastData, courseData, ready, podcastId, audioInitialized, hasError]);
   
   // If there's an error, show it
-  if (error) {
+  if (error || hasError) {
     return (
       <Layout>
         <div className="flex flex-col items-center justify-center h-full">
           <h2 className="text-xl font-bold text-red-500">Error</h2>
-          <p className="text-gray-600 mt-2">{error}</p>
+          <p className="text-gray-600 mt-2">{error || "Failed to load audio player"}</p>
           <button 
             onClick={() => navigate(-1)}
             className="mt-6 px-4 py-2 bg-primary text-white rounded-md shadow hover:bg-primary/90 transition-colors"
@@ -124,6 +131,19 @@ const PodcastPlayer = () => {
   
   const handleAudioEnded = () => {
     handleCompletion();
+  };
+  
+  const handlePlayAction = () => {
+    try {
+      togglePlayPause();
+    } catch (err) {
+      console.error("Error in play action:", err);
+      toast({
+        title: "Playback Error",
+        description: "Could not play audio. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
   
   return (
@@ -162,6 +182,7 @@ const PodcastPlayer = () => {
               }}
               onError={(e) => {
                 console.error("Audio element error:", e);
+                setHasError(true);
                 toast({
                   title: "Error",
                   description: "Failed to load audio",
@@ -176,14 +197,17 @@ const PodcastPlayer = () => {
               onEnded={handleAudioEnded}
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
-              preload="metadata"
+              onCanPlay={() => {
+                console.log("Audio is ready to play");
+              }}
+              preload="auto"
               className="hidden"
             />
             
             <div className="space-y-4">
               <PlayerControls 
                 isPlaying={isPlaying}
-                onPlayPause={togglePlayPause}
+                onPlayPause={handlePlayAction}
                 onSkipBack={skipBackward}
                 onSkipForward={skipForward}
                 size="normal"

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
@@ -47,6 +46,7 @@ export function usePodcastPlayer() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const isInitialSyncRef = useRef(true);
   const progressIntervalRef = useRef<number | null>(null);
+  const isPlayAttemptedRef = useRef(false);
   
   // Check if this podcast is already playing in the global store
   // But only sync once to avoid infinite updates
@@ -56,8 +56,8 @@ export function usePodcastPlayer() {
       setIsPlaying(globalAudioStore.isPlaying);
       setCurrentTime(globalAudioStore.currentTime);
       setDuration(globalAudioStore.duration);
-      // Convert the global volume value (0-100) to a local volume value (0-1)
-      setVolume(globalAudioStore.volume / 100);
+      // Convert the global volume value (0-1) to a local volume value (0-1)
+      setVolume(globalAudioStore.volume);
       isInitialSyncRef.current = false;
     }
   }, [podcastId, globalAudioStore]);
@@ -196,24 +196,78 @@ export function usePodcastPlayer() {
   };
   
   const play = () => {
-    if (audioRef.current) {
-      console.log("Playing audio");
-      audioRef.current.play()
-        .then(() => {
-          console.log("Audio playback started successfully");
-        })
-        .catch(err => {
-          console.error("Error playing audio:", err);
-          toast({
-            title: "Playback Error",
-            description: "Could not play audio: " + err.message,
-            variant: "destructive"
-          });
-        });
-      setIsPlaying(true);
-    } else {
+    if (!audioRef.current) {
       console.warn("Play called but audioRef is null");
+      return;
     }
+    
+    console.log("Playing audio");
+    isPlayAttemptedRef.current = true;
+    
+    // Check if the audio is actually loaded and ready
+    if (audioRef.current.readyState < 2) {
+      console.log("Audio not ready yet, loading...");
+      
+      const canPlayHandler = () => {
+        console.log("Audio is now ready to play");
+        audioRef.current?.play()
+          .then(() => {
+            console.log("Audio playback started successfully");
+            setIsPlaying(true);
+          })
+          .catch(err => {
+            console.error("Error playing audio:", err);
+            toast({
+              title: "Playback Error",
+              description: "Could not play audio: " + err.message,
+              variant: "destructive"
+            });
+          });
+        
+        // Remove event listener
+        audioRef.current?.removeEventListener('canplay', canPlayHandler);
+      };
+      
+      // Add event listener for when audio can play
+      audioRef.current.addEventListener('canplay', canPlayHandler);
+      
+      // Also set a timeout in case canplay never fires
+      setTimeout(() => {
+        if (!isPlaying && isPlayAttemptedRef.current) {
+          console.log("Timeout: trying to play anyway");
+          audioRef.current?.play()
+            .then(() => {
+              console.log("Audio playback started successfully after timeout");
+              setIsPlaying(true);
+            })
+            .catch(err => {
+              console.error("Error playing audio after timeout:", err);
+              toast({
+                title: "Playback Error",
+                description: "Could not play audio. Try reloading the page.",
+                variant: "destructive"
+              });
+            });
+        }
+      }, 2000);
+      
+      return;
+    }
+    
+    // If audio is already loaded, try to play directly
+    audioRef.current.play()
+      .then(() => {
+        console.log("Audio playback started successfully");
+        setIsPlaying(true);
+      })
+      .catch(err => {
+        console.error("Error playing audio:", err);
+        toast({
+          title: "Playback Error",
+          description: "Could not play audio: " + err.message,
+          variant: "destructive"
+        });
+      });
   };
   
   const pause = () => {

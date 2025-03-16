@@ -33,7 +33,7 @@ export const useAudioStore = create<AudioState>((set, get) => ({
   currentPodcastId: null,
   currentTime: 0,
   duration: 0,
-  volume: 0.8, // Changed to 0-1 scale
+  volume: 0.8, // Using 0-1 scale
   podcastMeta: null,
   
   setAudio: (audioElement, podcastId, meta) => {
@@ -53,12 +53,16 @@ export const useAudioStore = create<AudioState>((set, get) => ({
     if (currentAudio) {
       console.log("Cleaning up existing audio before setting new audio");
       currentAudio.pause();
-      currentAudio.src = '';
       
       // Remove event listeners - we'll recreate them for the new audio
       currentAudio.onended = null;
       currentAudio.ontimeupdate = null;
       currentAudio.onloadedmetadata = null;
+      currentAudio.onloadeddata = null;
+      currentAudio.onerror = null;
+      
+      // Set src to empty last to avoid pending network operations
+      currentAudio.src = '';
     }
     
     console.log("Setting new audio in global store:", { podcastId });
@@ -90,7 +94,13 @@ export const useAudioStore = create<AudioState>((set, get) => ({
     };
     
     audioElement.onerror = (e) => {
-      console.error("Audio element error:", e);
+      console.error("Audio element error in global store:", e);
+      // Don't update isPlaying state if there's an error
+    };
+    
+    // Add canplay event to help with playback after load
+    audioElement.oncanplay = () => {
+      console.log("Audio can play in global store");
     };
     
     // Update state with new audio (in a single set call to avoid multiple rerenders)
@@ -110,21 +120,78 @@ export const useAudioStore = create<AudioState>((set, get) => ({
   
   play: () => {
     const { audioElement } = get();
-    if (audioElement) {
-      console.log("Playing audio from global store");
+    if (!audioElement) {
+      console.warn("No audio element available in global store");
+      return;
+    }
+    
+    console.log("Playing audio from global store");
+    
+    // Check if the audio is actually loaded and ready before playing
+    if (audioElement.readyState < 2) {
+      console.log("Audio in global store not ready yet, waiting...");
       
-      // Create a user interaction first by unlocking audio context
-      const playPromise = audioElement.play();
+      const canPlayHandler = () => {
+        console.log("Audio in global store now ready to play");
+        
+        const playPromise = audioElement.play();
+        
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              console.log("Audio playback started successfully from global store");
+              set({ isPlaying: true });
+            })
+            .catch(error => {
+              console.error("Error playing audio from global store:", error);
+              // Don't update state to playing if it failed
+            });
+        }
+        
+        // Remove event listener after attempting to play
+        audioElement.removeEventListener('canplay', canPlayHandler);
+      };
       
-      if (playPromise !== undefined) {
-        playPromise.then(() => {
-          console.log("Audio playback started successfully");
+      // Add event listener for when audio can play
+      audioElement.addEventListener('canplay', canPlayHandler);
+      
+      // Also set a timeout in case canplay never fires
+      setTimeout(() => {
+        if (!get().isPlaying) {
+          console.log("Timeout: trying to play from global store anyway");
+          
+          const playPromise = audioElement.play();
+          
+          if (playPromise !== undefined) {
+            playPromise
+              .then(() => {
+                console.log("Audio playback started successfully from global store after timeout");
+                set({ isPlaying: true });
+              })
+              .catch(error => {
+                console.error("Error playing audio from global store after timeout:", error);
+                // Don't update state to playing if it failed
+              });
+          }
+        }
+      }, 2000);
+      
+      return;
+    }
+    
+    // If audio is already loaded, try to play directly
+    const playPromise = audioElement.play();
+    
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          console.log("Audio playback started successfully from global store");
           set({ isPlaying: true });
-        }).catch(error => {
+        })
+        .catch(error => {
           console.error("Error playing audio from global store:", error);
           // Don't update state to playing if it failed
         });
-      }
     }
   },
   
@@ -165,12 +232,17 @@ export const useAudioStore = create<AudioState>((set, get) => ({
     if (audioElement) {
       console.log("Cleaning up global audio store");
       audioElement.pause();
-      audioElement.src = '';
+      
+      // Remove all event listeners
       audioElement.onended = null;
       audioElement.ontimeupdate = null;
       audioElement.onloadedmetadata = null;
       audioElement.onloadeddata = null;
       audioElement.onerror = null;
+      audioElement.oncanplay = null;
+      
+      // Set src to empty last to avoid pending network operations
+      audioElement.src = '';
     }
     set({ 
       audioElement: null, 
