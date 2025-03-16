@@ -30,7 +30,7 @@ const AudioProgress = ({ currentTime, duration, onSeek }: AudioProgressProps) =>
   };
   
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       <Slider
         value={[progress]}
         min={0}
@@ -38,9 +38,10 @@ const AudioProgress = ({ currentTime, duration, onSeek }: AudioProgressProps) =>
         step={0.1}
         onValueChange={handleSeek}
         className="w-full"
+        variant="progress"
       />
       
-      <div className="flex justify-between text-xs text-gray-500">
+      <div className="flex justify-between text-sm text-gray-500">
         <span>{formatTime(currentTime)}</span>
         <span>{formatTime(duration)}</span>
       </div>

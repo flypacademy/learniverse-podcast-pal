@@ -23,7 +23,7 @@ const VolumeControl = ({ volume, onVolumeChange }: VolumeControlProps) => {
   
   return (
     <div className="flex items-center gap-3 max-w-xs">
-      <Volume2 className="h-4 w-4 text-gray-500 flex-shrink-0" />
+      <Volume2 className="h-5 w-5 text-gray-500 flex-shrink-0" />
       <Slider
         value={[volumePercentage]}
         min={0}
