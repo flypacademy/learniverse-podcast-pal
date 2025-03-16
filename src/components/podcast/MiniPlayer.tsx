@@ -33,17 +33,17 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
 
   // Check if audio element exists, if not try to recreate it
   useEffect(() => {
-    if (!audioElement && podcastId) {
+    if (!audioElement && podcastMeta?.audioUrl) {
       console.log("No audio element in MiniPlayer, trying to continue playback");
       continuePlayback();
     }
-  }, [audioElement, podcastId, continuePlayback]);
+  }, [audioElement, podcastMeta?.audioUrl, continuePlayback]);
 
   // Sync local state with store - only when the store values change
   useEffect(() => {
     setLocalIsPlaying(isPlaying);
     setLocalCurrentTime(currentTime);
-    setLocalDuration(duration);
+    setLocalDuration(duration || 0);
   }, [isPlaying, currentTime, duration]);
 
   const togglePlay = () => {
@@ -76,7 +76,7 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
               console.error("Error during delayed play:", err);
             }
           }
-        }, 300);
+        }, 500);
       } else {
         try {
           play();
@@ -84,7 +84,7 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
           console.error("Error during play:", err);
           // Try recreating the audio element and playing again
           continuePlayback();
-          setTimeout(() => play(), 300);
+          setTimeout(() => play(), 500);
         }
       }
     }

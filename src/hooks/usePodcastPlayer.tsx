@@ -60,20 +60,24 @@ export function usePodcastPlayer() {
       setCurrentTime(initialPosition);
       setAudioInitialized(true);
     }
-  }, [audioRef.current, initialPosition, audioInitialized]);
+  }, [audioRef.current, initialPosition, audioInitialized, setCurrentTime]);
 
-  // Cleanup on unmount - but don't stop playback if it's in the global store
+  // IMPORTANT: Don't stop playback when unmounting the component
+  // Just let the global audio store handle it
   useEffect(() => {
     return () => {
-      console.log("usePodcastPlayer hook - Cleaning up");
+      console.log("usePodcastPlayer hook - Cleaning up, but preserving playback state");
       
-      // Only clean up the audio element if we're not continuing playback in the mini player
-      if (audioRef.current && (!audioStore.audioElement || audioStore.audioElement !== audioRef.current)) {
-        audioRef.current.pause();
-        audioRef.current.src = '';
+      // We don't pause or clean up the audio element here
+      // This allows playback to continue when navigating away
+      
+      // If needed, we could save the current time to local storage or a similar mechanism here
+      if (audioRef.current && audioStore.audioElement === audioRef.current && podcastId) {
+        // Update global store time one last time before unmounting
+        audioStore.setCurrentTime(audioRef.current.currentTime);
       }
     };
-  }, [audioStore.audioElement]);
+  }, [audioStore, audioRef, podcastId]);
 
   return {
     podcastData,

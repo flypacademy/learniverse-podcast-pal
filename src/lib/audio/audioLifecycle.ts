@@ -15,7 +15,7 @@ export const createAudioLifecycleSlice: StateCreator<
   AudioLifecycleSlice
 > = (set, get, api) => ({
   continuePlayback: () => {
-    const { podcastMeta, currentTime } = get();
+    const { podcastMeta, currentTime, isPlaying } = get();
     
     if (!podcastMeta?.audioUrl) {
       console.error("Cannot continue playback without audio URL");
@@ -70,7 +70,7 @@ export const createAudioLifecycleSlice: StateCreator<
       // Update state with new audio (in a single set call to avoid multiple rerenders)
       set({ audioElement: newAudioElement });
       
-      // Wait for audio to be loaded before setting current time
+      // Wait for audio to be loaded before setting current time and playing
       newAudioElement.addEventListener('canplay', () => {
         console.log("New audio element is ready to play");
         
@@ -81,6 +81,29 @@ export const createAudioLifecycleSlice: StateCreator<
             set({ currentTime }); // Make sure store is updated too
           } catch (error) {
             console.error("Error setting current time on new audio element:", error);
+          }
+        }
+        
+        // If it was playing before, resume playback
+        if (isPlaying) {
+          try {
+            console.log("Resuming playback on new audio element");
+            const playPromise = newAudioElement.play();
+            
+            if (playPromise !== undefined) {
+              playPromise
+                .then(() => {
+                  console.log("Successfully resumed playback on new audio element");
+                  set({ isPlaying: true });
+                })
+                .catch(error => {
+                  console.error("Error resuming playback on new audio element:", error);
+                  set({ isPlaying: false });
+                });
+            }
+          } catch (error) {
+            console.error("Exception resuming playback on new audio element:", error);
+            set({ isPlaying: false });
           }
         }
       });
