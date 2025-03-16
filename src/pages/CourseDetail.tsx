@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import ProgressBar from "@/components/ProgressBar";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ui/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Podcast {
   id: string;
@@ -40,6 +41,7 @@ const CourseDetail = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   
   useEffect(() => {
@@ -48,6 +50,7 @@ const CourseDetail = () => {
       
       try {
         setLoading(true);
+        setError(null);
         console.log("Fetching course details for:", courseId);
         
         // Fetch course
@@ -59,11 +62,14 @@ const CourseDetail = () => {
         
         if (courseError) {
           console.error("Error fetching course:", courseError);
-          throw courseError;
+          setError(`Failed to load course: ${courseError.message}`);
+          setLoading(false);
+          return;
         }
         
         if (!courseData) {
           console.log("No course found with ID:", courseId);
+          setError("Course not found");
           setLoading(false);
           return;
         }
@@ -78,7 +84,9 @@ const CourseDetail = () => {
         
         if (podcastsError) {
           console.error("Error fetching podcasts:", podcastsError);
-          throw podcastsError;
+          setError(`Failed to load podcasts: ${podcastsError.message}`);
+          setLoading(false);
+          return;
         }
         
         console.log("Podcasts data fetched:", podcastsData);
@@ -113,15 +121,17 @@ const CourseDetail = () => {
           exam: courseData.exam || "GCSE",
           board: courseData.board || "AQA"
         });
+        
+        setLoading(false);
       } catch (error: any) {
         console.error("Error in fetchCourseDetails:", error);
+        setError(error.message || "Failed to load course details");
+        setLoading(false);
         toast({
           title: "Error",
           description: error.message || "Failed to load course details",
           variant: "destructive"
         });
-      } finally {
-        setLoading(false);
       }
     };
     
@@ -131,9 +141,51 @@ const CourseDetail = () => {
   if (loading) {
     return (
       <Layout>
+        <div className="space-y-6 pb-4 animate-slide-up">
+          {/* Header with back button skeleton */}
+          <div className="flex items-center space-x-2 pt-4">
+            <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse"></div>
+            <div className="h-6 w-32 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+          
+          {/* Course Hero Section skeleton */}
+          <div className="rounded-xl overflow-hidden relative h-48 bg-gray-200 animate-pulse"></div>
+          
+          {/* Progress Section skeleton */}
+          <div className="bg-white rounded-xl shadow-sm p-4">
+            <div className="flex justify-between items-center mb-2">
+              <div className="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
+              <div className="h-4 w-16 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+            <Skeleton className="h-2 w-full mt-2" />
+          </div>
+          
+          {/* Tabs Section skeleton */}
+          <div className="w-full">
+            <div className="grid w-full grid-cols-2 mb-4">
+              <Skeleton className="h-10 rounded-md" />
+              <Skeleton className="h-10 rounded-md" />
+            </div>
+            <div className="space-y-4 pt-4">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-20 w-full rounded-lg" />
+              ))}
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+  
+  if (error) {
+    return (
+      <Layout>
         <div className="flex flex-col items-center justify-center h-full py-12">
-          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
-          <p className="mt-4 text-gray-500">Loading course details...</p>
+          <h1 className="text-2xl font-bold mb-4">Error</h1>
+          <p className="text-gray-500 mb-6">{error}</p>
+          <Button asChild>
+            <Link to="/courses">Back to Courses</Link>
+          </Button>
         </div>
       </Layout>
     );
