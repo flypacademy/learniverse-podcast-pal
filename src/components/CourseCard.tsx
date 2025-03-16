@@ -66,6 +66,7 @@ const CourseCard = ({
         <div
           className={`rounded-xl overflow-hidden ${size === 'large' ? 'aspect-[3/2]' : 'aspect-[2/1]'} relative`}
         >
+          {/* Background image or gradient */}
           {image ? (
             <img
               src={image}
@@ -106,11 +107,11 @@ const CourseCard = ({
             </span>
           </div>
           
-          {/* Course title overlay - updated for better visibility */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent flex flex-col items-start justify-end p-4">
-            <h3 className="text-white font-semibold text-lg leading-tight">{title}</h3>
-            <div className="flex items-center mt-1">
-              <span className="text-white/90 text-sm px-2 py-0.5 bg-primary/30 rounded-full backdrop-blur-sm">
+          {/* Course title overlay - Enhanced for better visibility */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent flex flex-col items-start justify-end p-4">
+            <h3 className="text-white font-bold text-xl leading-tight drop-shadow-md mb-1">{title}</h3>
+            <div className="flex items-center">
+              <span className="text-white text-sm px-3 py-1 bg-primary/50 rounded-full backdrop-blur-sm font-medium">
                 {subject} Course
               </span>
             </div>
