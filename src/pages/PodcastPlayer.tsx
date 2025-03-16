@@ -6,98 +6,7 @@ import Layout from "@/components/Layout";
 import ProgressBar from "@/components/ProgressBar";
 import QuizModal, { QuizQuestion } from "@/components/QuizModal";
 import { useToast } from "@/components/ui/use-toast";
-
-// Mock data
-const podcasts = {
-  "math-algebra-1": {
-    id: "math-algebra-1",
-    title: "Algebra Fundamentals",
-    courseId: "math-gcse",
-    courseName: "Mathematics GCSE",
-    description: "Learn the basics of algebra, including variables, expressions, and equations. This episode covers essential concepts for GCSE Mathematics.",
-    duration: 840,
-    image: "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png",
-    quiz: [
-      {
-        id: "q1",
-        question: "What is a variable in algebra?",
-        options: [
-          "A number that varies",
-          "A symbol that represents an unknown value",
-          "A mathematical operation",
-          "A constant value"
-        ],
-        correctAnswer: 1
-      },
-      {
-        id: "q2",
-        question: "Which of the following is a linear equation?",
-        options: [
-          "y = x²",
-          "y = 2x + 3",
-          "y = 1/x",
-          "y = √x"
-        ],
-        correctAnswer: 1
-      },
-      {
-        id: "q3",
-        question: "If 2x + 5 = 15, what is the value of x?",
-        options: [
-          "5",
-          "7.5",
-          "10",
-          "None of the above"
-        ],
-        correctAnswer: 0
-      }
-    ]
-  },
-  "english-shakespeare-1": {
-    id: "english-shakespeare-1",
-    title: "Introduction to Shakespeare",
-    courseId: "english-gcse",
-    courseName: "English GCSE",
-    description: "Discover Shakespeare's life, works, and influence. This episode provides an overview of his major plays and their themes.",
-    duration: 720,
-    image: "/lovable-uploads/b8505be1-663c-4327-9a5f-8c5bb7419180.png",
-    quiz: [
-      {
-        id: "q1",
-        question: "In which century was William Shakespeare born?",
-        options: [
-          "14th century",
-          "15th century",
-          "16th century",
-          "17th century"
-        ],
-        correctAnswer: 2
-      },
-      {
-        id: "q2",
-        question: "Which of the following is NOT a play written by Shakespeare?",
-        options: [
-          "Hamlet",
-          "Macbeth",
-          "The Canterbury Tales",
-          "Romeo and Juliet"
-        ],
-        correctAnswer: 2
-      },
-      {
-        id: "q3",
-        question: "How many sonnets did Shakespeare write?",
-        options: [
-          "104",
-          "134",
-          "154",
-          "174"
-        ],
-        correctAnswer: 2
-      }
-    ]
-  }
-};
+import { supabase } from "@/lib/supabase";
 
 const PodcastPlayer = () => {
   const { id } = useParams<{ id: string }>();
@@ -109,14 +18,98 @@ const PodcastPlayer = () => {
   const [volume, setVolume] = useState(80);
   const [showXPModal, setShowXPModal] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
+  const [podcast, setPodcast] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
   
-  const podcast = id ? podcasts[id as keyof typeof podcasts] : null;
+  // Fetch podcast data from Supabase
+  useEffect(() => {
+    const fetchPodcast = async () => {
+      if (!id) return;
+      
+      console.log("Fetching podcast with ID:", id);
+      
+      try {
+        // Fetch podcast data
+        const { data: podcastData, error: podcastError } = await supabase
+          .from('podcasts')
+          .select(`
+            id,
+            title,
+            description,
+            duration,
+            audio_url,
+            image_url,
+            course_id,
+            courses (
+              title
+            )
+          `)
+          .eq('id', id)
+          .single();
+        
+        if (podcastError) {
+          console.error("Error fetching podcast:", podcastError);
+          setLoading(false);
+          return;
+        }
+        
+        if (!podcastData) {
+          console.log("No podcast found with ID:", id);
+          setLoading(false);
+          return;
+        }
+        
+        console.log("Podcast data fetched:", podcastData);
+        
+        // Fetch quiz questions for this podcast
+        const { data: quizData, error: quizError } = await supabase
+          .from('quiz_questions')
+          .select('*')
+          .eq('podcast_id', id);
+        
+        if (quizError) {
+          console.error("Error fetching quiz questions:", quizError);
+        }
+        
+        // Transform quiz data to match the expected format
+        const formattedQuizQuestions: QuizQuestion[] = (quizData || []).map((question) => ({
+          id: question.id,
+          question: question.question,
+          options: question.options,
+          correctAnswer: question.correct_option
+        }));
+        
+        // Format the podcast data to match what the component expects
+        const formattedPodcast = {
+          id: podcastData.id,
+          title: podcastData.title,
+          courseId: podcastData.course_id,
+          courseName: podcastData.courses?.title || "Unknown Course",
+          description: podcastData.description || "No description available",
+          duration: podcastData.duration || 0,
+          image: podcastData.image_url,
+          quiz: formattedQuizQuestions,
+          audioUrl: podcastData.audio_url
+        };
+        
+        setPodcast(formattedPodcast);
+        setQuizQuestions(formattedQuizQuestions);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching podcast data:", error);
+        setLoading(false);
+      }
+    };
+    
+    fetchPodcast();
+  }, [id]);
   
   useEffect(() => {
     // Simulate playback progress
     let interval: ReturnType<typeof setInterval>;
     
-    if (isPlaying) {
+    if (isPlaying && podcast) {
       interval = setInterval(() => {
         setCurrentTime((prev) => {
           const newTime = prev + 1;
@@ -136,6 +129,17 @@ const PodcastPlayer = () => {
       if (interval) clearInterval(interval);
     };
   }, [isPlaying, podcast?.duration]);
+  
+  // Show loading state
+  if (loading) {
+    return (
+      <Layout>
+        <div className="h-full flex items-center justify-center">
+          <p>Loading podcast...</p>
+        </div>
+      </Layout>
+    );
+  }
   
   if (!podcast) {
     return (
@@ -201,7 +205,7 @@ const PodcastPlayer = () => {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className={`w-full h-full bg-math-gradient flex items-center justify-center`}>
+              <div className="w-full h-full bg-math-gradient flex items-center justify-center">
                 <Headphones className="h-20 w-20 text-white/70" />
               </div>
             )}
@@ -271,13 +275,15 @@ const PodcastPlayer = () => {
         </div>
         
         {/* Quiz Button */}
-        <button
-          onClick={() => setShowQuiz(true)}
-          className="w-full py-3 rounded-lg bg-primary/10 text-primary font-medium flex items-center justify-center"
-        >
-          <BrainCircuit className="h-5 w-5 mr-2" />
-          Take Quiz
-        </button>
+        {quizQuestions.length > 0 && (
+          <button
+            onClick={() => setShowQuiz(true)}
+            className="w-full py-3 rounded-lg bg-primary/10 text-primary font-medium flex items-center justify-center"
+          >
+            <BrainCircuit className="h-5 w-5 mr-2" />
+            Take Quiz
+          </button>
+        )}
         
         {/* Podcast Description */}
         <div className="glass-card p-4 rounded-xl">
@@ -286,6 +292,13 @@ const PodcastPlayer = () => {
             {podcast.description}
           </p>
         </div>
+        
+        {/* Audio URL Display - For debugging only */}
+        {podcast.audioUrl && (
+          <div className="text-xs text-gray-400 mt-2">
+            <p>Audio URL: {podcast.audioUrl}</p>
+          </div>
+        )}
       </div>
       
       {/* XP Gained Modal */}
@@ -304,9 +317,9 @@ const PodcastPlayer = () => {
       )}
       
       {/* Quiz Modal */}
-      {showQuiz && podcast.quiz && (
+      {showQuiz && quizQuestions.length > 0 && (
         <QuizModal
-          questions={podcast.quiz as QuizQuestion[]}
+          questions={quizQuestions}
           podcastTitle={podcast.title}
           onClose={() => setShowQuiz(false)}
           onComplete={handleQuizComplete}
