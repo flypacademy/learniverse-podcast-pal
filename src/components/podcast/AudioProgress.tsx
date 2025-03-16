@@ -1,6 +1,6 @@
 
 import React from "react";
-import ProgressBar from "@/components/ProgressBar";
+import { Slider } from "@/components/ui/slider";
 
 interface AudioProgressProps {
   currentTime: number;
@@ -9,7 +9,7 @@ interface AudioProgressProps {
 }
 
 const AudioProgress = ({ currentTime, duration, onSeek }: AudioProgressProps) => {
-  const progress = (currentTime / (duration || 1)) * 100;
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
   
   // Format time as mm:ss
   const formatTime = (seconds: number) => {
@@ -18,27 +18,21 @@ const AudioProgress = ({ currentTime, duration, onSeek }: AudioProgressProps) =>
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
   
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!onSeek) return;
-    
-    const progressBar = e.currentTarget;
-    const rect = progressBar.getBoundingClientRect();
-    const percent = ((e.clientX - rect.left) / rect.width) * 100;
-    onSeek(Math.max(0, Math.min(100, percent)));
+  const handleSliderChange = (values: number[]) => {
+    if (onSeek && duration > 0) {
+      const seekTime = (values[0] / 100) * duration;
+      onSeek(seekTime);
+    }
   };
   
   return (
     <div className="space-y-1.5">
-      <div 
-        className="relative cursor-pointer" 
-        onClick={handleSeek}
-      >
-        <ProgressBar 
-          value={progress} 
-          size="lg" 
-          color="bg-primary"
-        />
-      </div>
+      <Slider
+        value={[progress]}
+        max={100}
+        step={0.1}
+        onValueChange={handleSliderChange}
+      />
       <div className="flex justify-between text-xs text-gray-500">
         <span>{formatTime(currentTime)}</span>
         <span>{formatTime(duration)}</span>

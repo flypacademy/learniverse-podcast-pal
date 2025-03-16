@@ -6,6 +6,7 @@ import { formatTime } from "@/lib/utils";
 import PlayerControls from "./PlayerControls";
 import { Button } from "@/components/ui/button";
 import { ChevronUp } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
 
 interface MiniPlayerProps {
   podcastId: string;
@@ -72,6 +73,14 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
     return (localCurrentTime / localDuration) * 100;
   };
 
+  // Handle slider change
+  const handleSliderChange = (value: number[]) => {
+    if (audioElement && localDuration > 0) {
+      const newTime = (value[0] / 100) * localDuration;
+      setCurrentTime(newTime);
+    }
+  };
+
   // If there's no podcast playing, don't render the miniplayer
   if (!podcastId) return null;
 
@@ -100,12 +109,21 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
             <p className="text-xs text-gray-500 truncate">{courseName}</p>
           </Link>
           
-          {/* Simple progress bar */}
-          <div className="mt-1 w-full h-1 bg-gray-200 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-primary rounded-full"
-              style={{ width: `${calculateProgress()}%` }}
-            ></div>
+          {/* Time display */}
+          <div className="flex justify-between text-xs text-gray-500 mt-1">
+            <span>{formatTime(localCurrentTime)}</span>
+            <span>{formatTime(localDuration)}</span>
+          </div>
+          
+          {/* Slider for progress */}
+          <div className="mt-1">
+            <Slider
+              value={[calculateProgress()]}
+              max={100}
+              step={0.1}
+              onValueChange={handleSliderChange}
+              className="mt-0"
+            />
           </div>
         </div>
         
