@@ -5,6 +5,7 @@ import { useAudioStore } from "@/lib/audioContext";
 import PlayerControls from "./PlayerControls";
 import { Button } from "@/components/ui/button";
 import { ChevronUp } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
 
 interface MiniPlayerProps {
   podcastId: string;
@@ -26,7 +27,8 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
     play, 
     pause,
     audioElement,
-    continuePlayback
+    continuePlayback,
+    podcastMeta
   } = useAudioStore();
 
   // Check if audio element exists, if not try to recreate it
@@ -50,27 +52,52 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
       pause();
     } else {
       console.log("MiniPlayer: Playing audio");
+      
+      // Check if we have a valid audio URL
+      if (!podcastMeta?.audioUrl) {
+        toast({
+          title: "Playback error",
+          description: "Audio source not available",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       if (!audioElement) {
         console.log("MiniPlayer: No audio element, continuing playback first");
         continuePlayback();
-        // Add a small delay to ensure audio is loaded before playing
-        setTimeout(() => play(), 100);
+        // Add a delay to ensure audio is created before trying to play
+        setTimeout(() => {
+          const newAudioElement = useAudioStore.getState().audioElement;
+          if (newAudioElement) {
+            try {
+              play();
+            } catch (err) {
+              console.error("Error during delayed play:", err);
+            }
+          }
+        }, 300);
       } else {
-        play();
+        try {
+          play();
+        } catch (err) {
+          console.error("Error during play:", err);
+          // Try recreating the audio element and playing again
+          continuePlayback();
+          setTimeout(() => play(), 300);
+        }
       }
     }
   };
 
   const skipForward = () => {
-    const { setCurrentTime } = useAudioStore();
     const newTime = Math.min(localCurrentTime + 10, localDuration);
-    setCurrentTime(newTime);
+    useAudioStore.getState().setCurrentTime(newTime);
   };
 
   const skipBackward = () => {
-    const { setCurrentTime } = useAudioStore();
     const newTime = Math.max(localCurrentTime - 10, 0);
-    setCurrentTime(newTime);
+    useAudioStore.getState().setCurrentTime(newTime);
   };
   
   // Add vibration feedback to button interactions

@@ -1,5 +1,5 @@
 
-import React, { memo } from "react";
+import React, { memo, useCallback } from "react";
 import PodcastCover from "./PodcastCover";
 import PodcastInfo from "./PodcastInfo";
 import PlayerControls from "./PlayerControls";
@@ -8,6 +8,7 @@ import VolumeControl from "./VolumeControl";
 import QuizButton from "./QuizButton";
 import { PodcastData, CourseData } from "@/types/podcast";
 import { useNavigate } from "react-router-dom";
+import { toast } from "@/components/ui/use-toast";
 
 interface PlayerContentProps {
   podcastData: PodcastData;
@@ -41,14 +42,28 @@ const PlayerContent = ({
   const navigate = useNavigate();
   
   // Handle play button click with error logging
-  const onPlayButtonClick = () => {
+  const onPlayButtonClick = useCallback(() => {
     console.log("PlayerContent: Play button clicked, current playing state:", isPlaying);
     try {
       handlePlayAction();
     } catch (error) {
       console.error("Error in play button handler:", error);
+      toast({
+        title: "Playback error",
+        description: "Could not play audio. Please try again.",
+        variant: "destructive"
+      });
     }
-  };
+  }, [isPlaying, handlePlayAction]);
+  
+  // Safe handling of seek with error capture
+  const handleSeek = useCallback((time: number) => {
+    try {
+      seek(time);
+    } catch (error) {
+      console.error("Error in seek handler:", error);
+    }
+  }, [seek]);
   
   // Safe rendering of podcast content
   return (
@@ -79,7 +94,7 @@ const PlayerContent = ({
             <AudioProgress 
               currentTime={currentTime}
               duration={duration}
-              onSeek={seek}
+              onSeek={handleSeek}
             />
           )}
           

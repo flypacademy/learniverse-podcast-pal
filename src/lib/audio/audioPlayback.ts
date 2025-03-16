@@ -1,6 +1,7 @@
 
 import { StateCreator } from 'zustand';
 import { AudioState } from './types';
+import { toast } from '@/components/ui/use-toast';
 
 // Slice for audio playback controls
 export interface AudioPlaybackSlice {
@@ -20,6 +21,21 @@ export const createAudioPlaybackSlice: StateCreator<
   play: () => {
     const { audioElement, podcastMeta } = get();
     
+    // Validate podcast has audio URL
+    if (!podcastMeta?.audioUrl) {
+      console.error("Cannot play - no audio URL in metadata");
+      try {
+        toast({
+          title: "Playback error",
+          description: "Audio source not available",
+          variant: "destructive"
+        });
+      } catch (e) {
+        console.error("Error showing toast:", e);
+      }
+      return;
+    }
+    
     // If no audio element but we have metadata, try to recreate it
     if (!audioElement && podcastMeta?.audioUrl) {
       console.log("No audio element but we have metadata - recreating audio for playback");
@@ -30,18 +46,26 @@ export const createAudioPlaybackSlice: StateCreator<
         const newAudioElement = get().audioElement;
         if (newAudioElement) {
           console.log("Playing newly created audio element after delay");
-          const playPromise = newAudioElement.play();
-          if (playPromise !== undefined) {
-            playPromise
-              .then(() => {
-                set({ isPlaying: true });
-              })
-              .catch(error => {
-                console.error("Error playing newly created audio:", error);
-              });
+          try {
+            const playPromise = newAudioElement.play();
+            if (playPromise !== undefined) {
+              playPromise
+                .then(() => {
+                  set({ isPlaying: true });
+                  console.log("Audio playback started successfully");
+                })
+                .catch(error => {
+                  console.error("Error playing newly created audio:", error);
+                  // Don't try to autoplay again, likely blocked by browser policy
+                  set({ isPlaying: false });
+                });
+            }
+          } catch (error) {
+            console.error("Exception during play() of newly created audio:", error);
+            set({ isPlaying: false });
           }
         }
-      }, 300);
+      }, 500);
       
       return;
     }
@@ -53,13 +77,18 @@ export const createAudioPlaybackSlice: StateCreator<
     
     console.log("Playing audio from global store");
     
-    // Check if the audio is actually loaded and ready before playing
-    if (audioElement.readyState < 2) {
-      console.log("Audio in global store not ready yet, waiting...");
-      
-      const canPlayHandler = () => {
-        console.log("Audio in global store now ready to play");
-        
+    // Check if audio URL is set correctly
+    if (!audioElement.src || audioElement.src === 'about:blank' || audioElement.src === window.location.href) {
+      console.log("Audio element has invalid src, setting it from metadata");
+      if (podcastMeta?.audioUrl) {
+        audioElement.src = podcastMeta.audioUrl;
+        audioElement.load();
+      }
+    }
+    
+    // Wait for audio to be loadable before playing
+    const playWithDelay = () => {
+      try {
         const playPromise = audioElement.play();
         
         if (playPromise !== undefined) {
@@ -70,37 +99,40 @@ export const createAudioPlaybackSlice: StateCreator<
             })
             .catch(error => {
               console.error("Error playing audio from global store:", error);
-              // User interaction may be required for autoplay
-              tryPlayOnUserInteraction();
+              set({ isPlaying: false });
             });
         }
-        
-        // Remove event listener after attempting to play
+      } catch (error) {
+        console.error("Exception during play():", error);
+        set({ isPlaying: false });
+      }
+    };
+    
+    // Check if the audio is actually loaded and ready before playing
+    if (audioElement.readyState < 2) {
+      console.log("Audio in global store not ready yet, waiting...");
+      
+      // Set up one-time event listeners
+      const canPlayHandler = () => {
+        console.log("Audio in global store now ready to play");
+        playWithDelay();
         audioElement.removeEventListener('canplay', canPlayHandler);
       };
       
       // Add event listener for when audio can play
-      audioElement.addEventListener('canplay', canPlayHandler);
+      audioElement.addEventListener('canplay', canPlayHandler, { once: true });
       
-      // Also set a timeout in case canplay never fires
+      // Also try to reload the audio
+      if (podcastMeta?.audioUrl) {
+        audioElement.src = podcastMeta.audioUrl;
+        audioElement.load();
+      }
+      
+      // Set a timeout in case canplay never fires
       setTimeout(() => {
         if (!get().isPlaying) {
           console.log("Timeout: trying to play from global store anyway");
-          
-          const playPromise = audioElement.play();
-          
-          if (playPromise !== undefined) {
-            playPromise
-              .then(() => {
-                console.log("Audio playback started successfully from global store after timeout");
-                set({ isPlaying: true });
-              })
-              .catch(error => {
-                console.error("Error playing audio from global store after timeout:", error);
-                // User interaction may be required for autoplay
-                tryPlayOnUserInteraction();
-              });
-          }
+          playWithDelay();
         }
       }, 1000);
       
@@ -108,56 +140,19 @@ export const createAudioPlaybackSlice: StateCreator<
     }
     
     // If audio is already loaded, try to play directly
-    const playPromise = audioElement.play();
-    
-    if (playPromise !== undefined) {
-      playPromise
-        .then(() => {
-          console.log("Audio playback started successfully from global store");
-          set({ isPlaying: true });
-        })
-        .catch(error => {
-          console.error("Error playing audio from global store:", error);
-          tryPlayOnUserInteraction();
-        });
-    }
-    
-    // Helper function to try playing on next user interaction
-    function tryPlayOnUserInteraction() {
-      // If autoplay is blocked, we need to set up a user interaction handler
-      // to try playing again on the next user interaction
-      const userInteractionHandler = () => {
-        console.log("User interaction detected, trying to play audio again");
-        
-        const currentAudio = get().audioElement;
-        if (!currentAudio) return;
-        
-        currentAudio.play()
-          .then(() => {
-            console.log("Audio playback started after user interaction");
-            set({ isPlaying: true });
-            
-            // Remove the event listeners after successful playback
-            document.removeEventListener('click', userInteractionHandler);
-            document.removeEventListener('touchstart', userInteractionHandler);
-          })
-          .catch(err => {
-            console.error("Still cannot play audio after user interaction:", err);
-          });
-      };
-      
-      // Add event listeners for user interaction
-      document.addEventListener('click', userInteractionHandler, { once: true });
-      document.addEventListener('touchstart', userInteractionHandler, { once: true });
-    }
+    playWithDelay();
   },
   
   pause: () => {
     const { audioElement } = get();
     if (audioElement) {
       console.log("Pausing audio from global store");
-      audioElement.pause();
-      set({ isPlaying: false });
+      try {
+        audioElement.pause();
+        set({ isPlaying: false });
+      } catch (error) {
+        console.error("Error pausing audio:", error);
+      }
     }
   },
   
@@ -165,8 +160,12 @@ export const createAudioPlaybackSlice: StateCreator<
     const { audioElement } = get();
     if (audioElement) {
       console.log("Setting current time in global store:", time);
-      audioElement.currentTime = time;
-      set({ currentTime: time });
+      try {
+        audioElement.currentTime = time;
+        set({ currentTime: time });
+      } catch (error) {
+        console.error("Error setting current time:", error);
+      }
     }
   },
   
@@ -179,7 +178,11 @@ export const createAudioPlaybackSlice: StateCreator<
     const safeVolume = Math.max(0, Math.min(1, volume));
     const { audioElement } = get();
     if (audioElement) {
-      audioElement.volume = safeVolume;
+      try {
+        audioElement.volume = safeVolume;
+      } catch (error) {
+        console.error("Error setting volume:", error);
+      }
     }
     set({ volume: safeVolume });
   },

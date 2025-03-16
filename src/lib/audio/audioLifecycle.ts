@@ -26,7 +26,7 @@ export const createAudioLifecycleSlice: StateCreator<
       console.log("Creating new audio element for continued playback");
       
       // Create a new audio element
-      const newAudioElement = new Audio(podcastMeta.audioUrl);
+      const newAudioElement = new Audio();
       
       // Set volume based on stored value
       newAudioElement.volume = get().volume;
@@ -60,8 +60,12 @@ export const createAudioLifecycleSlice: StateCreator<
         // Don't update state on error to avoid potential loops
       });
       
+      // Set the source after adding event listeners
+      newAudioElement.src = podcastMeta.audioUrl;
+      
       // Make sure the audio is loaded
       newAudioElement.preload = "auto";
+      newAudioElement.load();
       
       // Update state with new audio (in a single set call to avoid multiple rerenders)
       set({ audioElement: newAudioElement });
@@ -72,8 +76,12 @@ export const createAudioLifecycleSlice: StateCreator<
         
         // Set current time if available
         if (currentTime > 0) {
-          newAudioElement.currentTime = currentTime;
-          set({ currentTime }); // Make sure store is updated too
+          try {
+            newAudioElement.currentTime = currentTime;
+            set({ currentTime }); // Make sure store is updated too
+          } catch (error) {
+            console.error("Error setting current time on new audio element:", error);
+          }
         }
       });
       
@@ -93,17 +101,25 @@ export const createAudioLifecycleSlice: StateCreator<
       console.log("Cleaning up audio in store");
       
       // Pause playback
-      audioElement.pause();
+      try {
+        audioElement.pause();
+      } catch (e) {
+        console.error("Error pausing audio during cleanup:", e);
+      }
       
       // Remove event listeners to prevent memory leaks and avoid potential callbacks after cleanup
       const clonedAudio = audioElement;
       
       // Use a more robust approach to remove all listeners
-      clonedAudio.onended = null;
-      clonedAudio.ontimeupdate = null;
-      clonedAudio.onloadedmetadata = null;
-      clonedAudio.oncanplay = null;
-      clonedAudio.onerror = null;
+      try {
+        clonedAudio.onended = null;
+        clonedAudio.ontimeupdate = null;
+        clonedAudio.onloadedmetadata = null;
+        clonedAudio.oncanplay = null;
+        clonedAudio.onerror = null;
+      } catch (e) {
+        console.error("Error removing event listeners during cleanup:", e);
+      }
       
       // Clone references before clearing state to prevent accessing nullified values
       set({ 
