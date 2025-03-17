@@ -55,7 +55,8 @@ export function useAudioInitialization({
         // Check if we already have this podcast in the store
         if (audioStore.currentPodcastId === podcastId && audioStore.audioElement) {
           console.log("Using existing audio element from store");
-          audioRef.current = audioStore.audioElement;
+          // Instead of trying to assign to audioRef.current directly,
+          // we'll just mark as initialized since we'll use the store's audio element
           setAudioInitialized(true);
           return;
         }
