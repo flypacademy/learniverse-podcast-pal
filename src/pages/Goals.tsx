@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Clock, BookOpen, Play, Calendar, Sparkles, SkipForward } from "lucide-react";
 import Layout from "@/components/Layout";
@@ -7,69 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PodcastCard from "@/components/PodcastCard";
 import { useToast } from "@/components/ui/use-toast";
-
-// Mock courses data
-const courses = [
-  { id: "math-gcse", name: "Mathematics", exam: "GCSE", board: "AQA" },
-  { id: "english-gcse", name: "English", exam: "GCSE", board: "Edexcel" },
-  { id: "science-gcse", name: "Science", exam: "GCSE", board: "OCR" },
-  { id: "history-gcse", name: "History", exam: "A-Level", board: "AQA" },
-  { id: "french-gcse", name: "French", exam: "IGCSE", board: "CIE" },
-];
-
-// Mock podcasts data
-const podcasts = [
-  {
-    id: "podcast-1",
-    title: "Algebra Fundamentals",
-    courseId: "math-gcse",
-    courseName: "Mathematics GCSE",
-    duration: 540, // 9 minutes
-    progress: 0,
-    completed: false,
-    image: "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png"
-  },
-  {
-    id: "podcast-2",
-    title: "Shakespeare Analysis",
-    courseId: "english-gcse",
-    courseName: "English GCSE",
-    duration: 720, // 12 minutes
-    progress: 0,
-    completed: false,
-    image: "/lovable-uploads/b8505be1-663c-4327-9a5f-8c5bb7419180.png"
-  },
-  {
-    id: "podcast-3",
-    title: "Chemical Reactions",
-    courseId: "science-gcse",
-    courseName: "Science GCSE",
-    duration: 600, // 10 minutes
-    progress: 0,
-    completed: false,
-    image: ""
-  },
-  {
-    id: "podcast-4",
-    title: "World War II Overview",
-    courseId: "history-gcse",
-    courseName: "History A-Level",
-    duration: 840, // 14 minutes
-    progress: 0,
-    completed: false,
-    image: ""
-  },
-  {
-    id: "podcast-5",
-    title: "French Conversation",
-    courseId: "french-gcse",
-    courseName: "French IGCSE",
-    duration: 480, // 8 minutes
-    progress: 0,
-    completed: false,
-    image: ""
-  }
-];
+import { useGoalCourses, GoalCourse, GoalPodcast } from "@/hooks/useGoalCourses";
 
 interface GoalSettings {
   timeGoal: number; // in minutes
@@ -78,13 +17,14 @@ interface GoalSettings {
 
 interface CurrentSession {
   isActive: boolean;
-  podcastsQueue: any[];
+  podcastsQueue: GoalPodcast[];
   currentPodcastIndex: number;
   timeRemaining: number; // in seconds
   earnedXP: number;
 }
 
 const Goals = () => {
+  const { courses, podcasts, loading, error } = useGoalCourses();
   const [goalSettings, setGoalSettings] = useState<GoalSettings>({
     timeGoal: 20, // default 20 minutes
     selectedCourses: [],
@@ -98,7 +38,7 @@ const Goals = () => {
     earnedXP: 0
   });
   
-  const [recommendedPodcasts, setRecommendedPodcasts] = useState<any[]>([]);
+  const [recommendedPodcasts, setRecommendedPodcasts] = useState<GoalPodcast[]>([]);
   const { toast } = useToast();
   
   // Update recommended podcasts when goal settings change
@@ -115,7 +55,28 @@ const Goals = () => {
     );
     
     setRecommendedPodcasts(filtered);
-  }, [goalSettings]);
+  }, [goalSettings, podcasts]);
+  
+  // Show a loading toast if data is loading
+  useEffect(() => {
+    if (loading) {
+      toast({
+        title: "Loading courses and podcasts",
+        description: "Please wait while we fetch the latest data",
+      });
+    }
+  }, [loading, toast]);
+  
+  // Show error toast if there's an error
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Error loading data",
+        description: error,
+        variant: "destructive"
+      });
+    }
+  }, [error, toast]);
   
   const handleTimeGoalChange = (value: number[]) => {
     setGoalSettings(prev => ({ ...prev, timeGoal: value[0] }));
@@ -254,6 +215,23 @@ const Goals = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
   
+  // Check if data is still loading
+  if (loading) {
+    return (
+      <Layout>
+        <div className="space-y-6 animate-slide-up p-4">
+          <h1 className="font-display font-bold text-2xl text-gray-900">
+            Podcast Goals
+          </h1>
+          <div className="flex justify-center items-center py-16">
+            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+            <span className="ml-3">Loading courses and podcasts...</span>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+  
   return (
     <Layout>
       <div className="space-y-6 animate-slide-up pt-4">
@@ -360,6 +338,11 @@ const Goals = () => {
                     {...podcast}
                   />
                 ))}
+                {recommendedPodcasts.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    <p>No podcasts available. Please select a course.</p>
+                  </div>
+                )}
               </div>
             </div>
           </TabsContent>
