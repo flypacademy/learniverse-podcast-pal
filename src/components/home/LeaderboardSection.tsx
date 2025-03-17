@@ -4,7 +4,7 @@ import Leaderboard from "@/components/Leaderboard";
 import { useLeaderboard } from "@/hooks/useLeaderboard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowClockwise } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const LeaderboardSection = () => {
@@ -25,7 +25,7 @@ const LeaderboardSection = () => {
           <div className="space-y-3">
             <p className="text-red-500">Failed to load leaderboard data: {error}</p>
             <Button variant="outline" size="sm" onClick={handleRefresh} className="flex items-center gap-1">
-              <ArrowClockwise className="h-4 w-4" />
+              <RefreshCw className="h-4 w-4" />
               <span>Refresh</span>
             </Button>
           </div>
