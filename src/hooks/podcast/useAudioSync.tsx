@@ -24,21 +24,26 @@ export function useAudioSync(
   useEffect(() => {
     if (!storeInitializedRef.current && audioStore.currentPodcastId === podcastId && audioStore.audioElement) {
       console.log("useAudioPlayer: Initializing from global store");
+      // Use a mutable variable to track initialization state
+      const wasInitialized = storeInitializedRef.current;
       storeInitializedRef.current = true;
-      audioRef.current = audioStore.audioElement;
       
-      // Use safe values to prevent uncontrolled/controlled component switches
-      if (isFinite(audioStore.currentTime)) {
-        setCurrentTime(audioStore.currentTime);
+      if (!wasInitialized) {
+        audioRef.current = audioStore.audioElement;
+        
+        // Use safe values to prevent uncontrolled/controlled component switches
+        if (isFinite(audioStore.currentTime)) {
+          setCurrentTime(audioStore.currentTime);
+        }
+        
+        if (isFinite(audioStore.duration) && audioStore.duration > 0) {
+          setDuration(audioStore.duration);
+        }
+        
+        setVolume(audioStore.volume);
+        setIsPlaying(audioStore.isPlaying);
+        setReady(true);
       }
-      
-      if (isFinite(audioStore.duration) && audioStore.duration > 0) {
-        setDuration(audioStore.duration);
-      }
-      
-      setVolume(audioStore.volume);
-      setIsPlaying(audioStore.isPlaying);
-      setReady(true);
     }
   }, [audioStore, podcastId, setCurrentTime, setDuration, setIsPlaying, setReady, setVolume, audioRef]);
   
