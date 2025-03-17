@@ -1,10 +1,9 @@
 
-import { StateCreator } from 'zustand';
 import { AudioState } from './types';
 
 // Event handler functions for audio elements
 export const createAudioEventHandlers = (
-  set: StateCreator<AudioState>['setState'],
+  set: (state: Partial<AudioState>) => void,
   get: () => AudioState
 ) => {
   const handleTimeUpdate = (audioElement: HTMLAudioElement) => {

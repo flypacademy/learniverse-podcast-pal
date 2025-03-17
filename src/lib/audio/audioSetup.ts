@@ -1,10 +1,10 @@
-import { StateCreator } from 'zustand';
+
 import { AudioState, PodcastMeta } from './types';
 import { createAudioEventHandlers } from './audioEventHandlers';
 
 // Setup and cleanup functions for audio elements
 export const createAudioSetup = (
-  set: StateCreator<AudioState>['setState'],
+  set: (state: Partial<AudioState>) => void,
   get: () => AudioState
 ) => {
   const eventHandlers = createAudioEventHandlers(set, get);

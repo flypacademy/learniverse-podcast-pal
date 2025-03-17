@@ -1,10 +1,9 @@
 
-import { StateCreator } from 'zustand';
 import { AudioState } from './types';
 
 // Control functions for audio playback
 export const createAudioControls = (
-  set: StateCreator<AudioState>['setState'],
+  set: (state: Partial<AudioState>) => void,
   get: () => AudioState
 ) => {
   return {
