@@ -1,4 +1,3 @@
-
 import { supabase } from "@/lib/supabase";
 
 export function useProgressSaving(podcastId: string | undefined, podcastCourseId?: string) {
@@ -21,22 +20,57 @@ export function useProgressSaving(podcastId: string | undefined, podcastCourseId
         course_id: podcastCourseId
       });
       
-      const { error } = await supabase
+      // First check if a record already exists
+      const { data: existingRecord, error: fetchError } = await supabase
         .from('user_progress')
-        .upsert([
-          {
-            user_id: userId,
-            podcast_id: podcastId,
+        .select('*')
+        .eq('user_id', userId)
+        .eq('podcast_id', podcastId)
+        .single();
+      
+      if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+        console.error("Error checking existing progress:", fetchError);
+        return;
+      }
+      
+      // If record exists, update it
+      if (existingRecord) {
+        const { error: updateError } = await supabase
+          .from('user_progress')
+          .update({
             last_position: last_position,
             completed: completed,
-            course_id: podcastCourseId
-          }
-        ]);
-      
-      if (error) {
-        console.error("Error saving progress:", error);
-      } else {
-        console.log("Progress saved successfully");
+            course_id: podcastCourseId,
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', userId)
+          .eq('podcast_id', podcastId);
+        
+        if (updateError) {
+          console.error("Error updating progress:", updateError);
+        } else {
+          console.log("Progress updated successfully");
+        }
+      } 
+      // Otherwise insert a new record
+      else {
+        const { error: insertError } = await supabase
+          .from('user_progress')
+          .insert([
+            {
+              user_id: userId,
+              podcast_id: podcastId,
+              last_position: last_position,
+              completed: completed,
+              course_id: podcastCourseId
+            }
+          ]);
+        
+        if (insertError) {
+          console.error("Error inserting progress:", insertError);
+        } else {
+          console.log("Progress inserted successfully");
+        }
       }
     } catch (error) {
       console.error("Exception saving progress:", error);

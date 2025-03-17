@@ -47,8 +47,10 @@ export function useAudioEventHandlers({
   const handleAudioTimeUpdate = useCallback(() => {
     if (audioRef.current) {
       try {
-        if (isFinite(audioRef.current.currentTime)) {
-          setCurrentTime(audioRef.current.currentTime);
+        const newTime = audioRef.current.currentTime;
+        if (isFinite(newTime)) {
+          console.log("Audio time update:", newTime);
+          setCurrentTime(newTime);
         }
       } catch (error) {
         console.error("Error in handleAudioTimeUpdate:", error);
