@@ -232,7 +232,15 @@ export type Database = {
           user_id?: string
           weekly_xp?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_experience_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_profiles: {
         Row: {

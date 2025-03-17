@@ -30,14 +30,14 @@ export function useLeaderboard() {
           setCurrentUserId(currentUser.id);
         }
         
-        // Query the user_experience table directly, joining with user_profiles
+        // Query the tables using the newly established relationship
         const { data, error: fetchError } = await supabase
           .from('user_experience')
           .select(`
-            id,
             user_id,
             total_xp,
-            user_profiles(
+            user_profiles (
+              id,
               display_name,
               avatar_url
             )
@@ -67,14 +67,14 @@ export function useLeaderboard() {
         
         // Transform the joined data into our leaderboard format
         const formattedData = data.map((item, index) => {
-          const profiles = item.user_profiles as any;
+          const profile = item.user_profiles as any;
           
           return {
             id: item.user_id,
-            display_name: profiles?.display_name || `User-${index + 1}`,
+            display_name: profile?.display_name || `User-${index + 1}`,
             total_xp: item.total_xp,
             rank: index + 1,
-            avatar_url: profiles?.avatar_url,
+            avatar_url: profile?.avatar_url,
             change: ["up", "down", "same"][Math.floor(Math.random() * 3)] as "up" | "down" | "same"
           };
         });
