@@ -11,6 +11,7 @@ import VolumeControl from "./VolumeControl";
 import PodcastDescription from "./PodcastDescription";
 import QuizButton from "./QuizButton";
 import PodcastAudio from "./PodcastAudio";
+import PodcastAudioEvents from "./PodcastAudioEvents";
 import { PodcastData, CourseData } from "@/types/podcast";
 
 interface PodcastPlayerContentProps {
@@ -80,16 +81,20 @@ const PodcastPlayerContent = ({
             courseName={courseData?.title || ""}
           />
           
-          <PodcastAudio
+          <PodcastAudioEvents
             audioRef={audioRef}
-            src={podcastData.audio_url}
-            onLoadedMetadata={handleAudioLoadedMetadata}
-            onTimeUpdate={handleAudioTimeUpdate}
-            onEnded={handleAudioEnded}
-            onPlay={handleAudioPlay}
-            onPause={handleAudioPause}
-            onError={handleAudioError}
-          />
+            handleAudioLoadedMetadata={handleAudioLoadedMetadata}
+            handleAudioTimeUpdate={handleAudioTimeUpdate}
+            handleAudioEnded={handleAudioEnded}
+            handleAudioPlay={handleAudioPlay}
+            handleAudioPause={handleAudioPause}
+            handleAudioError={handleAudioError}
+          >
+            <PodcastAudio
+              audioRef={audioRef}
+              src={podcastData.audio_url}
+            />
+          </PodcastAudioEvents>
           
           <div className="space-y-4">
             {ready ? (

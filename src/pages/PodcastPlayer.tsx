@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import XPModal from "@/components/podcast/XPModal";
 import { usePodcastPlayer } from "@/hooks/usePodcastPlayer";
@@ -11,6 +11,7 @@ import PodcastPlayerContainer from "@/components/podcast/PodcastPlayerContainer"
 const PodcastPlayer = () => {
   const { podcastId } = useParams<{ podcastId: string }>();
   const audioStore = useAudioStore();
+  const componentMountedRef = useRef(false);
   
   const {
     podcastData,
@@ -39,6 +40,15 @@ const PodcastPlayer = () => {
     refetchPodcastData,
     handleCompletion
   } = usePodcastPlayer();
+  
+  // Prevent re-initialization of the component
+  useEffect(() => {
+    componentMountedRef.current = true;
+    
+    return () => {
+      componentMountedRef.current = false;
+    };
+  }, []);
   
   // Initialize audio handling
   const {

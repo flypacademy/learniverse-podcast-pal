@@ -23,16 +23,24 @@ export function useAudioInitialization({
   const audioStore = useAudioStore();
   const [audioInitialized, setAudioInitialized] = useState(false);
   const initializationAttemptedRef = useRef(false);
+  const podcastMetaSetRef = useRef(false);
 
-  // Save podcast metadata to the global store when it's loaded
+  // Save podcast metadata to the global store when it's loaded, but only once
   useEffect(() => {
-    if (podcastData && courseData && !loading) {
-      audioStore.setPodcastMeta({
-        id: podcastData.id,
-        title: podcastData.title,
-        courseName: courseData?.title || "Unknown Course",
-        image: podcastData.image_url || undefined
-      });
+    if (podcastData && courseData && !loading && !podcastMetaSetRef.current) {
+      podcastMetaSetRef.current = true;
+      
+      // Only set metadata if this is a new podcast or if metadata has changed
+      const currentMetaId = audioStore.podcastMeta?.id;
+      if (currentMetaId !== podcastData.id) {
+        console.log("Setting podcast metadata for:", podcastData.title);
+        audioStore.setPodcastMeta({
+          id: podcastData.id,
+          title: podcastData.title,
+          courseName: courseData?.title || "Unknown Course",
+          image: podcastData.image_url || undefined
+        });
+      }
     }
   }, [podcastData, courseData, loading, audioStore]);
 
@@ -46,12 +54,15 @@ export function useAudioInitialization({
         
         // Register with audio store first before manipulating the audio element
         if (podcastId) {
-          audioStore.setAudio(audioRef.current, podcastId, {
-            id: podcastData.id,
-            title: podcastData.title,
-            courseName: courseData?.title || "Unknown Course",
-            image: podcastData.image_url || undefined
-          });
+          // Check if we need to reinitialize the audio or if it's already the same podcast
+          if (audioStore.currentPodcastId !== podcastId) {
+            audioStore.setAudio(audioRef.current, podcastId, {
+              id: podcastData.id,
+              title: podcastData.title,
+              courseName: courseData?.title || "Unknown Course",
+              image: podcastData.image_url || undefined
+            });
+          }
           
           // Delay setting audioInitialized to avoid immediate re-renders
           setTimeout(() => {

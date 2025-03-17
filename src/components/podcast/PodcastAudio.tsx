@@ -4,12 +4,12 @@ import React, { useEffect, useRef } from "react";
 interface PodcastAudioProps {
   audioRef: React.RefObject<HTMLAudioElement>;
   src?: string;
-  onLoadedMetadata: () => void;
-  onTimeUpdate: () => void;
-  onEnded: () => void;
-  onPlay: () => void;
-  onPause: () => void;
-  onError: (e: React.SyntheticEvent<HTMLAudioElement>) => void;
+  onLoadedMetadata?: () => void;
+  onTimeUpdate?: () => void;
+  onEnded?: () => void;
+  onPlay?: () => void;
+  onPause?: () => void;
+  onError?: (e: React.SyntheticEvent<HTMLAudioElement>) => void;
 }
 
 const PodcastAudio = ({
@@ -45,12 +45,6 @@ const PodcastAudio = ({
   return (
     <audio
       ref={audioRef}
-      onLoadedMetadata={onLoadedMetadata}
-      onTimeUpdate={onTimeUpdate}
-      onEnded={onEnded}
-      onPlay={onPlay}
-      onPause={onPause}
-      onError={onError}
       preload="metadata"
       className="hidden"
     />
