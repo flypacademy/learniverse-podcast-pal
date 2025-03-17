@@ -5,7 +5,7 @@ import {
   ChartContainer, 
   ChartLegendContent
 } from "@/components/ui/chart";
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 
 interface WeeklyAnalyticsProps {
   analytics: DailyListeningData[];
@@ -25,6 +25,11 @@ const WeeklyAnalytics = ({ analytics, loading }: WeeklyAnalyticsProps) => {
     };
   });
 
+  // Find max minutes for Y axis domain
+  const maxMinutes = Math.max(...chartData.map(data => data.minutes), 60);
+  // Round up to nearest 10
+  const yAxisMax = Math.ceil(maxMinutes / 10) * 10;
+
   return (
     <div className="glass-card p-4 rounded-xl">
       <div className="flex justify-between items-center mb-3">
@@ -34,32 +39,43 @@ const WeeklyAnalytics = ({ analytics, loading }: WeeklyAnalyticsProps) => {
         </div>
       </div>
       
-      <div className="h-48">
+      <div className="h-60"> {/* Increased height for better visualization */}
         {loading ? (
           <div className="h-full flex items-center justify-center">
             <p className="text-gray-500">Loading analytics...</p>
           </div>
         ) : chartData.length > 0 ? (
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
+            <BarChart 
+              data={chartData} 
+              margin={{ top: 20, right: 10, left: 10, bottom: 20 }}
+              barCategoryGap="20%"
+            >
+              <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
               <XAxis 
                 dataKey="day" 
                 axisLine={false}
                 tickLine={false}
                 tick={{ fontSize: 12, fill: '#64748b' }}
+                dy={10}
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 12, fill: '#64748b' }}
+                domain={[0, yAxisMax]}
+                tickFormatter={(value) => `${value}m`}
+              />
+              <Tooltip 
+                formatter={(value) => [`${value} minutes`, 'Listened']} 
+                labelFormatter={(label) => `Day: ${label}`}
+                contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
               />
               <Bar 
                 dataKey="minutes"
                 fill="url(#colorGradient)"
                 radius={[4, 4, 0, 0]}
-                barSize={24}
-                label={{ 
-                  position: 'bottom', 
-                  offset: 10,
-                  fill: '#64748b',
-                  fontSize: 12,
-                  formatter: (value) => `${value}m` 
-                }}
+                barSize={36}
               />
               <defs>
                 <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
