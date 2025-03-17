@@ -1,25 +1,15 @@
 
 import React, { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
-import PodcastHeader from "@/components/podcast/PodcastHeader";
-import PodcastCover from "@/components/podcast/PodcastCover";
-import PodcastInfo from "@/components/podcast/PodcastInfo";
-import PlayerControls from "@/components/podcast/PlayerControls";
-import AudioProgress from "@/components/podcast/AudioProgress";
-import VolumeControl from "@/components/podcast/VolumeControl";
-import PodcastDescription from "@/components/podcast/PodcastDescription";
-import QuizButton from "@/components/podcast/QuizButton";
+import PodcastPlayerContent from "@/components/podcast/PodcastPlayerContent";
+import PodcastError from "@/components/podcast/PodcastError";
+import PodcastLoading from "@/components/podcast/PodcastLoading";
 import XPModal from "@/components/podcast/XPModal";
 import { usePodcastPlayer } from "@/hooks/usePodcastPlayer";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
-import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
 
 const PodcastPlayer = () => {
   const { toast } = useToast();
-  const navigate = useNavigate();
   const {
     podcastData,
     courseData,
@@ -71,48 +61,6 @@ const PodcastPlayer = () => {
       audioRef.current.load();
     }
   }, [podcastData, audioRef]);
-  
-  const handleRetry = () => {
-    window.location.reload();
-  };
-  
-  // If there's an error, show it
-  if (error) {
-    return (
-      <Layout>
-        <div className="flex flex-col items-center justify-center h-full">
-          <h2 className="text-xl font-bold text-red-500">Error</h2>
-          <p className="text-gray-600 mt-2">{error}</p>
-          <Button 
-            onClick={handleRetry}
-            className="mt-6 flex items-center gap-2"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Try Again
-          </Button>
-          <Button 
-            onClick={() => navigate(-1)}
-            variant="outline"
-            className="mt-3"
-          >
-            Go Back
-          </Button>
-        </div>
-      </Layout>
-    );
-  }
-  
-  // Show loading state
-  if (loading || !podcastData) {
-    return (
-      <Layout>
-        <div className="flex flex-col items-center justify-center h-full">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-          <p className="mt-4 text-gray-600">Loading podcast...</p>
-        </div>
-      </Layout>
-    );
-  }
   
   const handleAudioLoadedMetadata = () => {
     if (audioRef.current) {
@@ -176,93 +124,41 @@ const PodcastPlayer = () => {
   
   return (
     <Layout>
-      <div className="space-y-8 pb-32 animate-slide-up">
-        <PodcastHeader 
-          courseName={courseData?.title || ""}
-        />
-        
-        <div className="flex flex-col md:flex-row gap-6">
-          <div className="flex-shrink-0 w-full md:w-auto">
-            <PodcastCover 
-              image={podcastData.image_url || ""}
-              title={podcastData.title} 
-            />
-          </div>
+      {error ? (
+        <PodcastError errorMessage={error} />
+      ) : loading || !podcastData ? (
+        <PodcastLoading />
+      ) : (
+        <>
+          <PodcastPlayerContent
+            podcastData={podcastData}
+            courseData={courseData}
+            ready={ready}
+            isPlaying={isPlaying}
+            currentTime={currentTime}
+            duration={duration}
+            volume={volume}
+            isQuizAvailable={isQuizAvailable}
+            audioRef={audioRef}
+            togglePlayPause={togglePlayPause}
+            seek={seek}
+            changeVolume={changeVolume}
+            skipForward={skipForward}
+            skipBackward={skipBackward}
+            handleAudioLoadedMetadata={handleAudioLoadedMetadata}
+            handleAudioTimeUpdate={handleAudioTimeUpdate}
+            handleAudioEnded={handleAudioEnded}
+            handleAudioPlay={handleAudioPlay}
+            handleAudioPause={handleAudioPause}
+            handleAudioError={handleAudioError}
+          />
           
-          <div className="flex-grow space-y-6">
-            <PodcastInfo 
-              title={podcastData.title}
-              courseName={courseData?.title || ""}
-            />
-            
-            <audio
-              ref={audioRef}
-              src={podcastData.audio_url}
-              onLoadedMetadata={handleAudioLoadedMetadata}
-              onTimeUpdate={handleAudioTimeUpdate}
-              onEnded={handleAudioEnded}
-              onPlay={handleAudioPlay}
-              onPause={handleAudioPause}
-              onError={handleAudioError}
-              preload="metadata"
-              className="hidden"
-            />
-            
-            <div className="space-y-4">
-              {ready ? (
-                <>
-                  <PlayerControls 
-                    isPlaying={isPlaying}
-                    onPlayPause={togglePlayPause}
-                    onSkipBack={skipBackward}
-                    onSkipForward={skipForward}
-                    size="normal"
-                  />
-                  
-                  <AudioProgress 
-                    currentTime={currentTime}
-                    duration={duration}
-                    onSeek={seek}
-                  />
-                  
-                  <div className="flex justify-between">
-                    <VolumeControl 
-                      volume={volume}
-                      onVolumeChange={changeVolume}
-                    />
-                    
-                    {isQuizAvailable && (
-                      <QuizButton 
-                        onClick={() => navigate(`/quiz/${podcastData.id}`)}
-                      />
-                    )}
-                  </div>
-                </>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex justify-center space-x-4">
-                    <Skeleton className="h-12 w-12 rounded-full" />
-                    <Skeleton className="h-12 w-12 rounded-full" />
-                    <Skeleton className="h-12 w-12 rounded-full" />
-                  </div>
-                  <Skeleton className="h-2 w-full" />
-                  <div className="flex justify-between">
-                    <Skeleton className="h-6 w-32" />
-                    <Skeleton className="h-6 w-32" />
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-        
-        <PodcastDescription description={podcastData.description || ""} />
-      </div>
-      
-      <XPModal 
-        show={showXPModal}
-        xpAmount={30}
-      />
+          <XPModal 
+            show={showXPModal}
+            xpAmount={30}
+          />
+        </>
+      )}
     </Layout>
   );
 };
