@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ui/use-toast";
+import { fetchUserProgress, fetchCourseDetails, transformCourseData } from "@/utils/courseUtils";
 
 export interface RecentCourse {
   id: string;
@@ -24,7 +25,7 @@ export function useRecentCourses() {
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchRecentCourses = async () => {
+    const loadRecentCourses = async () => {
       try {
         // Check if user is logged in
         const { data: { session } } = await supabase.auth.getSession();
@@ -35,15 +36,11 @@ export function useRecentCourses() {
           return;
         }
 
-        // Get the user's progress data to find courses they've interacted with
-        const { data: progressData, error: progressError } = await supabase
-          .from('user_progress')
-          .select('course_id, podcast_id, last_position, completed')
-          .eq('user_id', session.user.id)
-          .order('updated_at', { ascending: false });
-
-        if (progressError) {
-          console.error("Error fetching user progress:", progressError);
+        // Fetch user's course progress
+        const progressData = await fetchUserProgress(session.user.id);
+        
+        if (!progressData || progressData.length === 0) {
+          console.log("No recent courses found");
           setLoading(false);
           return;
         }
@@ -56,75 +53,22 @@ export function useRecentCourses() {
         )];
 
         if (uniqueCourseIds.length === 0) {
-          console.log("No recent courses found");
           setLoading(false);
           return;
         }
 
-        // Fetch course details
-        const { data: coursesData, error: coursesError } = await supabase
-          .from('courses')
-          .select('*')
-          .in('id', uniqueCourseIds)
-          .limit(3); // Limit to 3 recent courses
-
-        if (coursesError) {
-          console.error("Error fetching courses:", coursesError);
+        // Fetch detailed course information
+        const coursesData = await fetchCourseDetails(uniqueCourseIds);
+        
+        if (!coursesData || coursesData.length === 0) {
           setLoading(false);
           return;
         }
 
-        // For each course, fetch the number of podcasts and user's completed podcasts
-        const formattedCourses = await Promise.all(coursesData.map(async (course) => {
-          // Get total podcasts for this course
-          const { count: totalPodcasts, error: podcastsError } = await supabase
-            .from('podcasts')
-            .select('*', { count: 'exact', head: true })
-            .eq('course_id', course.id);
-
-          if (podcastsError) {
-            console.error(`Error counting podcasts for course ${course.id}:`, podcastsError);
-          }
-
-          // Count completed podcasts for this user and course
-          const { count: completedPodcasts, error: completedError } = await supabase
-            .from('user_progress')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', session.user.id)
-            .eq('course_id', course.id)
-            .eq('completed', true);
-
-          if (completedError) {
-            console.error(`Error counting completed podcasts for course ${course.id}:`, completedError);
-          }
-
-          // Format achievements based on user progress
-          const achievements = [];
-          
-          // Check if user has a streak
-          const userHasStreak = false; // This would require streak tracking logic
-          if (userHasStreak) {
-            achievements.push({ type: "streak" as const, value: 3 });
-          }
-          
-          // Check completion percentage for course achievement
-          const completionPercentage = totalPodcasts ? (completedPodcasts || 0) / totalPodcasts : 0;
-          if (completionPercentage >= 0.8) {
-            achievements.push({ type: "complete" as const });
-          }
-
-          return {
-            id: course.id,
-            title: course.title,
-            subject: course.subject || "math",
-            totalPodcasts: totalPodcasts || 0,
-            completedPodcasts: completedPodcasts || 0,
-            image: course.image_url || "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png",
-            exam: course.exam || "GCSE",
-            board: course.board || "AQA",
-            achievements
-          };
-        }));
+        // Transform courses data into the format needed by the UI
+        const formattedCourses = await Promise.all(
+          coursesData.map(course => transformCourseData(course, session.user.id))
+        );
 
         setRecentCourses(formattedCourses);
         setLoading(false);
@@ -139,7 +83,7 @@ export function useRecentCourses() {
       }
     };
 
-    fetchRecentCourses();
+    loadRecentCourses();
   }, [toast]);
 
   return { recentCourses, loading };
