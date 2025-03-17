@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useCallback } from "react";
 
 interface PodcastAudioEventsProps {
   handleAudioLoadedMetadata: () => void;
@@ -22,6 +22,30 @@ const PodcastAudioEvents = ({
   audioRef,
   children
 }: PodcastAudioEventsProps) => {
+  // Create a wrapper function to handle the error event
+  const handleErrorEvent = useCallback((event: Event) => {
+    // Convert the native event to something compatible with React's synthetic event
+    const syntheticEvent = {
+      nativeEvent: event,
+      currentTarget: event.currentTarget,
+      target: event.target,
+      bubbles: event.bubbles,
+      cancelable: event.cancelable,
+      defaultPrevented: event.defaultPrevented,
+      eventPhase: event.eventPhase,
+      isTrusted: event.isTrusted,
+      timeStamp: event.timeStamp,
+      type: event.type,
+      preventDefault: () => event.preventDefault(),
+      stopPropagation: () => event.stopPropagation(),
+      isPropagationStopped: () => false,
+      isDefaultPrevented: () => event.defaultPrevented,
+      persist: () => {}
+    } as React.SyntheticEvent<HTMLAudioElement, Event>;
+    
+    handleAudioError(syntheticEvent);
+  }, [handleAudioError]);
+
   // Attach event listeners directly to the audio element
   useEffect(() => {
     const audioElement = audioRef.current;
@@ -35,7 +59,7 @@ const PodcastAudioEvents = ({
     audioElement.addEventListener('ended', handleAudioEnded);
     audioElement.addEventListener('play', handleAudioPlay);
     audioElement.addEventListener('pause', handleAudioPause);
-    audioElement.addEventListener('error', handleAudioError as EventListener);
+    audioElement.addEventListener('error', handleErrorEvent);
     
     // Clean up on unmount
     return () => {
@@ -45,10 +69,10 @@ const PodcastAudioEvents = ({
       audioElement.removeEventListener('ended', handleAudioEnded);
       audioElement.removeEventListener('play', handleAudioPlay);
       audioElement.removeEventListener('pause', handleAudioPause);
-      audioElement.removeEventListener('error', handleAudioError as EventListener);
+      audioElement.removeEventListener('error', handleErrorEvent);
     };
   }, [audioRef, handleAudioLoadedMetadata, handleAudioTimeUpdate, handleAudioEnded, 
-      handleAudioPlay, handleAudioPause, handleAudioError]);
+      handleAudioPlay, handleAudioPause, handleErrorEvent]);
   
   return <>{children}</>;
 };
