@@ -9,8 +9,11 @@ interface VolumeControlProps {
 }
 
 const VolumeControl = ({ volume, onVolumeChange }: VolumeControlProps) => {
+  // Ensure volume is always a valid number between 0-100
+  const safeVolume = isNaN(volume) || volume < 0 ? 0 : (volume > 100 ? 100 : volume);
+  
   const handleVolumeChange = (value: number[]) => {
-    if (value && value.length > 0) {
+    if (value && value.length > 0 && !isNaN(value[0])) {
       onVolumeChange(value[0]);
     }
   };
@@ -19,7 +22,7 @@ const VolumeControl = ({ volume, onVolumeChange }: VolumeControlProps) => {
     <div className="flex items-center gap-3 max-w-xs mx-auto">
       <Volume2 className="h-4 w-4 text-gray-500" />
       <Slider
-        value={[volume]}
+        value={[safeVolume]}
         max={100}
         step={1}
         onValueChange={handleVolumeChange}

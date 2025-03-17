@@ -54,7 +54,7 @@ export function usePodcastPlayer() {
         setError("Loading timeout reached. Please try again later.");
         setLoading(false);
       }
-    }, 20000); // 20 seconds timeout
+    }, 10000); // 10 seconds timeout (reduced from 20)
     
     timeoutRef.current = timeoutId;
     
@@ -73,6 +73,14 @@ export function usePodcastPlayer() {
       console.log("Fetching podcast data for ID:", podcastId);
       
       try {
+        // Clear any previous timeout
+        if (timeoutRef.current) {
+          window.clearTimeout(timeoutRef.current);
+        }
+        
+        setLoading(true);
+        setError(null);
+        
         const { data: podcastData, error: podcastError } = await supabase
           .from('podcasts')
           .select('*')
@@ -90,6 +98,13 @@ export function usePodcastPlayer() {
         }
         
         console.log("Podcast data fetched successfully:", podcastData);
+        
+        // Validate that audio_url exists
+        if (!podcastData.audio_url) {
+          console.error("Podcast has no audio URL:", podcastId);
+          throw new Error('Podcast audio not available');
+        }
+        
         setPodcastData(podcastData);
         
         if (podcastData.course_id) {

@@ -14,6 +14,8 @@ import XPModal from "@/components/podcast/XPModal";
 import { usePodcastPlayer } from "@/hooks/usePodcastPlayer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
 
 const PodcastPlayer = () => {
   const { toast } = useToast();
@@ -59,6 +61,20 @@ const PodcastPlayer = () => {
       }
     };
   }, [loading, error, podcastData, audioRef]);
+
+  // Create and configure audio element when podcast data is loaded
+  useEffect(() => {
+    if (podcastData?.audio_url && audioRef.current) {
+      // Make sure audio is properly configured
+      console.log("Configuring audio element with URL:", podcastData.audio_url);
+      audioRef.current.src = podcastData.audio_url;
+      audioRef.current.load();
+    }
+  }, [podcastData, audioRef]);
+  
+  const handleRetry = () => {
+    window.location.reload();
+  };
   
   // If there's an error, show it
   if (error) {
@@ -67,12 +83,20 @@ const PodcastPlayer = () => {
         <div className="flex flex-col items-center justify-center h-full">
           <h2 className="text-xl font-bold text-red-500">Error</h2>
           <p className="text-gray-600 mt-2">{error}</p>
-          <button 
+          <Button 
+            onClick={handleRetry}
+            className="mt-6 flex items-center gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Try Again
+          </Button>
+          <Button 
             onClick={() => navigate(-1)}
-            className="mt-6 px-4 py-2 bg-primary text-white rounded-md shadow hover:bg-primary/90 transition-colors"
+            variant="outline"
+            className="mt-3"
           >
             Go Back
-          </button>
+          </Button>
         </div>
       </Layout>
     );
@@ -94,11 +118,11 @@ const PodcastPlayer = () => {
     if (audioRef.current) {
       try {
         console.log("Audio metadata loaded, duration:", audioRef.current.duration);
-        if (isFinite(audioRef.current.duration)) {
+        if (isFinite(audioRef.current.duration) && audioRef.current.duration > 0) {
           setDuration(audioRef.current.duration);
           setReady(true);
         } else {
-          console.error("Invalid audio duration");
+          console.error("Invalid audio duration:", audioRef.current.duration);
           toast({
             title: "Warning",
             description: "Could not determine audio duration",

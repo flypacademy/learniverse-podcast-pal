@@ -9,8 +9,12 @@ interface AudioProgressProps {
 }
 
 const AudioProgress = ({ currentTime, duration, onSeek }: AudioProgressProps) => {
+  // Ensure currentTime and duration are valid numbers
+  const safeCurrentTime = isNaN(currentTime) || currentTime < 0 ? 0 : currentTime;
+  const safeDuration = isNaN(duration) || duration <= 0 ? 1 : duration;
+  
   // Ensure progress is always a valid number between 0-100
-  const progress = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
+  const progress = Math.min(100, Math.max(0, (safeCurrentTime / safeDuration) * 100));
   
   // Format time as mm:ss
   const formatTime = (seconds: number) => {
@@ -23,7 +27,7 @@ const AudioProgress = ({ currentTime, duration, onSeek }: AudioProgressProps) =>
   };
   
   const handleSliderChange = (value: number[]) => {
-    if (onSeek && value && value.length > 0) {
+    if (onSeek && value && value.length > 0 && !isNaN(value[0])) {
       onSeek(value[0]);
     }
   };
@@ -39,8 +43,8 @@ const AudioProgress = ({ currentTime, duration, onSeek }: AudioProgressProps) =>
         className="w-full"
       />
       <div className="flex justify-between text-xs text-gray-500">
-        <span>{formatTime(currentTime)}</span>
-        <span>{formatTime(duration)}</span>
+        <span>{formatTime(safeCurrentTime)}</span>
+        <span>{formatTime(safeDuration)}</span>
       </div>
     </div>
   );
