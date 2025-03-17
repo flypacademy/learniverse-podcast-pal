@@ -18,6 +18,7 @@ interface PodcastCardProps {
   }[];
   exam?: string;
   board?: string;
+  onClick?: () => void; // Add optional onClick handler
 }
 
 const PodcastCard = ({
@@ -31,7 +32,8 @@ const PodcastCard = ({
   image,
   achievements = [],
   exam = "GCSE",
-  board = "AQA"
+  board = "AQA",
+  onClick
 }: PodcastCardProps) => {
   // Format duration to mm:ss
   const formatDuration = (seconds: number) => {
@@ -49,6 +51,7 @@ const PodcastCard = ({
     <Link 
       to={`/podcast/${id}`} 
       className="podcast-card flex items-center gap-3 group relative bg-white rounded-lg p-3 shadow-sm hover:shadow-md transition-all"
+      onClick={onClick} // Add the onClick handler to the Link component
     >
       <div className="relative h-16 w-16 rounded-lg overflow-hidden flex-shrink-0">
         {image ? (
