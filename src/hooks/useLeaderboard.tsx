@@ -30,25 +30,26 @@ export function useLeaderboard() {
           setCurrentUserId(currentUser.id);
         }
         
-        // Join user_experience with user_profiles to get both XP and display names
-        const { data: combinedData, error: combinedError } = await supabase
+        // Query the user_experience table directly, joining with user_profiles
+        const { data, error: fetchError } = await supabase
           .from('user_experience')
           .select(`
+            id,
             user_id,
             total_xp,
-            user_profiles:user_id(
+            user_profiles(
               display_name,
               avatar_url
             )
           `)
           .order('total_xp', { ascending: false });
           
-        if (combinedError) {
-          throw combinedError;
+        if (fetchError) {
+          throw fetchError;
         }
         
         // If there's no data yet, use fallback data
-        if (!combinedData || combinedData.length === 0) {
+        if (!data || data.length === 0) {
           // Use default mock data for initial state
           const mockData = [
             { id: "user1", display_name: "Alex", total_xp: 2430, rank: 1, change: "same" as const },
@@ -65,24 +66,22 @@ export function useLeaderboard() {
         }
         
         // Transform the joined data into our leaderboard format
-        const formattedData = combinedData.map((item, index) => {
-          // Properly type and access the nested user_profiles object
-          const userProfiles = item.user_profiles as any;
+        const formattedData = data.map((item, index) => {
+          const profiles = item.user_profiles as any;
           
           return {
             id: item.user_id,
-            // Access properties from the nested profiles object
-            display_name: userProfiles?.display_name || `User-${index + 1}`,
+            display_name: profiles?.display_name || `User-${index + 1}`,
             total_xp: item.total_xp,
             rank: index + 1,
-            avatar_url: userProfiles?.avatar_url,
-            // Randomly assign change for now, in the future this would be based on previous rankings
+            avatar_url: profiles?.avatar_url,
             change: ["up", "down", "same"][Math.floor(Math.random() * 3)] as "up" | "down" | "same"
           };
         });
         
         setLeaderboardData(formattedData);
         setLoading(false);
+        setError(null);
       } catch (err: any) {
         console.error("Error fetching leaderboard data:", err);
         setError(err.message);
