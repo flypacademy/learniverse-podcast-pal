@@ -19,7 +19,7 @@ const Layout = ({ children }: LayoutProps) => {
   const showMiniPlayer = !!currentPodcastId && !!podcastMeta && !isPodcastPage;
   
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-b from-white to-gray-50">
+    <div className="flex flex-col min-h-screen bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-950">
       <main className={`flex-1 pt-6 px-4 max-w-md mx-auto w-full ${showMiniPlayer ? 'pb-36' : 'pb-20'}`}>
         {children}
       </main>
@@ -39,7 +39,7 @@ const Layout = ({ children }: LayoutProps) => {
       )}
       
       {/* Navigation Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-10">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 z-10">
         <div className="flex justify-around items-center py-2 px-3 max-w-md mx-auto">
           <NavItem 
             to="/" 
@@ -63,7 +63,7 @@ const Layout = ({ children }: LayoutProps) => {
             to="/profile" 
             icon={<User className="h-5 w-5" />} 
             label="Profile"
-            isActive={location.pathname === "/profile"}
+            isActive={location.pathname === "/profile" || location.pathname === "/settings"}
           />
         </div>
       </nav>
@@ -92,7 +92,7 @@ const NavItem = ({ to, icon, label, isActive }: NavItemProps) => {
       className={`flex flex-col items-center justify-center p-1.5 transition-all duration-200 ease-in-out ${
         isActive 
           ? "text-primary" 
-          : "text-gray-500 hover:text-gray-700"
+          : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
       }`}
       onClick={handleClick}
     >

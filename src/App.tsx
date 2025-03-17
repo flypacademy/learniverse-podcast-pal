@@ -4,6 +4,7 @@ import { Routes, Route } from 'react-router-dom';
 import { supabase } from "@/lib/supabase";
 import { Session } from '@supabase/supabase-js';
 import { Toaster } from "@/components/ui/toaster"
+import { ThemeProvider } from '@/contexts/ThemeContext';
 
 // Import page components
 import Index from './pages/Index';
@@ -14,6 +15,7 @@ import PodcastSample from './pages/PodcastSample';
 import Tasks from './pages/Tasks';
 import Goals from './pages/Goals';
 import Profile from './pages/Profile';
+import Settings from './pages/Settings';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminRegister from './pages/admin/AdminRegister';
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -39,7 +41,7 @@ function App() {
   }, [])
 
   return (
-    <>
+    <ThemeProvider>
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<Index />} />
@@ -52,6 +54,7 @@ function App() {
         <Route path="/tasks" element={<Tasks />} />
         <Route path="/goals" element={<Goals />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/settings" element={<Settings />} />
 
         {/* Admin routes */}
         <Route path="/admin/login" element={<AdminLogin />} />
@@ -70,7 +73,7 @@ function App() {
         <Route path="*" element={<NotFound />} />
       </Routes>
       <Toaster />
-    </>
+    </ThemeProvider>
   );
 }
 
