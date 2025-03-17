@@ -11,11 +11,10 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
-  const { currentPodcastId, podcastMeta, isPlaying } = useAudioStore();
+  const { currentPodcastId, podcastMeta } = useAudioStore();
   
   // Don't show mini player on the podcast page
-  const isPodcastPage = location.pathname.includes('/podcast/') && 
-                         location.pathname.includes(currentPodcastId || '');
+  const isPodcastPage = location.pathname.includes('/podcast/');
   const showMiniPlayer = currentPodcastId && podcastMeta && !isPodcastPage;
   
   return (

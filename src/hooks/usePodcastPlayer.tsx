@@ -1,97 +1,230 @@
+import { useState, useEffect, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/components/ui/use-toast";
 
-import { useEffect, useState, useRef } from "react";
-import { useParams } from "react-router-dom";
-import { usePodcastData } from "./usePodcastData";
-import { useAudioPlayback } from "./useAudioPlayback";
-import { useProgressTracking } from "./useProgressTracking";
-import { useAudioStore } from "@/lib/audioContext";
-import type { PodcastData, CourseData } from "@/types/podcast";
+export interface PodcastData {
+  id: string;
+  title: string;
+  audio_url: string;
+  image_url?: string | null;
+  duration: number;
+  description?: string | null;
+  course_id?: string;
+}
 
-export type { PodcastData, CourseData };
+interface PodcastProgressData {
+  last_position: number;
+  completed: boolean;
+}
+
+export interface CourseData {
+  id: string;
+  title: string;
+  image?: string;
+}
 
 export function usePodcastPlayer() {
-  const { podcastId } = useParams<{ podcastId: string }>();
-  const [audioInitialized, setAudioInitialized] = useState(false);
-  const audioStore = useAudioStore();
-  const mountedRef = useRef(true);
+  const { podcastId } = useParams();
+  const navigate = useNavigate();
+  const { toast } = useToast();
   
-  // Get podcast data
-  const {
-    podcastData,
-    courseData,
-    loading,
-    error,
-    isQuizAvailable,
-    initialPosition
-  } = usePodcastData(podcastId);
+  const [podcastData, setPodcastData] = useState<PodcastData | null>(null);
+  const [courseData, setCourseData] = useState<CourseData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [volume, setVolume] = useState(1);
+  const [isQuizAvailable, setIsQuizAvailable] = useState(false);
+  const [showXPModal, setShowXPModal] = useState(false);
   
-  // Set up audio playback controls
-  const {
-    isPlaying,
-    setIsPlaying,
-    duration,
-    setDuration,
-    currentTime,
-    setCurrentTime,
-    volume,
-    ready,
-    setReady,
-    audioRef,
-    play,
-    pause,
-    togglePlayPause,
-    seek,
-    changeVolume,
-    skipForward,
-    skipBackward
-  } = useAudioPlayback(initialPosition);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   
-  // Set up progress tracking
-  const {
-    showXPModal,
-    setShowXPModal,
-    handleCompletion
-  } = useProgressTracking(podcastId, isPlaying, podcastData);
-  
-  // Apply initial position from user progress when audio is ready
   useEffect(() => {
-    if (audioRef.current && initialPosition > 0 && !audioInitialized && ready) {
-      console.log("Setting initial position from progress data:", initialPosition);
+    async function fetchPodcastData() {
+      if (!podcastId) return;
+      
       try {
-        audioRef.current.currentTime = initialPosition;
-        setCurrentTime(initialPosition);
-        setAudioInitialized(true);
-      } catch (err) {
-        console.error("Error setting initial position:", err);
-        // Still mark as initialized to avoid repeated attempts
-        setAudioInitialized(true);
+        const { data: podcastData, error: podcastError } = await supabase
+          .from('podcasts')
+          .select('*')
+          .eq('id', podcastId)
+          .single();
+        
+        if (podcastError) throw podcastError;
+        if (!podcastData) throw new Error('Podcast not found');
+        
+        setPodcastData(podcastData);
+        
+        if (podcastData.course_id) {
+          const { data: courseData, error: courseError } = await supabase
+            .from('courses')
+            .select('id, title, image_url')
+            .eq('id', podcastData.course_id)
+            .maybeSingle();
+          
+          if (courseError) {
+            console.error("Error fetching course:", courseError);
+          } else if (courseData) {
+            const formattedCourseData: CourseData = {
+              id: courseData.id,
+              title: courseData.title,
+              image: courseData.image_url
+            };
+            setCourseData(formattedCourseData);
+          }
+        }
+        
+        const { count, error: quizError } = await supabase
+          .from('quiz_questions')
+          .select('id', { count: 'exact', head: true })
+          .eq('podcast_id', podcastId);
+        
+        if (quizError) {
+          console.error("Error checking quiz:", quizError);
+        } else {
+          setIsQuizAvailable(!!count && count > 0);
+        }
+        
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const { data: progressData } = await supabase
+            .from('user_progress')
+            .select('last_position, completed')
+            .eq('podcast_id', podcastId)
+            .eq('user_id', session.user.id)
+            .maybeSingle();
+          
+          if (progressData) {
+            handleProgressData(progressData);
+          }
+        }
+        
+      } catch (error: any) {
+        console.error("Error fetching podcast:", error);
+        setError(error.message || "Failed to load podcast");
+        toast({
+          title: "Error",
+          description: "Failed to load podcast",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
       }
     }
-  }, [audioRef.current, initialPosition, audioInitialized, ready, setCurrentTime]);
-
-  // Track mounted state
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  // IMPORTANT: Don't stop playback when unmounting the component
-  useEffect(() => {
-    return () => {
-      console.log("usePodcastPlayer hook - Unmounting, preserving audio state");
-      
-      // Don't pause or clean up the audio element
-      // This allows playback to continue when navigating away
-      
-      // Update global store time one last time before unmounting
-      if (audioRef.current && audioStore.audioElement === audioRef.current && podcastId) {
-        audioStore.setCurrentTime(audioRef.current.currentTime);
+    
+    fetchPodcastData();
+  }, [podcastId, toast]);
+  
+  const handleProgressData = (progressData: PodcastProgressData) => {
+    if (progressData.last_position > 0) {
+      setCurrentTime(progressData.last_position);
+      if (audioRef.current) {
+        audioRef.current.currentTime = progressData.last_position;
       }
-    };
-  }, [audioStore, audioRef, podcastId]);
-
+    }
+  };
+  
+  const play = () => {
+    if (audioRef.current) {
+      audioRef.current.play();
+      setIsPlaying(true);
+    }
+  };
+  
+  const pause = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    }
+  };
+  
+  const togglePlayPause = () => {
+    if (isPlaying) {
+      pause();
+    } else {
+      play();
+    }
+  };
+  
+  const seek = (time: number) => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = time;
+      setCurrentTime(time);
+    }
+  };
+  
+  const changeVolume = (value: number) => {
+    if (audioRef.current) {
+      audioRef.current.volume = value;
+      setVolume(value);
+    }
+  };
+  
+  const skipForward = () => {
+    if (audioRef.current) {
+      const newTime = Math.min(audioRef.current.duration, audioRef.current.currentTime + 15);
+      audioRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+    }
+  };
+  
+  const skipBackward = () => {
+    if (audioRef.current) {
+      const newTime = Math.max(0, audioRef.current.currentTime - 15);
+      audioRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+    }
+  };
+  
+  const saveProgress = async (completed = false) => {
+    if (!audioRef.current || !podcastId) return;
+    
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return;
+    
+    const userId = session.user.id;
+    const last_position = Math.floor(audioRef.current.currentTime);
+    
+    try {
+      const { error } = await supabase
+        .from('user_progress')
+        .upsert([
+          {
+            user_id: userId,
+            podcast_id: podcastId,
+            last_position: last_position,
+            completed: completed,
+            course_id: podcastData?.course_id
+          }
+        ]);
+      
+      if (error) {
+        console.error("Error saving progress:", error);
+      }
+    } catch (error) {
+      console.error("Exception saving progress:", error);
+    }
+  };
+  
+  useEffect(() => {
+    const progressInterval = setInterval(() => {
+      if (isPlaying) {
+        saveProgress();
+      }
+    }, 10000);
+    
+    return () => clearInterval(progressInterval);
+  }, [isPlaying, podcastId]);
+  
+  const handleCompletion = async () => {
+    await saveProgress(true);
+    setShowXPModal(true);
+  };
+  
   return {
     podcastData,
     courseData,
