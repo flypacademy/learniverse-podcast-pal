@@ -61,6 +61,10 @@ const PodcastPlayerContent = ({
   handleAudioPause,
   handleAudioError
 }: PodcastPlayerContentProps) => {
+  // Determine the image to use for the podcast cover
+  // If podcast has an image, use it. If not, use the course image instead of default gradient
+  const coverImage = podcastData.image_url || (courseData?.image || "");
+  
   return (
     <div className="flex flex-col space-y-6 max-w-md mx-auto pb-6">
       {/* Back button and course name */}
@@ -80,7 +84,7 @@ const PodcastPlayerContent = ({
       <Card className="overflow-hidden bg-white shadow-lg rounded-3xl p-6 border-none">
         {/* Podcast cover art - larger and more prominent */}
         <PodcastCover 
-          image={podcastData.image_url || undefined} 
+          image={coverImage} 
           title={podcastData.title}
         />
         
