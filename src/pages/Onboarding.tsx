@@ -23,7 +23,8 @@ const Onboarding = () => {
     {
       title: "Learniverse",
       description: "Your personal learning companion",
-      component: <WelcomeStep onContinueWithEmail={() => setStep(1)} />
+      component: <WelcomeStep onContinueWithEmail={() => setStep(1)} />,
+      showHeader: false
     },
     {
       title: "Sign Up",
@@ -40,7 +41,8 @@ const Onboarding = () => {
           onSignUp={onSignUpClick}
           onGoToSignIn={() => setStep(2)}
         />
-      )
+      ),
+      showHeader: true
     },
     {
       title: "Sign In",
@@ -55,12 +57,14 @@ const Onboarding = () => {
           onSignIn={onSignInClick}
           onGoToSignUp={() => setStep(1)}
         />
-      )
+      ),
+      showHeader: true
     },
     {
       title: "Welcome to Learniverse",
       description: "Let's start your learning journey",
-      component: <SuccessStep onComplete={() => navigate("/")} />
+      component: <SuccessStep onComplete={() => navigate("/")} />,
+      showHeader: true
     }
   ];
 
@@ -85,11 +89,12 @@ const Onboarding = () => {
   const currentStep = steps[step];
 
   return (
-    <div className="min-h-screen bg-background flex flex-col bg-[url('/lovable-uploads/3b9235b3-4088-4b61-9dfb-369bd6ff7de8.png')] bg-cover bg-center bg-no-repeat">
-      <div className="flex-1 max-w-md mx-auto w-full px-6 py-12 flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
+      <div className="flex-1 w-full px-6 py-12 flex flex-col">
         <OnboardingContainer 
           title={currentStep.title} 
           description={currentStep.description}
+          showHeader={currentStep.showHeader}
         >
           {currentStep.component}
         </OnboardingContainer>

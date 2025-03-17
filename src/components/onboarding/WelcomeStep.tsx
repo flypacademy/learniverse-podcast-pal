@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Apple, Mail, Globe } from "lucide-react";
+import { Apple, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface WelcomeStepProps {
@@ -12,29 +12,30 @@ const WelcomeStep = ({ onContinueWithEmail }: WelcomeStepProps) => {
   const { toast } = useToast();
 
   return (
-    <div className="space-y-6 w-full">
-      <div className="flex flex-col items-center justify-center space-y-4">
-        {/* App logo with gradient background */}
-        <div className="w-24 h-24 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center">
-          <Globe className="h-12 w-12 text-primary-foreground" />
+    <div className="space-y-8 w-full">
+      {/* Colorful gradient blob */}
+      <div className="flex flex-col items-center justify-center space-y-6">
+        <div className="w-48 h-48 rounded-full bg-gradient-to-br from-purple-500/80 via-blue-600/80 to-blue-400/80 blur-xl opacity-80"></div>
+        
+        {/* Logo */}
+        <div className="mt-4">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M16 2L20.5 11L30 12.5L23 19.5L25 29L16 24.5L7 29L9 19.5L2 12.5L11.5 11L16 2Z" fill="currentColor"/>
+          </svg>
         </div>
         
-        {/* App illustration */}
-        <div className="relative w-full h-40 rounded-xl overflow-hidden mb-4">
-          <img 
-            src="/lovable-uploads/3b9235b3-4088-4b61-9dfb-369bd6ff7de8.png" 
-            alt="Learning illustration" 
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-card/80 to-transparent"></div>
+        {/* Tagline */}
+        <div className="text-center space-y-1">
+          <h2 className="text-xl font-semibold">Bite-sized lessons.</h2>
+          <p className="text-lg">Study anytime, anywhere.</p>
         </div>
       </div>
       
-      <div className="space-y-4 w-full">
+      <div className="space-y-3 w-full">
         <Button 
           size="lg" 
           variant="outline" 
-          className="w-full bg-background/80 backdrop-blur-sm border-border hover:bg-accent/10 hover:text-accent font-medium flex items-center justify-center gap-2"
+          className="w-full bg-background border-border hover:bg-accent/10 hover:text-accent font-medium flex items-center justify-center gap-2"
           onClick={() => toast({
             title: "Apple Sign In",
             description: "Apple authentication would be implemented here"
@@ -47,7 +48,7 @@ const WelcomeStep = ({ onContinueWithEmail }: WelcomeStepProps) => {
         <Button 
           size="lg" 
           variant="outline" 
-          className="w-full bg-background/80 backdrop-blur-sm border-border hover:bg-accent/10 hover:text-accent font-medium flex items-center justify-center gap-2" 
+          className="w-full bg-background border-border hover:bg-accent/10 hover:text-accent font-medium flex items-center justify-center gap-2" 
           onClick={() => toast({
             title: "Google Sign In",
             description: "Google authentication would be implemented here"
