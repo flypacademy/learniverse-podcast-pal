@@ -76,13 +76,12 @@ const PodcastPlayerContent = ({
       </div>
       
       {/* Podcast header (Now Playing) */}
-      <PodcastHeader title={podcastData.title} />
+      <PodcastHeader courseName={courseData?.title || "Course"} />
       
       {/* Podcast cover art */}
       <PodcastCover 
-        imageUrl={podcastData.image_url} 
+        image={podcastData.image_url || undefined} 
         title={podcastData.title}
-        isPlaying={isPlaying} 
       />
       
       {/* Podcast info (title, course) */}
@@ -104,12 +103,11 @@ const PodcastPlayerContent = ({
           onPlayPause={togglePlayPause}
           onSkipBack={skipBackward}
           onSkipForward={skipForward}
-          disabled={!ready}
         />
         
         <VolumeControl 
           volume={volume} 
-          onChange={changeVolume} 
+          onVolumeChange={changeVolume} 
         />
       </div>
       
@@ -131,15 +129,12 @@ const PodcastPlayerContent = ({
       
       {/* About this episode section */}
       <div className="border rounded-lg bg-white shadow-sm overflow-hidden">
-        <PodcastDescription 
-          title="About this episode"
-          description={podcastData.description || "Learn more about this topic."}
-        />
+        <PodcastDescription description={podcastData.description || "Learn more about this topic."} />
       </div>
       
       {/* Quiz button if available */}
       {isQuizAvailable && (
-        <QuizButton podcastId={podcastData.id} />
+        <QuizButton onClick={() => window.location.href = `/quiz/${podcastData.id}`} />
       )}
     </div>
   );
