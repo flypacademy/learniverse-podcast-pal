@@ -52,17 +52,22 @@ export function useAudioInitialization({
       try {
         console.log("Configuring audio element with URL:", podcastData.audio_url);
         
+        // Check if we already have this podcast in the store
+        if (audioStore.currentPodcastId === podcastId && audioStore.audioElement) {
+          console.log("Using existing audio element from store");
+          audioRef.current = audioStore.audioElement;
+          setAudioInitialized(true);
+          return;
+        }
+        
         // Register with audio store first before manipulating the audio element
         if (podcastId) {
-          // Check if we need to reinitialize the audio or if it's already the same podcast
-          if (audioStore.currentPodcastId !== podcastId) {
-            audioStore.setAudio(audioRef.current, podcastId, {
-              id: podcastData.id,
-              title: podcastData.title,
-              courseName: courseData?.title || "Unknown Course",
-              image: podcastData.image_url || undefined
-            });
-          }
+          audioStore.setAudio(audioRef.current, podcastId, {
+            id: podcastData.id,
+            title: podcastData.title,
+            courseName: courseData?.title || "Unknown Course",
+            image: podcastData.image_url || undefined
+          });
           
           // Delay setting audioInitialized to avoid immediate re-renders
           setTimeout(() => {

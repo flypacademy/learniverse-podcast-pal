@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { PodcastProgressData } from "@/types/podcast";
 import { useAudioStore } from "@/lib/audioContext";
@@ -34,6 +33,17 @@ export function useAudioPlayer(podcastId: string | undefined) {
       setReady(true);
     }
   }, [audioStore, podcastId]);
+  
+  // Keep local state in sync with the global audio store
+  useEffect(() => {
+    if (audioRef.current && audioRef.current === audioStore.audioElement) {
+      setIsPlaying(audioStore.isPlaying);
+      setCurrentTime(audioStore.currentTime);
+      if (audioStore.duration > 0) {
+        setDuration(audioStore.duration);
+      }
+    }
+  }, [audioStore.isPlaying, audioStore.currentTime, audioStore.duration]);
   
   const handleProgressData = (progressData: PodcastProgressData) => {
     if (progressData.last_position > 0 && audioRef.current) {
