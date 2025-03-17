@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useCallback } from "react";
 import Layout from "@/components/Layout";
 import PodcastPlayerContent from "@/components/podcast/PodcastPlayerContent";
 import PodcastError from "@/components/podcast/PodcastError";
@@ -35,6 +35,7 @@ const PodcastPlayer = () => {
     changeVolume,
     skipForward,
     skipBackward,
+    refetchPodcastData,
     handleCompletion
   } = usePodcastPlayer();
   
@@ -61,6 +62,11 @@ const PodcastPlayer = () => {
       audioRef.current.load();
     }
   }, [podcastData, audioRef]);
+  
+  const handleRetry = useCallback(() => {
+    console.log("Retrying podcast fetch...");
+    refetchPodcastData();
+  }, [refetchPodcastData]);
   
   const handleAudioLoadedMetadata = () => {
     if (audioRef.current) {
@@ -127,7 +133,7 @@ const PodcastPlayer = () => {
       {error ? (
         <PodcastError errorMessage={error} />
       ) : loading || !podcastData ? (
-        <PodcastLoading />
+        <PodcastLoading onRetry={handleRetry} />
       ) : (
         <>
           <PodcastPlayerContent

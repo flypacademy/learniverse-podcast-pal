@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 
 interface PodcastAudioProps {
   audioRef: React.RefObject<HTMLAudioElement>;
@@ -22,6 +22,16 @@ const PodcastAudio = ({
   onPause,
   onError
 }: PodcastAudioProps) => {
+  
+  useEffect(() => {
+    // Ensure audio element is created and configured properly
+    if (audioRef.current && src) {
+      console.log("Audio component: setting source to", src);
+      audioRef.current.src = src;
+      audioRef.current.load();
+    }
+  }, [src, audioRef]);
+
   return (
     <audio
       ref={audioRef}

@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ui/use-toast";
@@ -43,100 +43,111 @@ export function usePodcastData() {
     return { progressData };
   };
   
-  useEffect(() => {
-    async function fetchPodcastData() {
-      if (!podcastId || fetchAttempted.current) return;
-      
-      fetchAttempted.current = true;
-      console.log("Fetching podcast data for ID:", podcastId);
-      
-      try {
-        // Clear any previous timeout
-        if (timeoutRef.current) {
-          window.clearTimeout(timeoutRef.current);
-        }
-        
-        setLoading(true);
-        setError(null);
-        
-        const { data: podcastData, error: podcastError } = await supabase
-          .from('podcasts')
-          .select('*')
-          .eq('id', podcastId)
-          .maybeSingle();
-        
-        if (podcastError) {
-          console.error("Supabase error fetching podcast:", podcastError);
-          throw podcastError;
-        }
-        
-        if (!podcastData) {
-          console.error("Podcast not found with ID:", podcastId);
-          throw new Error('Podcast not found');
-        }
-        
-        console.log("Podcast data fetched successfully:", podcastData);
-        
-        // Validate that audio_url exists
-        if (!podcastData.audio_url) {
-          console.error("Podcast has no audio URL:", podcastId);
-          throw new Error('Podcast audio not available');
-        }
-        
-        setPodcastData(podcastData);
-        
-        if (podcastData.course_id) {
-          console.log("Fetching course data for course ID:", podcastData.course_id);
-          const { data: courseData, error: courseError } = await supabase
-            .from('courses')
-            .select('id, title, image_url')
-            .eq('id', podcastData.course_id)
-            .maybeSingle();
-          
-          if (courseError) {
-            console.error("Error fetching course:", courseError);
-          } else if (courseData) {
-            console.log("Course data fetched:", courseData);
-            const formattedCourseData: CourseData = {
-              id: courseData.id,
-              title: courseData.title,
-              image: courseData.image_url
-            };
-            setCourseData(formattedCourseData);
-          }
-        }
-        
-        try {
-          const { count, error: quizError } = await supabase
-            .from('quiz_questions')
-            .select('id', { count: 'exact', head: true })
-            .eq('podcast_id', podcastId);
-          
-          if (quizError) {
-            console.error("Error checking quiz:", quizError);
-          } else {
-            setIsQuizAvailable(!!count && count > 0);
-          }
-        } catch (error) {
-          console.error("Error checking quiz availability:", error);
-        }
-        
-      } catch (error: any) {
-        console.error("Error in fetchPodcastData:", error);
-        setError(error.message || "Failed to load podcast");
-        toast({
-          title: "Error",
-          description: "Failed to load podcast: " + (error.message || "Unknown error"),
-          variant: "destructive"
-        });
-      } finally {
-        console.log("Finished loading podcast data");
-        setLoading(false);
-      }
+  const fetchPodcastData = useCallback(async () => {
+    if (!podcastId) {
+      setError("Invalid podcast ID");
+      setLoading(false);
+      return;
     }
     
-    fetchPodcastData();
+    console.log("Fetching podcast data for ID:", podcastId);
+    
+    try {
+      // Clear any previous timeout
+      if (timeoutRef.current) {
+        window.clearTimeout(timeoutRef.current);
+      }
+      
+      setLoading(true);
+      setError(null);
+      
+      const { data: podcastData, error: podcastError } = await supabase
+        .from('podcasts')
+        .select('*')
+        .eq('id', podcastId)
+        .maybeSingle();
+      
+      if (podcastError) {
+        console.error("Supabase error fetching podcast:", podcastError);
+        throw podcastError;
+      }
+      
+      if (!podcastData) {
+        console.error("Podcast not found with ID:", podcastId);
+        throw new Error('Podcast not found');
+      }
+      
+      console.log("Podcast data fetched successfully:", podcastData);
+      
+      // Validate that audio_url exists
+      if (!podcastData.audio_url) {
+        console.error("Podcast has no audio URL:", podcastId);
+        throw new Error('Podcast audio not available');
+      }
+      
+      setPodcastData(podcastData);
+      
+      if (podcastData.course_id) {
+        console.log("Fetching course data for course ID:", podcastData.course_id);
+        const { data: courseData, error: courseError } = await supabase
+          .from('courses')
+          .select('id, title, image_url')
+          .eq('id', podcastData.course_id)
+          .maybeSingle();
+        
+        if (courseError) {
+          console.error("Error fetching course:", courseError);
+        } else if (courseData) {
+          console.log("Course data fetched:", courseData);
+          const formattedCourseData: CourseData = {
+            id: courseData.id,
+            title: courseData.title,
+            image: courseData.image_url
+          };
+          setCourseData(formattedCourseData);
+        }
+      }
+      
+      try {
+        const { count, error: quizError } = await supabase
+          .from('quiz_questions')
+          .select('id', { count: 'exact', head: true })
+          .eq('podcast_id', podcastId);
+        
+        if (quizError) {
+          console.error("Error checking quiz:", quizError);
+        } else {
+          setIsQuizAvailable(!!count && count > 0);
+        }
+      } catch (error) {
+        console.error("Error checking quiz availability:", error);
+      }
+      
+    } catch (error: any) {
+      console.error("Error in fetchPodcastData:", error);
+      setError(error.message || "Failed to load podcast");
+      toast({
+        title: "Error",
+        description: "Failed to load podcast: " + (error.message || "Unknown error"),
+        variant: "destructive"
+      });
+    } finally {
+      console.log("Finished loading podcast data");
+      setLoading(false);
+      fetchAttempted.current = true;
+    }
   }, [podcastId, toast]);
+  
+  const refetchPodcastData = useCallback(() => {
+    fetchAttempted.current = false;
+    fetchPodcastData();
+  }, [fetchPodcastData]);
+  
+  useEffect(() => {
+    if (!fetchAttempted.current) {
+      fetchPodcastData();
+    }
+  }, [fetchPodcastData]);
   
   return {
     podcastId,
@@ -145,6 +156,7 @@ export function usePodcastData() {
     loading,
     error,
     isQuizAvailable,
-    handleProgressData
+    handleProgressData,
+    refetchPodcastData
   };
 }

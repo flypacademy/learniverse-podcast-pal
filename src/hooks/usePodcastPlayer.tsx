@@ -29,7 +29,8 @@ export function usePodcastPlayer() {
     courseData,
     loading,
     error,
-    isQuizAvailable
+    isQuizAvailable,
+    refetchPodcastData
   } = usePodcastData();
   
   const {
@@ -74,7 +75,7 @@ export function usePodcastPlayer() {
     }
     
     loadUserProgress();
-  }, [podcastData]);
+  }, [podcastData, fetchUserProgress, handleProgressData]);
   
   // Handle podcast completion
   const handlePodcastCompletion = async () => {
@@ -109,6 +110,7 @@ export function usePodcastPlayer() {
     changeVolume,
     skipForward,
     skipBackward,
+    refetchPodcastData,
     handleCompletion: handlePodcastCompletion
   };
 }
