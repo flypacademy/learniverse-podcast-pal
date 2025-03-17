@@ -38,7 +38,7 @@ export function useAudioInitialization({
           id: podcastData.id,
           title: podcastData.title,
           courseName: courseData?.title || "Unknown Course",
-          image: podcastData.image_url || undefined
+          image: podcastData.image_url || courseData?.image || undefined
         });
       }
     }
@@ -55,8 +55,7 @@ export function useAudioInitialization({
         // Check if we already have this podcast in the store
         if (audioStore.currentPodcastId === podcastId && audioStore.audioElement) {
           console.log("Using existing audio element from store");
-          // Instead of trying to assign to audioRef.current directly,
-          // we'll just mark as initialized since we'll use the store's audio element
+          // Use the store's audio element
           setAudioInitialized(true);
           return;
         }
@@ -67,13 +66,10 @@ export function useAudioInitialization({
             id: podcastData.id,
             title: podcastData.title,
             courseName: courseData?.title || "Unknown Course",
-            image: podcastData.image_url || undefined
+            image: podcastData.image_url || courseData?.image || undefined
           });
           
-          // Delay setting audioInitialized to avoid immediate re-renders
-          setTimeout(() => {
-            setAudioInitialized(true);
-          }, 0);
+          setAudioInitialized(true);
         }
       } catch (error) {
         console.error("Error initializing audio:", error);

@@ -1,8 +1,7 @@
 
 import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ChevronLeft, Headphones } from "lucide-react";
-import PodcastHeader from "./PodcastHeader";
+import { ChevronLeft } from "lucide-react";
 import PodcastCover from "./PodcastCover";
 import PodcastInfo from "./PodcastInfo";
 import AudioProgress from "./AudioProgress";
@@ -137,21 +136,23 @@ const PodcastPlayerContent = ({
         <PodcastDescription description={podcastData.description || "Learn more about this topic."} />
       </Card>
       
-      {/* Audio element with event handlers - Make sure it stays active even when component unmounts */}
-      <PodcastAudioEvents
-        handleAudioLoadedMetadata={handleAudioLoadedMetadata}
-        handleAudioTimeUpdate={handleAudioTimeUpdate}
-        handleAudioEnded={handleAudioEnded}
-        handleAudioPlay={handleAudioPlay}
-        handleAudioPause={handleAudioPause}
-        handleAudioError={handleAudioError}
-        audioRef={audioRef}
-      >
-        <PodcastAudio 
+      {/* Audio element with event handlers */}
+      <div className="hidden">
+        <PodcastAudioEvents
+          handleAudioLoadedMetadata={handleAudioLoadedMetadata}
+          handleAudioTimeUpdate={handleAudioTimeUpdate}
+          handleAudioEnded={handleAudioEnded}
+          handleAudioPlay={handleAudioPlay}
+          handleAudioPause={handleAudioPause}
+          handleAudioError={handleAudioError}
           audioRef={audioRef}
-          src={podcastData.audio_url}
-        />
-      </PodcastAudioEvents>
+        >
+          <PodcastAudio 
+            audioRef={audioRef}
+            src={podcastData.audio_url}
+          />
+        </PodcastAudioEvents>
+      </div>
       
       {/* Quiz button if available - Attractive floating button */}
       {isQuizAvailable && (

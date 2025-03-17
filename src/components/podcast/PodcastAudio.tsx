@@ -5,23 +5,11 @@ import { useAudioStore } from "@/lib/audioContext";
 interface PodcastAudioProps {
   audioRef: React.RefObject<HTMLAudioElement>;
   src?: string;
-  onLoadedMetadata?: () => void;
-  onTimeUpdate?: () => void;
-  onEnded?: () => void;
-  onPlay?: () => void;
-  onPause?: () => void;
-  onError?: (e: React.SyntheticEvent<HTMLAudioElement>) => void;
 }
 
 const PodcastAudio = ({
   audioRef,
-  src,
-  onLoadedMetadata,
-  onTimeUpdate,
-  onEnded,
-  onPlay,
-  onPause,
-  onError
+  src
 }: PodcastAudioProps) => {
   const prevSrcRef = useRef<string | undefined>(undefined);
   const audioStore = useAudioStore();
@@ -45,8 +33,6 @@ const PodcastAudio = ({
         console.error("Error setting audio source:", error);
       }
     }
-    
-    // Don't reset src on unmount as it would stop playback in the mini player
   }, [src, audioRef, audioStore.audioElement]);
 
   return (

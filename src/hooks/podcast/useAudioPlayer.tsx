@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { PodcastProgressData } from "@/types/podcast";
 import { useAudioStore } from "@/lib/audioContext";
@@ -38,7 +39,9 @@ export function useAudioPlayer(podcastId: string | undefined) {
   useEffect(() => {
     if (audioRef.current && audioRef.current === audioStore.audioElement) {
       setIsPlaying(audioStore.isPlaying);
-      setCurrentTime(audioStore.currentTime);
+      if (isFinite(audioStore.currentTime)) {
+        setCurrentTime(audioStore.currentTime);
+      }
       if (audioStore.duration > 0) {
         setDuration(audioStore.duration);
       }

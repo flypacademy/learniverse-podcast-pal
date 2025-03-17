@@ -68,19 +68,14 @@ const PodcastAudioEvents = ({
     
     // Clean up on unmount, but ONLY if we're not playing in the mini player
     return () => {
-      // Only remove listeners if the audio is not supposed to continue playing in mini player
-      if (!audioStore.isPlaying || audioElement !== audioStore.audioElement) {
-        console.log("PodcastAudioEvents: Removing event listeners from audio element");
-        audioElement.removeEventListener('loadedmetadata', handleAudioLoadedMetadata);
-        audioElement.removeEventListener('timeupdate', handleAudioTimeUpdate);
-        audioElement.removeEventListener('ended', handleAudioEnded);
-        audioElement.removeEventListener('play', handleAudioPlay);
-        audioElement.removeEventListener('pause', handleAudioPause);
-        audioElement.removeEventListener('error', handleErrorEvent);
-        eventAttachedRef.current = false;
-      } else {
-        console.log("PodcastAudioEvents: Keeping event listeners active for mini player");
-      }
+      console.log("PodcastAudioEvents: Removing event listeners from audio element");
+      audioElement.removeEventListener('loadedmetadata', handleAudioLoadedMetadata);
+      audioElement.removeEventListener('timeupdate', handleAudioTimeUpdate);
+      audioElement.removeEventListener('ended', handleAudioEnded);
+      audioElement.removeEventListener('play', handleAudioPlay);
+      audioElement.removeEventListener('pause', handleAudioPause);
+      audioElement.removeEventListener('error', handleErrorEvent);
+      eventAttachedRef.current = false;
     };
   }, [
     audioRef, 
@@ -89,9 +84,7 @@ const PodcastAudioEvents = ({
     handleAudioEnded, 
     handleAudioPlay, 
     handleAudioPause, 
-    handleErrorEvent, 
-    audioStore.isPlaying,
-    audioStore.audioElement
+    handleErrorEvent
   ]);
   
   return <>{children}</>;
