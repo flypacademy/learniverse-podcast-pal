@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft, Headphones } from "lucide-react";
 import PodcastHeader from "./PodcastHeader";
@@ -15,6 +15,7 @@ import PodcastAudioEvents from "./PodcastAudioEvents";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PodcastData, CourseData } from "@/types/podcast";
+import { useAudioStore } from "@/lib/audioContext";
 
 interface PodcastPlayerContentProps {
   podcastData: PodcastData;
@@ -64,6 +65,21 @@ const PodcastPlayerContent = ({
   // Determine the image to use for the podcast cover
   // If podcast has an image, use it. If not, use the course image instead of default gradient
   const coverImage = podcastData.image_url || (courseData?.image || "");
+  
+  // Register podcast with global audio store to enable mini player
+  const audioStore = useAudioStore();
+  
+  useEffect(() => {
+    if (audioRef.current && podcastData) {
+      // Set podcast metadata in the global store to enable mini player display
+      audioStore.setPodcastMeta({
+        id: podcastData.id,
+        title: podcastData.title,
+        courseName: courseData?.title || "Course",
+        image: coverImage
+      });
+    }
+  }, [podcastData, courseData, audioRef, audioStore, coverImage]);
   
   return (
     <div className="flex flex-col space-y-6 max-w-md mx-auto pb-6">
@@ -121,7 +137,7 @@ const PodcastPlayerContent = ({
         <PodcastDescription description={podcastData.description || "Learn more about this topic."} />
       </Card>
       
-      {/* Audio element with event handlers */}
+      {/* Audio element with event handlers - Make sure it stays active even when component unmounts */}
       <PodcastAudioEvents
         handleAudioLoadedMetadata={handleAudioLoadedMetadata}
         handleAudioTimeUpdate={handleAudioTimeUpdate}
