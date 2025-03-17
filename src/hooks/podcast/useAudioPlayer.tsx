@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { PodcastProgressData } from "@/types/podcast";
 import { useAudioStore } from "@/lib/audioContext";
@@ -14,10 +15,12 @@ export function useAudioPlayer(podcastId: string | undefined) {
   const audioStore = useAudioStore();
   const storeInitializedRef = useRef(false);
   const syncInProgressRef = useRef(false);
+  const lastUpdateTimeRef = useRef(0);
   
   // Initialize audio from global store if available, but only once
   useEffect(() => {
     if (!storeInitializedRef.current && audioStore.currentPodcastId === podcastId && audioStore.audioElement) {
+      console.log("useAudioPlayer: Initializing from global store");
       storeInitializedRef.current = true;
       audioRef.current = audioStore.audioElement;
       
@@ -36,35 +39,44 @@ export function useAudioPlayer(podcastId: string | undefined) {
     }
   }, [audioStore, podcastId]);
   
-  // Keep local state in sync with the global audio store
+  // Only update state from store if significant time has passed (throttling)
+  // and only for specific properties that have changed significantly
   useEffect(() => {
-    // Prevent infinite update loops by using a ref to track sync operations
-    if (syncInProgressRef.current) return;
-    
-    if (audioRef.current && audioRef.current === audioStore.audioElement) {
-      syncInProgressRef.current = true;
-      
-      try {
-        if (isPlaying !== audioStore.isPlaying) {
-          setIsPlaying(audioStore.isPlaying);
-        }
-        
-        if (isFinite(audioStore.currentTime) && Math.abs(currentTime - audioStore.currentTime) > 0.5) {
-          setCurrentTime(audioStore.currentTime);
-        }
-        
-        if (audioStore.duration > 0 && Math.abs(duration - audioStore.duration) > 0.5) {
-          setDuration(audioStore.duration);
-        }
-        
-        if (volume !== audioStore.volume) {
-          setVolume(audioStore.volume);
-        }
-      } finally {
-        syncInProgressRef.current = false;
-      }
+    // Skip if audio ref doesn't match store or if we're already syncing
+    if (syncInProgressRef.current || !audioRef.current || audioRef.current !== audioStore.audioElement) {
+      return;
     }
-  }, [audioStore.isPlaying, audioStore.currentTime, audioStore.duration, audioStore.volume, audioRef.current, isPlaying, currentTime, duration, volume]);
+    
+    // Throttle updates to avoid excessive re-renders
+    const now = Date.now();
+    if (now - lastUpdateTimeRef.current < 500) { // 500ms throttle
+      return;
+    }
+    
+    syncInProgressRef.current = true;
+    lastUpdateTimeRef.current = now;
+    
+    try {
+      // Only update state if there's a significant difference to avoid render loops
+      if (isPlaying !== audioStore.isPlaying) {
+        setIsPlaying(audioStore.isPlaying);
+      }
+      
+      if (isFinite(audioStore.currentTime) && Math.abs(currentTime - audioStore.currentTime) > 1) {
+        setCurrentTime(audioStore.currentTime);
+      }
+      
+      if (audioStore.duration > 0 && Math.abs(duration - audioStore.duration) > 1) {
+        setDuration(audioStore.duration);
+      }
+      
+      if (Math.abs(volume - audioStore.volume) > 2) {
+        setVolume(audioStore.volume);
+      }
+    } finally {
+      syncInProgressRef.current = false;
+    }
+  }, [audioStore.isPlaying, audioStore.currentTime, audioStore.duration, audioStore.volume, isPlaying, currentTime, duration, volume]);
   
   const handleProgressData = (progressData: PodcastProgressData) => {
     if (progressData.last_position > 0 && audioRef.current) {
@@ -87,7 +99,9 @@ export function useAudioPlayer(podcastId: string | undefined) {
               setIsPlaying(true);
               // Only update the store if our local state changed
               if (!audioStore.isPlaying) {
+                syncInProgressRef.current = true;
                 audioStore.play();
+                syncInProgressRef.current = false;
               }
             })
             .catch(error => {
@@ -109,7 +123,9 @@ export function useAudioPlayer(podcastId: string | undefined) {
         setIsPlaying(false);
         // Only update the store if our local state changed
         if (audioStore.isPlaying) {
+          syncInProgressRef.current = true;
           audioStore.pause();
+          syncInProgressRef.current = false;
         }
       }
     } catch (error) {
@@ -131,7 +147,10 @@ export function useAudioPlayer(podcastId: string | undefined) {
         const newTime = (percent / 100) * duration;
         audioRef.current.currentTime = newTime;
         setCurrentTime(newTime);
+        
+        syncInProgressRef.current = true;
         audioStore.setCurrentTime(newTime);
+        syncInProgressRef.current = false;
       } catch (error) {
         console.error("Error seeking audio:", error);
       }
@@ -144,7 +163,10 @@ export function useAudioPlayer(podcastId: string | undefined) {
         const volumeValue = value / 100;
         audioRef.current.volume = Math.max(0, Math.min(1, volumeValue));
         setVolume(value);
+        
+        syncInProgressRef.current = true;
         audioStore.setVolume(value);
+        syncInProgressRef.current = false;
       } catch (error) {
         console.error("Error changing volume:", error);
       }
@@ -157,7 +179,10 @@ export function useAudioPlayer(podcastId: string | undefined) {
         const newTime = Math.min(audioRef.current.duration, audioRef.current.currentTime + 15);
         audioRef.current.currentTime = newTime;
         setCurrentTime(newTime);
+        
+        syncInProgressRef.current = true;
         audioStore.setCurrentTime(newTime);
+        syncInProgressRef.current = false;
       } catch (error) {
         console.error("Error skipping forward:", error);
       }
@@ -170,7 +195,10 @@ export function useAudioPlayer(podcastId: string | undefined) {
         const newTime = Math.max(0, audioRef.current.currentTime - 15);
         audioRef.current.currentTime = newTime;
         setCurrentTime(newTime);
+        
+        syncInProgressRef.current = true;
         audioStore.setCurrentTime(newTime);
+        syncInProgressRef.current = false;
       } catch (error) {
         console.error("Error skipping backward:", error);
       }

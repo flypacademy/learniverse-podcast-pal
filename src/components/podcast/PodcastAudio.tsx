@@ -13,13 +13,25 @@ const PodcastAudio = ({
 }: PodcastAudioProps) => {
   const prevSrcRef = useRef<string | undefined>(undefined);
   const audioStore = useAudioStore();
+  const sourceUpdateAttemptedRef = useRef(false);
   
   useEffect(() => {
+    // Reset source update flag when source changes
+    if (prevSrcRef.current !== src) {
+      sourceUpdateAttemptedRef.current = false;
+    }
+    
     // Only update the source if it's different from the previous one
     // and if we have both a valid reference and source
-    if (audioRef.current && src && prevSrcRef.current !== src) {
+    if (
+      audioRef.current && 
+      src && 
+      prevSrcRef.current !== src && 
+      !sourceUpdateAttemptedRef.current
+    ) {
       try {
         console.log("Audio component: setting source to", src);
+        sourceUpdateAttemptedRef.current = true;
         
         // If this audio is already registered in the store with the same src, don't reload
         const storeAudioRef = audioStore.audioElement;

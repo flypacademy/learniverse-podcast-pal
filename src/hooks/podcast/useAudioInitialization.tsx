@@ -27,13 +27,13 @@ export function useAudioInitialization({
 
   // Save podcast metadata to the global store when it's loaded, but only once
   useEffect(() => {
-    if (podcastData && !loading && !podcastMetaSetRef.current) {
+    if (podcastData && !loading && !podcastMetaSetRef.current && podcastId) {
+      console.log("useAudioInitialization: Setting podcast metadata for:", podcastData.title);
       podcastMetaSetRef.current = true;
       
       // Only set metadata if this is a new podcast or if metadata has changed
       const currentMetaId = audioStore.podcastMeta?.id;
       if (currentMetaId !== podcastData.id) {
-        console.log("Setting podcast metadata for:", podcastData.title);
         audioStore.setPodcastMeta({
           id: podcastData.id,
           title: podcastData.title,
@@ -42,46 +42,55 @@ export function useAudioInitialization({
         });
       }
     }
-  }, [podcastData, courseData, loading, audioStore]);
+    
+    // Reset metadata flag when podcast changes
+    return () => {
+      if (podcastId) {
+        console.log("useAudioInitialization: Cleaning up for podcast change");
+      }
+    };
+  }, [podcastData, courseData, loading, audioStore, podcastId]);
 
   // Create and configure audio element when podcast data is loaded
   useEffect(() => {
+    // Skip if already initialized or missing data
     if (
-      podcastData?.audio_url && 
-      audioRef.current && 
-      !initializationAttemptedRef.current && 
-      podcastId
+      !podcastData?.audio_url || 
+      !audioRef.current || 
+      initializationAttemptedRef.current || 
+      !podcastId
     ) {
-      initializationAttemptedRef.current = true;
+      return;
+    }
+    
+    initializationAttemptedRef.current = true;
+    
+    try {
+      console.log("useAudioInitialization: Configuring audio element with URL:", podcastData.audio_url);
       
-      try {
-        console.log("Configuring audio element with URL:", podcastData.audio_url);
-        
-        // Check if we already have this podcast in the store
-        if (audioStore.currentPodcastId === podcastId && audioStore.audioElement) {
-          console.log("Using existing audio element from store");
-          // Use the store's audio element
-          setAudioInitialized(true);
-          return;
-        }
-        
-        // Register with audio store
-        audioStore.setAudio(audioRef.current, podcastId, {
-          id: podcastData.id,
-          title: podcastData.title,
-          courseName: courseData?.title || "Unknown Course",
-          image: podcastData.image_url || courseData?.image || undefined
-        });
-        
+      // Check if we already have this podcast in the store
+      if (audioStore.currentPodcastId === podcastId && audioStore.audioElement) {
+        console.log("useAudioInitialization: Using existing audio element from store");
         setAudioInitialized(true);
-      } catch (error) {
-        console.error("Error initializing audio:", error);
-        toast({
-          title: "Error",
-          description: "Failed to initialize audio player",
-          variant: "destructive"
-        });
+        return;
       }
+      
+      // Register with audio store
+      audioStore.setAudio(audioRef.current, podcastId, {
+        id: podcastData.id,
+        title: podcastData.title,
+        courseName: courseData?.title || "Unknown Course",
+        image: podcastData.image_url || courseData?.image || undefined
+      });
+      
+      setAudioInitialized(true);
+    } catch (error) {
+      console.error("Error initializing audio:", error);
+      toast({
+        title: "Error",
+        description: "Failed to initialize audio player",
+        variant: "destructive"
+      });
     }
   }, [podcastData, audioRef, courseData, audioStore, podcastId, toast]);
 

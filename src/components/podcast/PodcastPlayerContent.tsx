@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import PodcastCover from "./PodcastCover";
@@ -62,18 +62,18 @@ const PodcastPlayerContent = ({
   handleAudioError
 }: PodcastPlayerContentProps) => {
   // Determine the image to use for the podcast cover
-  // If podcast has an image, use it. If not, use the course image instead of default gradient
   const coverImage = podcastData.image_url || (courseData?.image || "");
   
   // Register podcast with global audio store to enable mini player
   const audioStore = useAudioStore();
   const metaSetRef = useRef(false);
   
+  // Set podcast metadata only once to prevent infinite loops
   useEffect(() => {
-    if (audioRef.current && podcastData && !metaSetRef.current) {
+    if (!metaSetRef.current && audioRef.current && podcastData) {
+      console.log("PodcastPlayerContent: Setting podcast metadata once");
       metaSetRef.current = true;
       
-      // Set podcast metadata in the global store to enable mini player display
       audioStore.setPodcastMeta({
         id: podcastData.id,
         title: podcastData.title,
