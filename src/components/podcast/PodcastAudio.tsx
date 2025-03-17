@@ -37,9 +37,7 @@ const PodcastAudio = ({
       }
     }
     
-    return () => {
-      // Don't reset src on unmount as it would stop playback in the mini player
-    };
+    // Don't reset src on unmount as it would stop playback in the mini player
   }, [src, audioRef]);
 
   return (

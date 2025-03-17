@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 
 // Add podcast metadata type
@@ -97,9 +98,23 @@ export const useAudioStore = create<AudioState>((set, get) => ({
       }
     };
     
+    // Preserve playback state across navigation
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Check if it was playing before and try to resume
+        const isCurrentlyPlaying = get().isPlaying;
+        if (isCurrentlyPlaying && audioElement.paused) {
+          audioElement.play().catch(err => {
+            console.warn("Could not auto-resume audio after visibility change:", err);
+          });
+        }
+      }
+    };
+    
     audioElement.addEventListener('timeupdate', handleTimeUpdate);
     audioElement.addEventListener('ended', handleEnded);
     audioElement.addEventListener('loadedmetadata', handleLoadedMetadata);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     
     // Attach cleanup functions to the audio element
     const originalRemoveEventListener = audioElement.removeEventListener.bind(audioElement);
@@ -115,6 +130,14 @@ export const useAudioStore = create<AudioState>((set, get) => ({
       }
       return originalRemoveEventListener(type, listener, options);
     };
+    
+    // Clean up visibility change listener when audio element is cleaned up
+    const cleanup = () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+    
+    // Store cleanup function on the element for later use
+    (audioElement as any).__cleanupVisibilityListener = cleanup;
   },
   
   setPodcastMeta: (meta) => {
@@ -166,6 +189,12 @@ export const useAudioStore = create<AudioState>((set, get) => ({
     if (audioElement) {
       audioElement.pause();
       audioElement.src = '';
+      
+      // Clean up visibility change listener if it exists
+      if ((audioElement as any).__cleanupVisibilityListener) {
+        (audioElement as any).__cleanupVisibilityListener();
+      }
+      
       // Event listeners will be garbage collected with the audio element
     }
     set({ 
