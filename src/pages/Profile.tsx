@@ -1,6 +1,6 @@
+
 import React from "react";
 import { BarChart3, Award, Clock, Calendar, BookOpen, Settings, Headphones } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import ProgressBar from "@/components/ProgressBar";
 import StreakCalendar from "@/components/StreakCalendar";
@@ -75,23 +75,18 @@ const activityDays = [
 ];
 
 const Profile = () => {
-  const navigate = useNavigate();
-  
   return (
     <Layout>
       <div className="space-y-6 animate-slide-up">
         <div className="pt-4 flex justify-between items-start">
           <div>
-            <h1 className="font-display font-bold text-2xl text-gray-900 dark:text-white">
+            <h1 className="font-display font-bold text-2xl text-gray-900">
               Profile
             </h1>
-            <p className="text-gray-500 dark:text-gray-400">Track your progress and achievements</p>
+            <p className="text-gray-500">Track your progress and achievements</p>
           </div>
-          <button 
-            onClick={() => navigate("/settings")}
-            className="h-10 w-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center"
-          >
-            <Settings className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+          <button className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
+            <Settings className="h-5 w-5 text-gray-700" />
           </button>
         </div>
         
@@ -103,15 +98,15 @@ const Profile = () => {
             </div>
             
             <div className="flex-1">
-              <h2 className="font-display font-semibold text-xl text-gray-900 dark:text-white">
+              <h2 className="font-display font-semibold text-xl">
                 {userData.name}
               </h2>
-              <p className="text-gray-500 dark:text-gray-400">{userData.email}</p>
+              <p className="text-gray-500 text-sm">{userData.email}</p>
               
               <div className="mt-1.5">
                 <div className="flex justify-between text-xs mb-1">
-                  <span className="font-medium dark:text-gray-300">Level {userData.level}</span>
-                  <span className="dark:text-gray-300">{userData.xp} / {userData.nextLevelXP} XP</span>
+                  <span className="font-medium">Level {userData.level}</span>
+                  <span>{userData.xp} / {userData.nextLevelXP} XP</span>
                 </div>
                 <ProgressBar 
                   value={userData.progress} 
@@ -169,6 +164,7 @@ const Profile = () => {
           </div>
           
           <div className="h-48 flex items-end justify-between px-2">
+            {/* Simple bar chart representation */}
             {[30, 45, 20, 80, 60, 25, 10].map((height, index) => (
               <div key={index} className="flex flex-col items-center">
                 <div 
