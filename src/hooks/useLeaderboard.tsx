@@ -67,15 +67,15 @@ export function useLeaderboard() {
         // Transform the joined data into our leaderboard format
         const formattedData = combinedData.map((item, index) => {
           // Properly type and access the nested user_profiles object
-          const profiles = item.user_profiles as any;
+          const userProfiles = item.user_profiles as any;
           
           return {
             id: item.user_id,
             // Access properties from the nested profiles object
-            display_name: profiles?.display_name || `User-${index + 1}`,
+            display_name: userProfiles?.display_name || `User-${index + 1}`,
             total_xp: item.total_xp,
             rank: index + 1,
-            avatar_url: profiles?.avatar_url,
+            avatar_url: userProfiles?.avatar_url,
             // Randomly assign change for now, in the future this would be based on previous rankings
             change: ["up", "down", "same"][Math.floor(Math.random() * 3)] as "up" | "down" | "same"
           };
