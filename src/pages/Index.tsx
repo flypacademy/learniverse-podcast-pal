@@ -1,14 +1,15 @@
 
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import { Sparkles, BookOpen, ArrowRight, Headphones } from "lucide-react";
 import Layout from "@/components/Layout";
-import CourseCard from "@/components/CourseCard";
-import StreakCalendar from "@/components/StreakCalendar";
-import Leaderboard from "@/components/Leaderboard";
-import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { useToast } from "@/components/ui/use-toast";
 import { useRecentCourses } from "@/hooks/useRecentCourses";
+
+// Import our new components
+import UserHeader from "@/components/home/UserHeader";
+import ContinueLearning from "@/components/home/ContinueLearning";
+import WeeklyStreakSection from "@/components/home/WeeklyStreakSection";
+import LeaderboardSection from "@/components/home/LeaderboardSection";
+import TodaysGoalButton from "@/components/home/TodaysGoalButton";
 
 // Mock streak data
 const streakData = [
@@ -21,7 +22,7 @@ const streakData = [
   { date: "2023-06-18", completed: false }
 ];
 
-// Mock leaderboard data - fix type error by using string literals for change values
+// Mock leaderboard data with string literals for change values
 const leaderboardData = [
   { id: "user1", name: "Alex", xp: 2430, rank: 1, change: "same" as const },
   { id: "user2", name: "Jordan", xp: 2180, rank: 2, change: "up" as const },
@@ -33,21 +34,8 @@ const leaderboardData = [
 const Index = () => {
   const userName = "Student";
   const totalXP = 1250;
-  const [activeSlide, setActiveSlide] = useState(0);
   const { toast } = useToast();
   const { recentCourses, loading } = useRecentCourses();
-  
-  // XP calculation information
-  const xpInfo = () => {
-    if (navigator.vibrate) {
-      navigator.vibrate(10);
-    }
-    
-    toast({
-      title: "XP System",
-      description: "Earn 10 XP per minute of listening and 200 XP for maintaining a daily streak. Complete 7 consecutive days for 1000 XP bonus!",
-    });
-  };
   
   const handleLinkClick = () => {
     if (navigator.vibrate) {
@@ -58,145 +46,27 @@ const Index = () => {
   return (
     <Layout>
       <div className="space-y-5 animate-slide-up pt-3">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="font-display font-bold text-2xl text-gray-900">
-              Hello, {userName}
-            </h1>
-            <p className="text-gray-500">Ready to learn today?</p>
-          </div>
-          <div 
-            className="flex items-center bg-primary/10 text-primary font-medium px-3 py-1.5 rounded-full text-sm cursor-pointer"
-            onClick={xpInfo}
-          >
-            <Sparkles className="h-4 w-4 mr-1" />
-            {totalXP} XP
-          </div>
-        </div>
+        {/* User Header */}
+        <UserHeader userName={userName} totalXP={totalXP} />
         
         {/* Continue Learning with Carousel */}
-        <div className="space-y-2.5">
-          <div className="flex justify-between items-center">
-            <h2 className="font-display font-semibold text-xl text-gray-900">
-              Continue Learning
-            </h2>
-            <Link 
-              to="/courses" 
-              className="text-primary flex items-center text-sm font-medium"
-              onClick={handleLinkClick}
-            >
-              View all
-              <ArrowRight className="h-4 w-4 ml-1" />
-            </Link>
-          </div>
-          
-          {loading ? (
-            <div className="space-y-4">
-              <div className="h-48 bg-gray-100 animate-pulse rounded-xl"></div>
-              <div className="flex justify-center">
-                <div className="flex gap-1.5">
-                  <div className="h-1.5 w-4 rounded-full bg-gray-200"></div>
-                  <div className="h-1.5 w-1.5 rounded-full bg-gray-200"></div>
-                  <div className="h-1.5 w-1.5 rounded-full bg-gray-200"></div>
-                </div>
-              </div>
-            </div>
-          ) : recentCourses.length > 0 ? (
-            <Carousel 
-              className="w-full"
-              onSelect={(index) => {
-                // Fix: Ensure we're working with a number
-                if (typeof index === 'number') {
-                  setActiveSlide(index);
-                }
-              }}
-            >
-              <CarouselContent>
-                {recentCourses.map((course, index) => (
-                  <CarouselItem key={course.id} className="md:basis-1/1">
-                    <CourseCard 
-                      id={course.id}
-                      title={course.title}
-                      subject={course.subject}
-                      totalPodcasts={course.totalPodcasts}
-                      completedPodcasts={course.completedPodcasts}
-                      image={course.image}
-                      size="large"
-                      exam={course.exam}
-                      board={course.board}
-                      achievements={course.achievements}
-                    />
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <div className="flex justify-center mt-2">
-                <div className="flex gap-1.5">
-                  {recentCourses.map((_, index) => (
-                    <div 
-                      key={index} 
-                      className={`h-1.5 rounded-full ${index === activeSlide ? 'w-4 bg-primary' : 'w-1.5 bg-gray-200'}`}
-                    />
-                  ))}
-                </div>
-              </div>
-            </Carousel>
-          ) : (
-            <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-100">
-              <BookOpen className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-              <h3 className="text-gray-700 font-medium mb-1">No Courses Yet</h3>
-              <p className="text-gray-500 text-sm mb-4">
-                You haven't started any courses yet
-              </p>
-              <Link 
-                to="/courses" 
-                className="text-primary font-medium text-sm hover:underline"
-                onClick={handleLinkClick}
-              >
-                Browse courses
-              </Link>
-            </div>
-          )}
-        </div>
+        <ContinueLearning 
+          courses={recentCourses}
+          loading={loading}
+          handleLinkClick={handleLinkClick}
+        />
         
         {/* Weekly Streak */}
-        <div className="space-y-2.5">
-          <div className="flex justify-between items-center">
-            <h2 className="font-display font-semibold text-xl text-gray-900">
-              Weekly Streak
-            </h2>
-            <span className="text-sm text-primary font-medium">
-              +200 XP per day
-            </span>
-          </div>
-          <StreakCalendar streak={3} days={streakData} />
-        </div>
+        <WeeklyStreakSection streak={3} days={streakData} />
         
-        {/* Leaderboard - replacing Level Achievement Card */}
-        <div className="glass-card p-4 rounded-xl">
-          <Leaderboard 
-            users={leaderboardData} 
-            currentUserId="current" 
-          />
-        </div>
+        {/* Leaderboard */}
+        <LeaderboardSection 
+          leaderboardData={leaderboardData}
+          currentUserId="current"
+        />
         
         {/* Today's Goal Button */}
-        <Link to="/goals" onClick={handleLinkClick}>
-          <div className="glass-card p-4 rounded-xl hover:shadow-md transition-shadow">
-            <div className="flex items-center">
-              <div className="relative w-12 h-12 rounded-full bg-gradient-to-r from-primary to-blue-600 flex-shrink-0 flex items-center justify-center">
-                <Headphones className="h-6 w-6 text-white" />
-              </div>
-              
-              <div className="ml-4">
-                <h3 className="font-medium">Set Today's Listening Goal</h3>
-                <p className="text-sm text-gray-500">
-                  Choose your podcast goal for today and start earning XP
-                </p>
-              </div>
-            </div>
-          </div>
-        </Link>
+        <TodaysGoalButton handleLinkClick={handleLinkClick} />
       </div>
     </Layout>
   );
