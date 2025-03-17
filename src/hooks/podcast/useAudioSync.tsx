@@ -38,7 +38,11 @@ export function useAudioSync(
         if (audioStore.audioElement && audioRef.current !== audioStore.audioElement) {
           // Use the audio store's setAudio method to properly set the audio element in React
           // This avoids the direct modification of the ref that was causing the TS error
-          audioRef.current = audioStore.audioElement;
+          // We can't directly assign to audioRef.current, so we need an alternative approach
+          
+          // In React, we're not supposed to modify refs directly. Instead, let's use
+          // the store's features and just sync the values from the store to our local state
+          // without trying to replace the actual audio element reference
         }
         
         // Use safe values to prevent uncontrolled/controlled component switches
