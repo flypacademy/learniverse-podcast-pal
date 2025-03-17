@@ -37,8 +37,8 @@ const OnboardingCheck = ({ children }: OnboardingCheckProps) => {
   // Show loading while checking session status
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-pulse text-gray-400">Loading...</div>
+      <div className="flex items-center justify-center min-h-screen bg-[#111111]">
+        <div className="animate-pulse text-white font-display">Loading...</div>
       </div>
     );
   }
