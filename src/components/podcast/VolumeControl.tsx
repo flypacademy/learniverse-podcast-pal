@@ -10,7 +10,9 @@ interface VolumeControlProps {
 
 const VolumeControl = ({ volume, onVolumeChange }: VolumeControlProps) => {
   const handleVolumeChange = (value: number[]) => {
-    onVolumeChange(value[0]);
+    if (value && value.length > 0) {
+      onVolumeChange(value[0]);
+    }
   };
 
   return (

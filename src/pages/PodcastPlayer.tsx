@@ -13,8 +13,10 @@ import QuizButton from "@/components/podcast/QuizButton";
 import XPModal from "@/components/podcast/XPModal";
 import { usePodcastPlayer } from "@/hooks/usePodcastPlayer";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/components/ui/use-toast";
 
 const PodcastPlayer = () => {
+  const { toast } = useToast();
   const navigate = useNavigate();
   const {
     podcastData,
@@ -50,14 +52,13 @@ const PodcastPlayer = () => {
     console.log("Error state:", error);
     console.log("Podcast data:", podcastData);
     
-    // Add a cleanup function to handle unmounting
     return () => {
       console.log("PodcastPlayer component unmounting");
       if (audioRef.current) {
         audioRef.current.pause();
       }
     };
-  }, [loading, error, podcastData]);
+  }, [loading, error, podcastData, audioRef]);
   
   // If there's an error, show it
   if (error) {
@@ -91,15 +92,32 @@ const PodcastPlayer = () => {
   
   const handleAudioLoadedMetadata = () => {
     if (audioRef.current) {
-      console.log("Audio metadata loaded, duration:", audioRef.current.duration);
-      setDuration(audioRef.current.duration);
-      setReady(true);
+      try {
+        console.log("Audio metadata loaded, duration:", audioRef.current.duration);
+        if (isFinite(audioRef.current.duration)) {
+          setDuration(audioRef.current.duration);
+          setReady(true);
+        } else {
+          console.error("Invalid audio duration");
+          toast({
+            title: "Warning",
+            description: "Could not determine audio duration",
+            variant: "destructive"
+          });
+        }
+      } catch (error) {
+        console.error("Error in handleAudioLoadedMetadata:", error);
+      }
     }
   };
   
   const handleAudioTimeUpdate = () => {
     if (audioRef.current) {
-      setCurrentTime(audioRef.current.currentTime);
+      try {
+        setCurrentTime(audioRef.current.currentTime);
+      } catch (error) {
+        console.error("Error in handleAudioTimeUpdate:", error);
+      }
     }
   };
   
@@ -116,6 +134,20 @@ const PodcastPlayer = () => {
   const handleAudioPause = () => {
     console.log("Audio paused");
     setIsPlaying(false);
+  };
+
+  const handleAudioError = (e: React.SyntheticEvent<HTMLAudioElement>) => {
+    const target = e.target as HTMLAudioElement;
+    console.error("Audio error:", target.error);
+    const errorMessage = target.error ? 
+      `Error code: ${target.error.code}, message: ${target.error.message}` : 
+      "Unknown audio error";
+    
+    toast({
+      title: "Audio Error",
+      description: errorMessage,
+      variant: "destructive"
+    });
   };
   
   return (
@@ -147,7 +179,7 @@ const PodcastPlayer = () => {
               onEnded={handleAudioEnded}
               onPlay={handleAudioPlay}
               onPause={handleAudioPause}
-              onError={(e) => console.error("Audio error:", e)}
+              onError={handleAudioError}
               preload="metadata"
               className="hidden"
             />

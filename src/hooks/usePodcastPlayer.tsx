@@ -44,6 +44,26 @@ export function usePodcastPlayer() {
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const fetchAttempted = useRef(false);
+  const timeoutRef = useRef<number | null>(null);
+  
+  // Add a timeout to prevent infinite loading
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      if (loading && !podcastData) {
+        console.error("Podcast loading timeout reached");
+        setError("Loading timeout reached. Please try again later.");
+        setLoading(false);
+      }
+    }, 20000); // 20 seconds timeout
+    
+    timeoutRef.current = timeoutId;
+    
+    return () => {
+      if (timeoutRef.current) {
+        window.clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [loading, podcastData]);
   
   useEffect(() => {
     async function fetchPodcastData() {
@@ -93,29 +113,37 @@ export function usePodcastPlayer() {
           }
         }
         
-        const { count, error: quizError } = await supabase
-          .from('quiz_questions')
-          .select('id', { count: 'exact', head: true })
-          .eq('podcast_id', podcastId);
-        
-        if (quizError) {
-          console.error("Error checking quiz:", quizError);
-        } else {
-          setIsQuizAvailable(!!count && count > 0);
+        try {
+          const { count, error: quizError } = await supabase
+            .from('quiz_questions')
+            .select('id', { count: 'exact', head: true })
+            .eq('podcast_id', podcastId);
+          
+          if (quizError) {
+            console.error("Error checking quiz:", quizError);
+          } else {
+            setIsQuizAvailable(!!count && count > 0);
+          }
+        } catch (error) {
+          console.error("Error checking quiz availability:", error);
         }
         
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          const { data: progressData } = await supabase
-            .from('user_progress')
-            .select('last_position, completed')
-            .eq('podcast_id', podcastId)
-            .eq('user_id', session.user.id)
-            .maybeSingle();
-          
-          if (progressData) {
-            handleProgressData(progressData);
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            const { data: progressData } = await supabase
+              .from('user_progress')
+              .select('last_position, completed')
+              .eq('podcast_id', podcastId)
+              .eq('user_id', session.user.id)
+              .maybeSingle();
+            
+            if (progressData) {
+              handleProgressData(progressData);
+            }
           }
+        } catch (error) {
+          console.error("Error checking user session or progress:", error);
         }
         
       } catch (error: any) {
@@ -139,27 +167,40 @@ export function usePodcastPlayer() {
     if (progressData.last_position > 0) {
       setCurrentTime(progressData.last_position);
       if (audioRef.current) {
-        audioRef.current.currentTime = progressData.last_position;
+        try {
+          audioRef.current.currentTime = progressData.last_position;
+        } catch (error) {
+          console.error("Error setting audio currentTime:", error);
+        }
       }
     }
   };
   
   const play = () => {
     if (audioRef.current) {
-      const playPromise = audioRef.current.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            setIsPlaying(true);
-          })
-          .catch(error => {
-            console.error("Error playing audio:", error);
-            toast({
-              title: "Playback Error",
-              description: "Could not play audio: " + error.message,
-              variant: "destructive"
+      try {
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              setIsPlaying(true);
+            })
+            .catch(error => {
+              console.error("Error playing audio:", error);
+              toast({
+                title: "Playback Error",
+                description: "Could not play audio: " + error.message,
+                variant: "destructive"
+              });
             });
-          });
+        }
+      } catch (error: any) {
+        console.error("Exception during play:", error);
+        toast({
+          title: "Playback Error",
+          description: "Error playing audio: " + (error.message || "Unknown error"),
+          variant: "destructive"
+        });
       }
     } else {
       console.warn("Audio element reference is not available");
@@ -201,7 +242,7 @@ export function usePodcastPlayer() {
     if (audioRef.current) {
       try {
         const volumeValue = value / 100;
-        audioRef.current.volume = volumeValue;
+        audioRef.current.volume = Math.max(0, Math.min(1, volumeValue));
         setVolume(value);
       } catch (error) {
         console.error("Error changing volume:", error);
