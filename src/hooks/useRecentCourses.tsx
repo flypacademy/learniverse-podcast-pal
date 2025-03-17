@@ -36,8 +36,19 @@ export function useRecentCourses() {
           return;
         }
 
-        // Fetch user's course progress
-        const progressData = await fetchUserProgress(session.user.id);
+        // Fetch user's course progress directly, including course_id
+        const { data: progressData, error: progressError } = await supabase
+          .from('user_progress')
+          .select('course_id, podcast_id, last_position, completed')
+          .eq('user_id', session.user.id)
+          .not('course_id', 'is', null)  // Ensure we only get records with course_id
+          .order('updated_at', { ascending: false });
+        
+        if (progressError) {
+          console.error("Error fetching user progress:", progressError);
+          setLoading(false);
+          return;
+        }
         
         if (!progressData || progressData.length === 0) {
           console.log("No recent courses found");
@@ -53,14 +64,18 @@ export function useRecentCourses() {
         )];
 
         if (uniqueCourseIds.length === 0) {
+          console.log("No course IDs found in progress data");
           setLoading(false);
           return;
         }
+        
+        console.log("Found course IDs:", uniqueCourseIds);
 
         // Fetch detailed course information
         const coursesData = await fetchCourseDetails(uniqueCourseIds);
         
         if (!coursesData || coursesData.length === 0) {
+          console.log("No course details found");
           setLoading(false);
           return;
         }

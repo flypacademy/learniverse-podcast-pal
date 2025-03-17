@@ -10,6 +10,7 @@ export async function fetchUserProgress(userId: string) {
     .from('user_progress')
     .select('course_id, podcast_id, last_position, completed')
     .eq('user_id', userId)
+    .not('course_id', 'is', null)
     .order('updated_at', { ascending: false });
 
   if (error) {
@@ -24,6 +25,13 @@ export async function fetchUserProgress(userId: string) {
  * Fetches course details for the given course IDs
  */
 export async function fetchCourseDetails(courseIds: string[]) {
+  if (courseIds.length === 0) {
+    console.log("No course IDs provided to fetchCourseDetails");
+    return [];
+  }
+  
+  console.log("Fetching details for courses:", courseIds);
+  
   const { data, error } = await supabase
     .from('courses')
     .select('*')

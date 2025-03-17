@@ -18,6 +18,15 @@ export function useProgressTracking(
       const userId = session.user.id;
       const last_position = Math.floor(audioRef.current.currentTime);
       
+      // Log the data being saved to help debug
+      console.log("Saving progress with data:", {
+        user_id: userId,
+        podcast_id: podcastId,
+        last_position,
+        completed,
+        course_id: podcastCourseId
+      });
+      
       const { error } = await supabase
         .from('user_progress')
         .upsert([
@@ -32,6 +41,8 @@ export function useProgressTracking(
       
       if (error) {
         console.error("Error saving progress:", error);
+      } else {
+        console.log("Progress saved successfully");
       }
     } catch (error) {
       console.error("Exception saving progress:", error);
@@ -44,10 +55,10 @@ export function useProgressTracking(
       if (isPlaying) {
         saveProgress();
       }
-    }, 10000);
+    }, 10000); // Save every 10 seconds while playing
     
     return () => clearInterval(progressInterval);
-  }, [isPlaying, podcastId]);
+  }, [isPlaying, podcastId, podcastCourseId]);
   
   const handleCompletion = async () => {
     await saveProgress(true);
