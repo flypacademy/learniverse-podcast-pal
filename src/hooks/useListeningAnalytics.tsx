@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 
-interface DailyListeningData {
+export interface DailyListeningData {
   date: string; // ISO format date string
   minutesListened: number;
 }
