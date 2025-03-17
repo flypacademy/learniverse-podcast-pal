@@ -1,4 +1,3 @@
-
 import { useCallback } from "react";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -30,6 +29,12 @@ export function useAudioEventHandlers({
         if (isFinite(audioRef.current.duration) && audioRef.current.duration > 0) {
           setDuration(audioRef.current.duration);
           setReady(true);
+          
+          // Reset current time to 0 when metadata loads to prevent starting at the end
+          setCurrentTime(0);
+          if (audioRef.current.currentTime > 0) {
+            audioRef.current.currentTime = 0;
+          }
         } else {
           console.error("Invalid audio duration:", audioRef.current.duration);
           toast({
@@ -42,14 +47,17 @@ export function useAudioEventHandlers({
         console.error("Error in handleAudioLoadedMetadata:", error);
       }
     }
-  }, [audioRef, setDuration, setReady, toast]);
+  }, [audioRef, setDuration, setReady, toast, setCurrentTime]);
   
   const handleAudioTimeUpdate = useCallback(() => {
     if (audioRef.current) {
       try {
         const newTime = audioRef.current.currentTime;
         if (isFinite(newTime)) {
-          console.log("Audio time update:", newTime);
+          // Log time updates less frequently to reduce console spam
+          if (Math.floor(newTime) % 5 === 0) {
+            console.log("Audio time update:", newTime);
+          }
           setCurrentTime(newTime);
         }
       } catch (error) {

@@ -23,43 +23,23 @@ export function useAudioSync(
   // Initialize audio from global store if available, but only once
   useEffect(() => {
     if (!storeInitializedRef.current && audioStore.currentPodcastId === podcastId && audioStore.audioElement) {
-      console.log("useAudioPlayer: Initializing from global store");
-      
-      // We need to use a local variable instead of directly modifying the ref
-      // to avoid the TypeScript error with read-only properties
-      const wasInitialized = storeInitializedRef.current;
-      
-      // Set the ref value to true AFTER checking it
+      console.log("useAudioSync: Initializing from global store");
       storeInitializedRef.current = true;
       
-      if (!wasInitialized) {
-        // Instead of directly modifying audioRef.current (which is read-only),
-        // we'll use the audio element from the store, but through proper channels
-        if (audioStore.audioElement && audioRef.current !== audioStore.audioElement) {
-          // Use the audio store's setAudio method to properly set the audio element in React
-          // This avoids the direct modification of the ref that was causing the TS error
-          // We can't directly assign to audioRef.current, so we need an alternative approach
-          
-          // In React, we're not supposed to modify refs directly. Instead, let's use
-          // the store's features and just sync the values from the store to our local state
-          // without trying to replace the actual audio element reference
-        }
-        
-        // Use safe values to prevent uncontrolled/controlled component switches
-        if (isFinite(audioStore.currentTime)) {
-          setCurrentTime(audioStore.currentTime);
-        }
-        
-        if (isFinite(audioStore.duration) && audioStore.duration > 0) {
-          setDuration(audioStore.duration);
-        }
-        
-        setVolume(audioStore.volume);
-        setIsPlaying(audioStore.isPlaying);
-        setReady(true);
+      // Use safe values to prevent uncontrolled/controlled component switches
+      if (isFinite(audioStore.currentTime)) {
+        setCurrentTime(audioStore.currentTime);
       }
+      
+      if (isFinite(audioStore.duration) && audioStore.duration > 0) {
+        setDuration(audioStore.duration);
+      }
+      
+      setVolume(audioStore.volume);
+      setIsPlaying(audioStore.isPlaying);
+      setReady(true);
     }
-  }, [audioStore, podcastId, setCurrentTime, setDuration, setIsPlaying, setReady, setVolume, audioRef]);
+  }, [audioStore, podcastId, setCurrentTime, setDuration, setIsPlaying, setReady, setVolume]);
   
   // Only update state from store if significant time has passed (throttling)
   // and only for specific properties that have changed significantly
@@ -71,7 +51,7 @@ export function useAudioSync(
     
     // Throttle updates to avoid excessive re-renders
     const now = Date.now();
-    if (now - lastUpdateTimeRef.current < 500) { // 500ms throttle
+    if (now - lastUpdateTimeRef.current < 1000) { // 1000ms throttle (reduced frequency)
       return;
     }
     
@@ -84,16 +64,21 @@ export function useAudioSync(
         setIsPlaying(audioStore.isPlaying);
       }
       
-      if (isFinite(audioStore.currentTime) && Math.abs(currentTime - audioStore.currentTime) > 1) {
-        setCurrentTime(audioStore.currentTime);
+      // Create local variables to avoid excessive property access
+      const storeTime = audioStore.currentTime;
+      const storeDuration = audioStore.duration;
+      const storeVolume = audioStore.volume;
+      
+      if (isFinite(storeTime) && Math.abs(currentTime - storeTime) > 1) {
+        setCurrentTime(storeTime);
       }
       
-      if (audioStore.duration > 0 && Math.abs(duration - audioStore.duration) > 1) {
-        setDuration(audioStore.duration);
+      if (storeDuration > 0 && Math.abs(duration - storeDuration) > 1) {
+        setDuration(storeDuration);
       }
       
-      if (Math.abs(volume - audioStore.volume) > 2) {
-        setVolume(audioStore.volume);
+      if (Math.abs(volume - storeVolume) > 2) {
+        setVolume(storeVolume);
       }
     } finally {
       syncInProgressRef.current = false;

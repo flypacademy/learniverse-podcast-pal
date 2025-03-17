@@ -1,3 +1,4 @@
+
 import { supabase } from "@/lib/supabase";
 
 export function useProgressSaving(podcastId: string | undefined, podcastCourseId?: string) {
@@ -11,7 +12,9 @@ export function useProgressSaving(podcastId: string | undefined, podcastCourseId
       const userId = session.user.id;
       const last_position = Math.floor(audioElement.currentTime);
       
-      // Log the data being saved to help debug
+      // Only save progress if we have a meaningful position
+      if (last_position <= 0 && !completed) return;
+      
       console.log("Saving progress with data:", {
         user_id: userId,
         podcast_id: podcastId,

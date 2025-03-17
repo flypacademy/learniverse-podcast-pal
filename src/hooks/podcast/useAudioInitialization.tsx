@@ -46,7 +46,7 @@ export function useAudioInitialization({
     // Reset metadata flag when podcast changes
     return () => {
       if (podcastId) {
-        console.log("useAudioInitialization: Cleaning up for podcast change");
+        podcastMetaSetRef.current = false;
       }
     };
   }, [podcastData, courseData, loading, audioStore, podcastId]);
@@ -68,6 +68,11 @@ export function useAudioInitialization({
     try {
       console.log("useAudioInitialization: Configuring audio element with URL:", podcastData.audio_url);
       
+      // Ensure the audio is reset to prevent incorrect times
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+      }
+      
       // Check if we already have this podcast in the store
       if (audioStore.currentPodcastId === podcastId && audioStore.audioElement) {
         console.log("useAudioInitialization: Using existing audio element from store");
@@ -76,12 +81,14 @@ export function useAudioInitialization({
       }
       
       // Register with audio store
-      audioStore.setAudio(audioRef.current, podcastId, {
-        id: podcastData.id,
-        title: podcastData.title,
-        courseName: courseData?.title || "Unknown Course",
-        image: podcastData.image_url || courseData?.image || undefined
-      });
+      if (audioRef.current) {
+        audioStore.setAudio(audioRef.current, podcastId, {
+          id: podcastData.id,
+          title: podcastData.title,
+          courseName: courseData?.title || "Unknown Course",
+          image: podcastData.image_url || courseData?.image || undefined
+        });
+      }
       
       setAudioInitialized(true);
     } catch (error) {

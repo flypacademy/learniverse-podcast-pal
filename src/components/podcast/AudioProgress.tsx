@@ -1,6 +1,7 @@
 
 import React from "react";
 import { Slider } from "@/components/ui/slider";
+import { formatDuration } from "@/pages/admin/podcasts/utils/formatters";
 
 interface AudioProgressProps {
   currentTime: number;
@@ -11,23 +12,13 @@ interface AudioProgressProps {
 const AudioProgress = ({ currentTime, duration, onSeek }: AudioProgressProps) => {
   // Ensure currentTime and duration are valid numbers
   const safeCurrentTime = isNaN(currentTime) || currentTime < 0 ? 0 : currentTime;
-  const safeDuration = isNaN(duration) || duration <= 0 ? 1 : duration;
+  const safeDuration = isNaN(duration) || duration <= 0 ? 100 : duration;
   
-  // Ensure progress is always a valid number between 0-100
+  // Calculate progress as a percentage (0-100)
   const progress = Math.min(100, Math.max(0, (safeCurrentTime / safeDuration) * 100));
   
-  // Format time as mm:ss
-  const formatTime = (seconds: number) => {
-    if (isNaN(seconds) || !isFinite(seconds)) {
-      return "0:00";
-    }
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
-  
   const handleSliderChange = (value: number[]) => {
-    if (onSeek && value && value.length > 0 && !isNaN(value[0])) {
+    if (onSeek && value && value.length > 0) {
       onSeek(value[0]);
     }
   };
@@ -43,8 +34,8 @@ const AudioProgress = ({ currentTime, duration, onSeek }: AudioProgressProps) =>
         className="w-full"
       />
       <div className="flex justify-between text-xs text-gray-500 font-medium">
-        <span>{formatTime(safeCurrentTime)}</span>
-        <span>{formatTime(safeDuration)}</span>
+        <span>{formatDuration(safeCurrentTime)}</span>
+        <span>{formatDuration(safeDuration)}</span>
       </div>
     </div>
   );
