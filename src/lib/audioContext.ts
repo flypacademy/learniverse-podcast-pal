@@ -1,208 +1,37 @@
 
 import { create } from 'zustand';
+import { AudioState } from './audio/types';
+import { createAudioControls } from './audio/audioControls';
+import { createAudioSetup } from './audio/audioSetup';
 
-// Add podcast metadata type
-export interface PodcastMeta {
-  id: string;
-  title: string;
-  courseName: string;
-  image?: string;
-}
+// Re-export the PodcastMeta type
+export { type PodcastMeta } from './audio/types';
 
-interface AudioState {
-  audioElement: HTMLAudioElement | null;
-  isPlaying: boolean;
-  currentPodcastId: string | null;
-  currentTime: number;
-  duration: number;
-  volume: number;
-  podcastMeta: PodcastMeta | null;
-  setAudio: (audioElement: HTMLAudioElement, podcastId: string, meta?: PodcastMeta) => void;
-  setPodcastMeta: (meta: PodcastMeta) => void;
-  play: () => void;
-  pause: () => void;
-  setCurrentTime: (time: number) => void;
-  setDuration: (duration: number) => void;
-  setVolume: (volume: number) => void;
-  cleanup: () => void;
-}
-
-export const useAudioStore = create<AudioState>((set, get) => ({
-  audioElement: null,
-  isPlaying: false,
-  currentPodcastId: null,
-  currentTime: 0,
-  duration: 0,
-  volume: 80,
-  podcastMeta: null,
+// Create the audio store using our modular functions
+export const useAudioStore = create<AudioState>((set, get) => {
+  const audioControls = createAudioControls(set, get);
+  const audioSetup = createAudioSetup(set, get);
   
-  setAudio: (audioElement, podcastId, meta) => {
-    // If this is the same podcast that's already playing, don't reset
-    if (get().currentPodcastId === podcastId && get().audioElement) {
-      if (meta) {
-        set({ podcastMeta: meta });
-      }
-      return;
-    }
+  return {
+    // Initial state
+    audioElement: null,
+    isPlaying: false,
+    currentPodcastId: null,
+    currentTime: 0,
+    duration: 0,
+    volume: 80,
+    podcastMeta: null,
     
-    // Clean up existing audio if there is one
-    const currentAudio = get().audioElement;
-    if (currentAudio) {
-      try {
-        currentAudio.pause();
-        // Don't clear the source - we want to keep playing the same audio
-      } catch (e) {
-        console.error("Error cleaning up previous audio:", e);
-      }
-    }
+    // Setup and cleanup methods
+    setAudio: audioSetup.setAudio,
+    setPodcastMeta: audioSetup.setPodcastMeta,
+    cleanup: audioSetup.cleanup,
     
-    // Set the volume based on store state
-    audioElement.volume = get().volume / 100;
-    
-    // Ensure we have valid duration and currentTime before setting state
-    const initialDuration = isFinite(audioElement.duration) && audioElement.duration > 0 
-      ? audioElement.duration 
-      : 0;
-      
-    const initialTime = isFinite(audioElement.currentTime) 
-      ? audioElement.currentTime 
-      : 0;
-    
-    // Update state with new audio
-    set({ 
-      audioElement, 
-      currentPodcastId: podcastId,
-      isPlaying: false,
-      currentTime: initialTime,
-      duration: initialDuration,
-      podcastMeta: meta || get().podcastMeta
-    });
-    
-    // Add event listeners
-    const handleTimeUpdate = () => {
-      const newTime = audioElement.currentTime;
-      if (isFinite(newTime)) {
-        set({ currentTime: newTime });
-      }
-    };
-    
-    const handleEnded = () => {
-      set({ isPlaying: false, currentTime: 0 });
-      audioElement.currentTime = 0;
-    };
-    
-    const handleLoadedMetadata = () => {
-      const newDuration = audioElement.duration;
-      if (isFinite(newDuration) && newDuration > 0) {
-        set({ duration: newDuration });
-      }
-    };
-    
-    // Preserve playback state across navigation
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        // Check if it was playing before and try to resume
-        const isCurrentlyPlaying = get().isPlaying;
-        if (isCurrentlyPlaying && audioElement.paused) {
-          audioElement.play().catch(err => {
-            console.warn("Could not auto-resume audio after visibility change:", err);
-          });
-        }
-      }
-    };
-    
-    audioElement.addEventListener('timeupdate', handleTimeUpdate);
-    audioElement.addEventListener('ended', handleEnded);
-    audioElement.addEventListener('loadedmetadata', handleLoadedMetadata);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    // Attach cleanup functions to the audio element
-    const originalRemoveEventListener = audioElement.removeEventListener.bind(audioElement);
-    audioElement.removeEventListener = function(type, listener, options) {
-      if (type === 'timeupdate' && listener === handleTimeUpdate) {
-        return originalRemoveEventListener(type, handleTimeUpdate, options);
-      }
-      if (type === 'ended' && listener === handleEnded) {
-        return originalRemoveEventListener(type, handleEnded, options);
-      }
-      if (type === 'loadedmetadata' && listener === handleLoadedMetadata) {
-        return originalRemoveEventListener(type, handleLoadedMetadata, options);
-      }
-      return originalRemoveEventListener(type, listener, options);
-    };
-    
-    // Clean up visibility change listener when audio element is cleaned up
-    const cleanup = () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-    
-    // Store cleanup function on the element for later use
-    (audioElement as any).__cleanupVisibilityListener = cleanup;
-  },
-  
-  setPodcastMeta: (meta) => {
-    set({ podcastMeta: meta });
-  },
-  
-  play: () => {
-    const { audioElement } = get();
-    if (audioElement) {
-      audioElement.play().catch(error => {
-        console.error("Error playing audio:", error);
-      });
-      set({ isPlaying: true });
-    }
-  },
-  
-  pause: () => {
-    const { audioElement } = get();
-    if (audioElement) {
-      audioElement.pause();
-      set({ isPlaying: false });
-    }
-  },
-  
-  setCurrentTime: (time) => {
-    const { audioElement } = get();
-    if (audioElement && isFinite(time)) {
-      audioElement.currentTime = time;
-      set({ currentTime: time });
-    }
-  },
-  
-  setDuration: (duration) => {
-    if (isFinite(duration) && duration > 0) {
-      set({ duration });
-    }
-  },
-  
-  setVolume: (volume) => {
-    const { audioElement } = get();
-    if (audioElement) {
-      audioElement.volume = volume / 100;
-    }
-    set({ volume });
-  },
-  
-  cleanup: () => {
-    const { audioElement } = get();
-    if (audioElement) {
-      audioElement.pause();
-      audioElement.src = '';
-      
-      // Clean up visibility change listener if it exists
-      if ((audioElement as any).__cleanupVisibilityListener) {
-        (audioElement as any).__cleanupVisibilityListener();
-      }
-      
-      // Event listeners will be garbage collected with the audio element
-    }
-    set({ 
-      audioElement: null, 
-      isPlaying: false, 
-      currentPodcastId: null,
-      currentTime: 0,
-      podcastMeta: null
-    });
-  }
-}));
+    // Playback control methods
+    play: audioControls.play,
+    pause: audioControls.pause,
+    setCurrentTime: audioControls.setCurrentTime,
+    setDuration: audioControls.setDuration,
+    setVolume: audioControls.setVolume
+  };
+});
