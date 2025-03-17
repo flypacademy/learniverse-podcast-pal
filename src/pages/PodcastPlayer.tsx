@@ -1,5 +1,5 @@
 
-import React, { useEffect, useCallback, useState } from "react";
+import React, { useEffect, useCallback, useState, useRef } from "react";
 import Layout from "@/components/Layout";
 import PodcastPlayerContent from "@/components/podcast/PodcastPlayerContent";
 import PodcastError from "@/components/podcast/PodcastError";
@@ -15,6 +15,7 @@ const PodcastPlayer = () => {
   const { podcastId } = useParams<{ podcastId: string }>();
   const audioStore = useAudioStore();
   const [audioInitialized, setAudioInitialized] = useState(false);
+  const initializationAttemptedRef = useRef(false);
   
   const {
     podcastData,
@@ -71,22 +72,25 @@ const PodcastPlayer = () => {
 
   // Create and configure audio element when podcast data is loaded
   useEffect(() => {
-    if (podcastData?.audio_url && audioRef.current && !audioInitialized) {
+    if (podcastData?.audio_url && audioRef.current && !initializationAttemptedRef.current) {
+      initializationAttemptedRef.current = true;
+      
       try {
-        // Make sure audio is properly configured
         console.log("Configuring audio element with URL:", podcastData.audio_url);
-        audioRef.current.src = podcastData.audio_url;
-        audioRef.current.load();
         
-        // Register with audio store
-        if (podcastId && audioRef.current) {
+        // Register with audio store first before manipulating the audio element
+        if (podcastId) {
           audioStore.setAudio(audioRef.current, podcastId, {
             id: podcastData.id,
             title: podcastData.title,
             courseName: courseData?.title || "Unknown Course",
             image: podcastData.image_url || undefined
           });
-          setAudioInitialized(true);
+          
+          // Delay setting audioInitialized to avoid immediate re-renders
+          setTimeout(() => {
+            setAudioInitialized(true);
+          }, 0);
         }
       } catch (error) {
         console.error("Error initializing audio:", error);
@@ -97,10 +101,11 @@ const PodcastPlayer = () => {
         });
       }
     }
-  }, [podcastData, audioRef, courseData, audioStore, podcastId, audioInitialized, toast]);
+  }, [podcastData, audioRef, courseData, audioStore, podcastId, toast]);
   
   const handleRetry = useCallback(() => {
     console.log("Retrying podcast fetch...");
+    initializationAttemptedRef.current = false;
     setAudioInitialized(false);
     refetchPodcastData();
   }, [refetchPodcastData]);
@@ -165,46 +170,55 @@ const PodcastPlayer = () => {
       description: errorMessage,
       variant: "destructive"
     });
+    initializationAttemptedRef.current = false;
     setAudioInitialized(false);
   };
   
+  if (error) {
+    return (
+      <Layout>
+        <PodcastError errorMessage={error} />
+      </Layout>
+    );
+  }
+  
+  if (loading || !podcastData) {
+    return (
+      <Layout>
+        <PodcastLoading onRetry={handleRetry} />
+      </Layout>
+    );
+  }
+  
   return (
     <Layout>
-      {error ? (
-        <PodcastError errorMessage={error} />
-      ) : loading || !podcastData ? (
-        <PodcastLoading onRetry={handleRetry} />
-      ) : (
-        <>
-          <PodcastPlayerContent
-            podcastData={podcastData}
-            courseData={courseData}
-            ready={ready}
-            isPlaying={isPlaying}
-            currentTime={currentTime}
-            duration={duration}
-            volume={volume}
-            isQuizAvailable={isQuizAvailable}
-            audioRef={audioRef}
-            togglePlayPause={togglePlayPause}
-            seek={seek}
-            changeVolume={changeVolume}
-            skipForward={skipForward}
-            skipBackward={skipBackward}
-            handleAudioLoadedMetadata={handleAudioLoadedMetadata}
-            handleAudioTimeUpdate={handleAudioTimeUpdate}
-            handleAudioEnded={handleAudioEnded}
-            handleAudioPlay={handleAudioPlay}
-            handleAudioPause={handleAudioPause}
-            handleAudioError={handleAudioError}
-          />
-          
-          <XPModal 
-            show={showXPModal}
-            xpAmount={30}
-          />
-        </>
-      )}
+      <PodcastPlayerContent
+        podcastData={podcastData}
+        courseData={courseData}
+        ready={ready}
+        isPlaying={isPlaying}
+        currentTime={currentTime}
+        duration={duration}
+        volume={volume}
+        isQuizAvailable={isQuizAvailable}
+        audioRef={audioRef}
+        togglePlayPause={togglePlayPause}
+        seek={seek}
+        changeVolume={changeVolume}
+        skipForward={skipForward}
+        skipBackward={skipBackward}
+        handleAudioLoadedMetadata={handleAudioLoadedMetadata}
+        handleAudioTimeUpdate={handleAudioTimeUpdate}
+        handleAudioEnded={handleAudioEnded}
+        handleAudioPlay={handleAudioPlay}
+        handleAudioPause={handleAudioPause}
+        handleAudioError={handleAudioError}
+      />
+      
+      <XPModal 
+        show={showXPModal}
+        xpAmount={30}
+      />
     </Layout>
   );
 };

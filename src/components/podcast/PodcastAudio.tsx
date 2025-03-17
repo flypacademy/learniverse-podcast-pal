@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 
 interface PodcastAudioProps {
   audioRef: React.RefObject<HTMLAudioElement>;
@@ -22,14 +22,16 @@ const PodcastAudio = ({
   onPause,
   onError
 }: PodcastAudioProps) => {
+  const prevSrcRef = useRef<string | undefined>(undefined);
   
   useEffect(() => {
-    // Ensure audio element is created and configured properly
-    if (audioRef.current && src) {
+    // Only update the source if it's different from the previous one
+    if (audioRef.current && src && prevSrcRef.current !== src) {
       try {
         console.log("Audio component: setting source to", src);
         audioRef.current.src = src;
         audioRef.current.load();
+        prevSrcRef.current = src;
       } catch (error) {
         console.error("Error setting audio source:", error);
       }

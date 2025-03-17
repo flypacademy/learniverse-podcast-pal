@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAudioStore } from "@/lib/audioContext";
 import { formatTime } from "@/lib/utils";
@@ -23,10 +23,23 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
     pause,
     setCurrentTime
   } = useAudioStore();
-
-  // Ensure we have valid values to prevent uncontrolled/controlled component switches
-  const safeCurrentTime = isFinite(currentTime) ? currentTime : 0;
-  const safeDuration = isFinite(duration) && duration > 0 ? duration : 1;
+  
+  // Use local state to prevent rendering issues during transitions
+  const [localCurrentTime, setLocalCurrentTime] = useState(0);
+  const [localDuration, setLocalDuration] = useState(100);
+  
+  // Sync with audio store values once they're stable
+  useEffect(() => {
+    if (isFinite(currentTime) && currentTime >= 0) {
+      setLocalCurrentTime(currentTime);
+    }
+  }, [currentTime]);
+  
+  useEffect(() => {
+    if (isFinite(duration) && duration > 0) {
+      setLocalDuration(duration);
+    }
+  }, [duration]);
 
   const togglePlay = () => {
     if (isPlaying) {
@@ -37,14 +50,17 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
   };
 
   const skipForward = () => {
-    const newTime = Math.min(safeCurrentTime + 10, safeDuration);
+    const newTime = Math.min(localCurrentTime + 10, localDuration);
     setCurrentTime(newTime);
   };
 
   const skipBackward = () => {
-    const newTime = Math.max(safeCurrentTime - 10, 0);
+    const newTime = Math.max(localCurrentTime - 10, 0);
     setCurrentTime(newTime);
   };
+
+  // Calculate progress safely
+  const progress = localDuration > 0 ? (localCurrentTime / localDuration * 100) : 0;
 
   return (
     <div className="bg-white border border-gray-100 shadow-lg rounded-lg z-20 p-3 animate-fade-in">
@@ -75,7 +91,7 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
           <div className="mt-1 w-full h-1 bg-gray-200 rounded-full overflow-hidden">
             <div 
               className="h-full bg-primary rounded-full"
-              style={{ width: `${(safeCurrentTime / safeDuration) * 100}%` }}
+              style={{ width: `${Math.max(0, Math.min(progress, 100))}%` }}
             ></div>
           </div>
         </div>

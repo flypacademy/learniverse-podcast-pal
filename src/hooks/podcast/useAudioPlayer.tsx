@@ -1,7 +1,5 @@
 
 import { useState, useEffect, useRef } from "react";
-import { useParams } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
 import { PodcastProgressData } from "@/types/podcast";
 import { useAudioStore } from "@/lib/audioContext";
 
@@ -15,32 +13,35 @@ export function useAudioPlayer(podcastId: string | undefined) {
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioStore = useAudioStore();
+  const storeInitializedRef = useRef(false);
   
-  // Initialize audio from global store if available
+  // Initialize audio from global store if available, but only once
   useEffect(() => {
-    if (audioStore.currentPodcastId === podcastId && audioStore.audioElement) {
+    if (!storeInitializedRef.current && audioStore.currentPodcastId === podcastId && audioStore.audioElement) {
+      storeInitializedRef.current = true;
       audioRef.current = audioStore.audioElement;
-      setIsPlaying(audioStore.isPlaying);
-      setCurrentTime(audioStore.currentTime);
-      setDuration(audioStore.duration);
-      setReady(true);
-    } else if (audioRef.current) {
-      // Register this audio element with the store
-      if (podcastId && audioRef.current) {
-        audioStore.setAudio(audioRef.current, podcastId);
+      
+      // Use safe values to prevent uncontrolled/controlled component switches
+      if (isFinite(audioStore.currentTime)) {
+        setCurrentTime(audioStore.currentTime);
       }
+      
+      if (isFinite(audioStore.duration) && audioStore.duration > 0) {
+        setDuration(audioStore.duration);
+      }
+      
+      setIsPlaying(audioStore.isPlaying);
+      setReady(true);
     }
   }, [audioStore, podcastId]);
   
   const handleProgressData = (progressData: PodcastProgressData) => {
-    if (progressData.last_position > 0) {
-      setCurrentTime(progressData.last_position);
-      if (audioRef.current) {
-        try {
-          audioRef.current.currentTime = progressData.last_position;
-        } catch (error) {
-          console.error("Error setting audio currentTime:", error);
-        }
+    if (progressData.last_position > 0 && audioRef.current) {
+      try {
+        audioRef.current.currentTime = progressData.last_position;
+        setCurrentTime(progressData.last_position);
+      } catch (error) {
+        console.error("Error setting audio currentTime:", error);
       }
     }
   };
