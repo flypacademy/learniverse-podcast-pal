@@ -85,7 +85,7 @@ const Onboarding = () => {
   const currentStep = steps[step];
 
   return (
-    <div className="min-h-screen bg-[#111111] flex flex-col bg-[url('public/lovable-uploads/3b9235b3-4088-4b61-9dfb-369bd6ff7de8.png')] bg-cover bg-center bg-no-repeat">
+    <div className="min-h-screen bg-background flex flex-col bg-[url('/lovable-uploads/3b9235b3-4088-4b61-9dfb-369bd6ff7de8.png')] bg-cover bg-center bg-no-repeat">
       <div className="flex-1 max-w-md mx-auto w-full px-6 py-12 flex flex-col">
         <OnboardingContainer 
           title={currentStep.title} 
@@ -96,10 +96,10 @@ const Onboarding = () => {
         
         {step === 0 && (
           <div className="mt-8 flex justify-center space-x-6">
-            <button className="text-zinc-500 text-sm hover:text-white transition-colors">
+            <button className="text-muted-foreground text-sm hover:text-foreground transition-colors">
               Privacy policy
             </button>
-            <button className="text-zinc-500 text-sm hover:text-white transition-colors">
+            <button className="text-muted-foreground text-sm hover:text-foreground transition-colors">
               Terms of service
             </button>
           </div>

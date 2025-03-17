@@ -14,9 +14,19 @@ const WelcomeStep = ({ onContinueWithEmail }: WelcomeStepProps) => {
   return (
     <div className="space-y-6 w-full">
       <div className="flex flex-col items-center justify-center space-y-4">
-        {/* App logo */}
-        <div className="w-24 h-24 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center">
-          <Globe className="h-12 w-12 text-white" />
+        {/* App logo with gradient background */}
+        <div className="w-24 h-24 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center">
+          <Globe className="h-12 w-12 text-primary-foreground" />
+        </div>
+        
+        {/* App illustration */}
+        <div className="relative w-full h-40 rounded-xl overflow-hidden mb-4">
+          <img 
+            src="/lovable-uploads/3b9235b3-4088-4b61-9dfb-369bd6ff7de8.png" 
+            alt="Learning illustration" 
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-card/80 to-transparent"></div>
         </div>
       </div>
       
@@ -24,7 +34,7 @@ const WelcomeStep = ({ onContinueWithEmail }: WelcomeStepProps) => {
         <Button 
           size="lg" 
           variant="outline" 
-          className="w-full bg-white text-black hover:bg-white/90 font-medium flex items-center justify-center gap-2"
+          className="w-full bg-background/80 backdrop-blur-sm border-border hover:bg-accent/10 hover:text-accent font-medium flex items-center justify-center gap-2"
           onClick={() => toast({
             title: "Apple Sign In",
             description: "Apple authentication would be implemented here"
@@ -37,7 +47,7 @@ const WelcomeStep = ({ onContinueWithEmail }: WelcomeStepProps) => {
         <Button 
           size="lg" 
           variant="outline" 
-          className="w-full bg-white text-black hover:bg-white/90 font-medium flex items-center justify-center gap-2" 
+          className="w-full bg-background/80 backdrop-blur-sm border-border hover:bg-accent/10 hover:text-accent font-medium flex items-center justify-center gap-2" 
           onClick={() => toast({
             title: "Google Sign In",
             description: "Google authentication would be implemented here"
@@ -67,8 +77,7 @@ const WelcomeStep = ({ onContinueWithEmail }: WelcomeStepProps) => {
         
         <Button 
           size="lg" 
-          variant="outline" 
-          className="w-full bg-zinc-700/90 text-white hover:bg-zinc-700 font-medium" 
+          className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-medium" 
           onClick={onContinueWithEmail}
         >
           <Mail className="mr-2 h-5 w-5" />
@@ -77,8 +86,8 @@ const WelcomeStep = ({ onContinueWithEmail }: WelcomeStepProps) => {
         
         <Button 
           size="lg" 
-          variant="outline" 
-          className="w-full bg-zinc-700/90 text-white hover:bg-zinc-700 font-medium"
+          variant="secondary"
+          className="w-full hover:bg-secondary/80 font-medium"
           onClick={() => toast({
             title: "SSO Sign In",
             description: "SSO authentication would be implemented here"

@@ -27,33 +27,33 @@ const SignInStep = ({
   return (
     <div className="space-y-4 w-full">
       <div className="space-y-2">
-        <Label htmlFor="login-email" className="text-white">Email</Label>
+        <Label htmlFor="login-email">Email</Label>
         <Input
           id="login-email"
           type="email"
           placeholder="Enter your email"
           value={email}
           onChange={(e) => onEmailChange(e.target.value)}
-          className="bg-zinc-800 border-zinc-700 text-white"
+          className="bg-background/50 border-border"
           required
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="login-password" className="text-white">Password</Label>
+        <Label htmlFor="login-password">Password</Label>
         <Input
           id="login-password"
           type="password"
           placeholder="Enter your password"
           value={password}
           onChange={(e) => onPasswordChange(e.target.value)}
-          className="bg-zinc-800 border-zinc-700 text-white"
+          className="bg-background/50 border-border"
           required
         />
       </div>
       
       <Button 
         size="lg" 
-        className="w-full bg-white text-black hover:bg-white/90 mt-4"
+        className="w-full bg-primary text-primary-foreground hover:bg-primary/90 mt-4"
         onClick={onSignIn}
         disabled={loading}
       >
@@ -65,7 +65,7 @@ const SignInStep = ({
         variant="ghost"
         size="sm"
         onClick={onGoToSignUp}
-        className="w-full text-zinc-400 hover:text-white hover:bg-transparent mt-2"
+        className="w-full text-muted-foreground hover:text-foreground hover:bg-transparent mt-2"
       >
         Need an account? Sign Up
       </Button>

@@ -11,13 +11,13 @@ const OnboardingContainer = ({ title, description, children }: OnboardingContain
   return (
     <div className="flex-1 flex flex-col justify-center">
       <div className="text-center mb-6">
-        <h1 className="text-3xl font-display font-bold text-white">
+        <h1 className="text-3xl font-display font-bold text-primary">
           {title}
         </h1>
-        <p className="text-zinc-400 mt-1">{description}</p>
+        <p className="text-muted-foreground mt-1">{description}</p>
       </div>
 
-      <div className="backdrop-blur-md bg-black/50 rounded-2xl p-6 border border-zinc-800">
+      <div className="bg-card/90 backdrop-blur-sm rounded-2xl p-6 border border-border shadow-lg">
         {children}
       </div>
     </div>
