@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Clock, BookOpen, Play, Calendar, Sparkles, SkipForward } from "lucide-react";
 import Layout from "@/components/Layout";
@@ -56,16 +55,6 @@ const Goals = () => {
     
     setRecommendedPodcasts(filtered);
   }, [goalSettings, podcasts]);
-  
-  // Show a loading toast if data is loading
-  useEffect(() => {
-    if (loading) {
-      toast({
-        title: "Loading courses and podcasts",
-        description: "Please wait while we fetch the latest data",
-      });
-    }
-  }, [loading, toast]);
   
   // Show error toast if there's an error
   useEffect(() => {
@@ -215,7 +204,7 @@ const Goals = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
   
-  // Check if data is still loading
+  // Show loading state with a skeleton UI instead of a toast
   if (loading) {
     return (
       <Layout>
@@ -225,7 +214,7 @@ const Goals = () => {
           </h1>
           <div className="flex justify-center items-center py-16">
             <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
-            <span className="ml-3">Loading courses and podcasts...</span>
+            <span className="ml-3">Loading...</span>
           </div>
         </div>
       </Layout>
