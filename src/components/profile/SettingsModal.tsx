@@ -1,10 +1,11 @@
 
-import React from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogClose,
 } from "@/components/ui/dialog";
 import {
@@ -26,6 +27,9 @@ interface SettingsModalProps {
 
 const SettingsModal = ({ open, onOpenChange }: SettingsModalProps) => {
   const { toast } = useToast();
+  // Initialize state for the switches
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [darkModeEnabled, setDarkModeEnabled] = useState(false);
 
   const handleLogout = () => {
     toast({
@@ -40,6 +44,9 @@ const SettingsModal = ({ open, onOpenChange }: SettingsModalProps) => {
       <DialogContent className="max-w-md mx-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-display">Settings</DialogTitle>
+          <DialogDescription className="text-gray-500">
+            Customize your app experience
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-2">
@@ -54,7 +61,10 @@ const SettingsModal = ({ open, onOpenChange }: SettingsModalProps) => {
                 <p className="text-sm text-gray-500">Stay up to date</p>
               </div>
             </div>
-            <Switch />
+            <Switch 
+              checked={notificationsEnabled}
+              onCheckedChange={setNotificationsEnabled}
+            />
           </div>
 
           {/* Dark Mode */}
@@ -68,7 +78,10 @@ const SettingsModal = ({ open, onOpenChange }: SettingsModalProps) => {
                 <p className="text-sm text-gray-500">Easy on the eyes</p>
               </div>
             </div>
-            <Switch />
+            <Switch 
+              checked={darkModeEnabled}
+              onCheckedChange={setDarkModeEnabled}
+            />
           </div>
 
           {/* Language */}
