@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import OnboardingContainer from "@/components/onboarding/OnboardingContainer";
@@ -8,6 +8,7 @@ import SignUpStep from "@/components/onboarding/SignUpStep";
 import SignInStep from "@/components/onboarding/SignInStep";
 import SuccessStep from "@/components/onboarding/SuccessStep";
 import { handleSignUp, handleSignIn } from "@/utils/auth";
+import { supabase } from "@/lib/supabase";
 
 const Onboarding = () => {
   const [step, setStep] = useState(0);
@@ -17,6 +18,20 @@ const Onboarding = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const toast = useToast();
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data } = await supabase.auth.getSession();
+      
+      if (data.session) {
+        // User is already logged in, redirect to home
+        navigate("/", { replace: true });
+      }
+    };
+    
+    checkAuth();
+  }, [navigate]);
 
   // Onboarding steps configuration
   const steps = [
@@ -82,7 +97,7 @@ const Onboarding = () => {
     const result = await handleSignIn(email, password, toast);
     setLoading(false);
     if (result.success) {
-      navigate("/"); // Navigate to home
+      navigate("/", { replace: true }); // Navigate to home
     }
   }
 

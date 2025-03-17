@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
 
@@ -12,6 +12,7 @@ const OnboardingCheck = ({ children }: OnboardingCheckProps) => {
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
   const [firstLaunch, setFirstLaunch] = useState<boolean | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Check if we have session
@@ -31,8 +32,26 @@ const OnboardingCheck = ({ children }: OnboardingCheckProps) => {
       setLoading(false);
     };
 
+    // Listen for auth changes
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.log("Auth state changed:", event, session?.user?.email);
+        setSession(session);
+        
+        // If user just signed in, redirect to home
+        if (event === 'SIGNED_IN') {
+          navigate("/", { replace: true });
+        }
+      }
+    );
+
     checkSession();
-  }, []);
+
+    // Cleanup subscription on unmount
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [navigate]);
 
   // Show loading while checking session status
   if (loading) {
