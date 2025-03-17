@@ -67,9 +67,12 @@ const PodcastPlayerContent = ({
   
   // Register podcast with global audio store to enable mini player
   const audioStore = useAudioStore();
+  const metaSetRef = useRef(false);
   
   useEffect(() => {
-    if (audioRef.current && podcastData) {
+    if (audioRef.current && podcastData && !metaSetRef.current) {
+      metaSetRef.current = true;
+      
       // Set podcast metadata in the global store to enable mini player display
       audioStore.setPodcastMeta({
         id: podcastData.id,

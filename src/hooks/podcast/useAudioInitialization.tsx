@@ -27,7 +27,7 @@ export function useAudioInitialization({
 
   // Save podcast metadata to the global store when it's loaded, but only once
   useEffect(() => {
-    if (podcastData && courseData && !loading && !podcastMetaSetRef.current) {
+    if (podcastData && !loading && !podcastMetaSetRef.current) {
       podcastMetaSetRef.current = true;
       
       // Only set metadata if this is a new podcast or if metadata has changed
@@ -46,7 +46,12 @@ export function useAudioInitialization({
 
   // Create and configure audio element when podcast data is loaded
   useEffect(() => {
-    if (podcastData?.audio_url && audioRef.current && !initializationAttemptedRef.current) {
+    if (
+      podcastData?.audio_url && 
+      audioRef.current && 
+      !initializationAttemptedRef.current && 
+      podcastId
+    ) {
       initializationAttemptedRef.current = true;
       
       try {
@@ -60,17 +65,15 @@ export function useAudioInitialization({
           return;
         }
         
-        // Register with audio store first before manipulating the audio element
-        if (podcastId) {
-          audioStore.setAudio(audioRef.current, podcastId, {
-            id: podcastData.id,
-            title: podcastData.title,
-            courseName: courseData?.title || "Unknown Course",
-            image: podcastData.image_url || courseData?.image || undefined
-          });
-          
-          setAudioInitialized(true);
-        }
+        // Register with audio store
+        audioStore.setAudio(audioRef.current, podcastId, {
+          id: podcastData.id,
+          title: podcastData.title,
+          courseName: courseData?.title || "Unknown Course",
+          image: podcastData.image_url || courseData?.image || undefined
+        });
+        
+        setAudioInitialized(true);
       } catch (error) {
         console.error("Error initializing audio:", error);
         toast({

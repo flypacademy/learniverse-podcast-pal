@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { PodcastProgressData } from "@/types/podcast";
 import { useAudioStore } from "@/lib/audioContext";
@@ -14,6 +13,7 @@ export function useAudioPlayer(podcastId: string | undefined) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioStore = useAudioStore();
   const storeInitializedRef = useRef(false);
+  const syncInProgressRef = useRef(false);
   
   // Initialize audio from global store if available, but only once
   useEffect(() => {
@@ -30,6 +30,7 @@ export function useAudioPlayer(podcastId: string | undefined) {
         setDuration(audioStore.duration);
       }
       
+      setVolume(audioStore.volume);
       setIsPlaying(audioStore.isPlaying);
       setReady(true);
     }
@@ -37,16 +38,33 @@ export function useAudioPlayer(podcastId: string | undefined) {
   
   // Keep local state in sync with the global audio store
   useEffect(() => {
+    // Prevent infinite update loops by using a ref to track sync operations
+    if (syncInProgressRef.current) return;
+    
     if (audioRef.current && audioRef.current === audioStore.audioElement) {
-      setIsPlaying(audioStore.isPlaying);
-      if (isFinite(audioStore.currentTime)) {
-        setCurrentTime(audioStore.currentTime);
-      }
-      if (audioStore.duration > 0) {
-        setDuration(audioStore.duration);
+      syncInProgressRef.current = true;
+      
+      try {
+        if (isPlaying !== audioStore.isPlaying) {
+          setIsPlaying(audioStore.isPlaying);
+        }
+        
+        if (isFinite(audioStore.currentTime) && Math.abs(currentTime - audioStore.currentTime) > 0.5) {
+          setCurrentTime(audioStore.currentTime);
+        }
+        
+        if (audioStore.duration > 0 && Math.abs(duration - audioStore.duration) > 0.5) {
+          setDuration(audioStore.duration);
+        }
+        
+        if (volume !== audioStore.volume) {
+          setVolume(audioStore.volume);
+        }
+      } finally {
+        syncInProgressRef.current = false;
       }
     }
-  }, [audioStore.isPlaying, audioStore.currentTime, audioStore.duration]);
+  }, [audioStore.isPlaying, audioStore.currentTime, audioStore.duration, audioStore.volume, audioRef.current, isPlaying, currentTime, duration, volume]);
   
   const handleProgressData = (progressData: PodcastProgressData) => {
     if (progressData.last_position > 0 && audioRef.current) {
@@ -67,7 +85,10 @@ export function useAudioPlayer(podcastId: string | undefined) {
           playPromise
             .then(() => {
               setIsPlaying(true);
-              audioStore.play();
+              // Only update the store if our local state changed
+              if (!audioStore.isPlaying) {
+                audioStore.play();
+              }
             })
             .catch(error => {
               console.error("Error playing audio:", error);
@@ -86,7 +107,10 @@ export function useAudioPlayer(podcastId: string | undefined) {
       if (audioRef.current) {
         audioRef.current.pause();
         setIsPlaying(false);
-        audioStore.pause();
+        // Only update the store if our local state changed
+        if (audioStore.isPlaying) {
+          audioStore.pause();
+        }
       }
     } catch (error) {
       console.error("Error pausing audio:", error);
