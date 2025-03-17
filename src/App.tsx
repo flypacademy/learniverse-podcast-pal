@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { supabase } from "@/lib/supabase";
 import { Session } from '@supabase/supabase-js';
-import { Toaster } from "@/components/ui/toaster"
+import { Toaster } from "@/components/ui/toaster";
+import OnboardingCheck from './components/OnboardingCheck';
 
 // Import page components
 import Index from './pages/Index';
@@ -24,6 +25,7 @@ import AdminUsers from './pages/admin/users/AdminUsers';
 import AdminSettings from './pages/admin/settings/AdminSettings';
 import NotFound from './pages/NotFound';
 import PodcastForm from './pages/admin/podcasts/PodcastForm';
+import Onboarding from './pages/Onboarding';
 
 function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -41,17 +43,52 @@ function App() {
   return (
     <>
       <Routes>
-        {/* Public routes */}
-        <Route path="/" element={<Index />} />
-        <Route path="/courses" element={<Courses />} />
-        <Route path="/course/:courseId" element={<CourseDetail />} />
-        <Route path="/podcast/:podcastId" element={<PodcastPlayer />} />
-        <Route path="/podcast-sample" element={<PodcastSample />} />
+        {/* Onboarding route - accessible without authentication */}
+        <Route path="/onboarding" element={<Onboarding />} />
+        
+        {/* Protected routes - require authentication & onboarding */}
+        <Route path="/" element={
+          <OnboardingCheck>
+            <Index />
+          </OnboardingCheck>
+        } />
+        <Route path="/courses" element={
+          <OnboardingCheck>
+            <Courses />
+          </OnboardingCheck>
+        } />
+        <Route path="/course/:courseId" element={
+          <OnboardingCheck>
+            <CourseDetail />
+          </OnboardingCheck>
+        } />
+        <Route path="/podcast/:podcastId" element={
+          <OnboardingCheck>
+            <PodcastPlayer />
+          </OnboardingCheck>
+        } />
+        <Route path="/podcast-sample" element={
+          <OnboardingCheck>
+            <PodcastSample />
+          </OnboardingCheck>
+        } />
 
         {/* Student routes */}
-        <Route path="/tasks" element={<Tasks />} />
-        <Route path="/goals" element={<Goals />} />
-        <Route path="/profile" element={<Profile />} />
+        <Route path="/tasks" element={
+          <OnboardingCheck>
+            <Tasks />
+          </OnboardingCheck>
+        } />
+        <Route path="/goals" element={
+          <OnboardingCheck>
+            <Goals />
+          </OnboardingCheck>
+        } />
+        <Route path="/profile" element={
+          <OnboardingCheck>
+            <Profile />
+          </OnboardingCheck>
+        } />
 
         {/* Admin routes */}
         <Route path="/admin/login" element={<AdminLogin />} />
