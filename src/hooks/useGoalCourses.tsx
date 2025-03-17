@@ -80,19 +80,26 @@ export function useGoalCourses() {
           throw podcastsError;
         }
         
-        // Format podcasts data
-        const formattedPodcasts = podcastsData.map(podcast => ({
-          id: podcast.id,
-          title: podcast.title,
-          courseId: podcast.course_id,
-          courseName: podcast.courses?.title 
-            ? `${podcast.courses.title}` 
-            : "Unknown Course",
-          duration: podcast.duration || 600, // Default 10 minutes if not set
-          progress: 0,
-          completed: false,
-          image: podcast.image_url || "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png"
-        }));
+        // Format podcasts data - Fix the TypeScript error here
+        const formattedPodcasts = podcastsData.map(podcast => {
+          // Fix: Access the first element of the courses array if it exists
+          const courseTitle = podcast.courses && 
+                            typeof podcast.courses === 'object' && 
+                            'title' in podcast.courses ? 
+                            podcast.courses.title : 
+                            "Unknown Course";
+          
+          return {
+            id: podcast.id,
+            title: podcast.title,
+            courseId: podcast.course_id,
+            courseName: courseTitle,
+            duration: podcast.duration || 600, // Default 10 minutes if not set
+            progress: 0,
+            completed: false,
+            image: podcast.image_url || "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png"
+          };
+        });
         
         // If no podcasts are found, use fallback data
         if (!formattedPodcasts.length) {
