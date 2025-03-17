@@ -30,27 +30,25 @@ export function useLeaderboard() {
           setCurrentUserId(currentUser.id);
         }
         
-        // Get user experience data
-        const { data: experienceData, error: experienceError } = await supabase
+        // Join user_experience with user_profiles to get both XP and display names
+        const { data: combinedData, error: combinedError } = await supabase
           .from('user_experience')
-          .select('user_id, total_xp')
+          .select(`
+            user_id,
+            total_xp,
+            user_profiles:user_id(
+              display_name,
+              avatar_url
+            )
+          `)
           .order('total_xp', { ascending: false });
           
-        if (experienceError) {
-          throw experienceError;
-        }
-        
-        // Get user profiles
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('user_profiles')
-          .select('id, display_name, avatar_url');
-          
-        if (profilesError) {
-          throw profilesError;
+        if (combinedError) {
+          throw combinedError;
         }
         
         // If there's no data yet, use fallback data
-        if (!experienceData || experienceData.length === 0 || !profilesData || profilesData.length === 0) {
+        if (!combinedData || combinedData.length === 0) {
           // Use default mock data for initial state
           const mockData = [
             { id: "user1", display_name: "Alex", total_xp: 2430, rank: 1, change: "same" as const },
@@ -66,22 +64,20 @@ export function useLeaderboard() {
           return;
         }
         
-        // Combine the data
-        const combinedData = experienceData.map((exp, index) => {
-          const profile = profilesData.find(p => p.id === exp.user_id);
-          
+        // Transform the joined data into our leaderboard format
+        const formattedData = combinedData.map((item, index) => {
           return {
-            id: exp.user_id,
-            display_name: profile?.display_name || `User-${index + 1}`,
-            total_xp: exp.total_xp,
+            id: item.user_id,
+            display_name: item.user_profiles?.display_name || `User-${index + 1}`,
+            total_xp: item.total_xp,
             rank: index + 1,
-            avatar_url: profile?.avatar_url,
+            avatar_url: item.user_profiles?.avatar_url,
             // Randomly assign change for now, in the future this would be based on previous rankings
             change: ["up", "down", "same"][Math.floor(Math.random() * 3)] as "up" | "down" | "same"
           };
         });
         
-        setLeaderboardData(combinedData);
+        setLeaderboardData(formattedData);
         setLoading(false);
       } catch (err: any) {
         console.error("Error fetching leaderboard data:", err);
@@ -91,6 +87,26 @@ export function useLeaderboard() {
     }
     
     fetchLeaderboardData();
+    
+    // Set up real-time subscription for leaderboard updates
+    const channel = supabase
+      .channel('public:user_experience')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'user_experience' 
+        }, 
+        () => {
+          // Refetch data when there are changes
+          fetchLeaderboardData();
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
   
   return { leaderboardData, currentUserId, loading, error };
