@@ -19,7 +19,7 @@ const Layout = ({ children }: LayoutProps) => {
   const showMiniPlayer = !!currentPodcastId && !!podcastMeta && !isPodcastPage;
   
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-b from-white to-gray-50">
+    <div className="flex flex-col min-h-screen bg-gradient-to-b from-white to-gray-50 relative">
       <main className={`flex-1 pt-6 px-4 max-w-md mx-auto w-full ${showMiniPlayer ? 'pb-36' : 'pb-20'}`}>
         {children}
       </main>
@@ -38,8 +38,8 @@ const Layout = ({ children }: LayoutProps) => {
         </div>
       )}
       
-      {/* Navigation Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-10">
+      {/* Navigation Bar - Updated with improved fixed positioning */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-10" style={{ position: 'fixed' }}>
         <div className="flex justify-around items-center py-2 px-3 max-w-md mx-auto">
           <NavItem 
             to="/" 
