@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { PodcastProgressData } from "@/types/podcast";
+import { useAudioStore } from "@/lib/audioContext";
 
 export function useAudioPlayer(podcastId: string | undefined) {
   const [ready, setReady] = useState(false);
@@ -13,6 +14,23 @@ export function useAudioPlayer(podcastId: string | undefined) {
   const [showXPModal, setShowXPModal] = useState(false);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioStore = useAudioStore();
+  
+  // Initialize audio from global store if available
+  useEffect(() => {
+    if (audioStore.currentPodcastId === podcastId && audioStore.audioElement) {
+      audioRef.current = audioStore.audioElement;
+      setIsPlaying(audioStore.isPlaying);
+      setCurrentTime(audioStore.currentTime);
+      setDuration(audioStore.duration);
+      setReady(true);
+    } else if (audioRef.current) {
+      // Register this audio element with the store
+      if (podcastId && audioRef.current) {
+        audioStore.setAudio(audioRef.current, podcastId);
+      }
+    }
+  }, [audioStore, podcastId]);
   
   const handleProgressData = (progressData: PodcastProgressData) => {
     if (progressData.last_position > 0) {
@@ -35,6 +53,7 @@ export function useAudioPlayer(podcastId: string | undefined) {
           playPromise
             .then(() => {
               setIsPlaying(true);
+              audioStore.play();
             })
             .catch(error => {
               console.error("Error playing audio:", error);
@@ -53,6 +72,7 @@ export function useAudioPlayer(podcastId: string | undefined) {
       if (audioRef.current) {
         audioRef.current.pause();
         setIsPlaying(false);
+        audioStore.pause();
       }
     } catch (error) {
       console.error("Error pausing audio:", error);
@@ -73,6 +93,7 @@ export function useAudioPlayer(podcastId: string | undefined) {
         const newTime = (percent / 100) * duration;
         audioRef.current.currentTime = newTime;
         setCurrentTime(newTime);
+        audioStore.setCurrentTime(newTime);
       } catch (error) {
         console.error("Error seeking audio:", error);
       }
@@ -85,6 +106,7 @@ export function useAudioPlayer(podcastId: string | undefined) {
         const volumeValue = value / 100;
         audioRef.current.volume = Math.max(0, Math.min(1, volumeValue));
         setVolume(value);
+        audioStore.setVolume(value);
       } catch (error) {
         console.error("Error changing volume:", error);
       }
@@ -97,6 +119,7 @@ export function useAudioPlayer(podcastId: string | undefined) {
         const newTime = Math.min(audioRef.current.duration, audioRef.current.currentTime + 15);
         audioRef.current.currentTime = newTime;
         setCurrentTime(newTime);
+        audioStore.setCurrentTime(newTime);
       } catch (error) {
         console.error("Error skipping forward:", error);
       }
@@ -109,6 +132,7 @@ export function useAudioPlayer(podcastId: string | undefined) {
         const newTime = Math.max(0, audioRef.current.currentTime - 15);
         audioRef.current.currentTime = newTime;
         setCurrentTime(newTime);
+        audioStore.setCurrentTime(newTime);
       } catch (error) {
         console.error("Error skipping backward:", error);
       }

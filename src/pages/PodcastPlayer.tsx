@@ -1,4 +1,3 @@
-
 import React, { useEffect, useCallback } from "react";
 import Layout from "@/components/Layout";
 import PodcastPlayerContent from "@/components/podcast/PodcastPlayerContent";
@@ -8,10 +7,12 @@ import XPModal from "@/components/podcast/XPModal";
 import { usePodcastPlayer } from "@/hooks/usePodcastPlayer";
 import { useToast } from "@/components/ui/use-toast";
 import { useParams } from "react-router-dom";
+import { useAudioStore } from "@/lib/audioContext";
 
 const PodcastPlayer = () => {
   const { toast } = useToast();
   const { podcastId } = useParams<{ podcastId: string }>();
+  const audioStore = useAudioStore();
   
   const {
     podcastData,
@@ -51,11 +52,20 @@ const PodcastPlayer = () => {
     
     return () => {
       console.log("PodcastPlayer component unmounting");
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
     };
   }, [loading, error, podcastData, audioRef, podcastId]);
+
+  // Save podcast metadata to the global store when it's loaded
+  useEffect(() => {
+    if (podcastData && courseData && !loading) {
+      audioStore.setPodcastMeta({
+        id: podcastData.id,
+        title: podcastData.title,
+        courseName: courseData?.title || "Unknown Course",
+        image: podcastData.image_url || undefined
+      });
+    }
+  }, [podcastData, courseData, loading, audioStore]);
 
   // Create and configure audio element when podcast data is loaded
   useEffect(() => {
@@ -64,8 +74,18 @@ const PodcastPlayer = () => {
       console.log("Configuring audio element with URL:", podcastData.audio_url);
       audioRef.current.src = podcastData.audio_url;
       audioRef.current.load();
+      
+      // Register with audio store
+      if (podcastId && audioRef.current) {
+        audioStore.setAudio(audioRef.current, podcastId, {
+          id: podcastData.id,
+          title: podcastData.title,
+          courseName: courseData?.title || "Unknown Course",
+          image: podcastData.image_url || undefined
+        });
+      }
     }
-  }, [podcastData, audioRef]);
+  }, [podcastData, audioRef, courseData, audioStore, podcastId]);
   
   const handleRetry = useCallback(() => {
     console.log("Retrying podcast fetch...");

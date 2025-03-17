@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 
 // Add podcast metadata type
@@ -37,13 +36,23 @@ export const useAudioStore = create<AudioState>((set, get) => ({
   podcastMeta: null,
   
   setAudio: (audioElement, podcastId, meta) => {
+    // If this is the same podcast that's already playing, don't reset
+    if (get().currentPodcastId === podcastId && get().audioElement) {
+      if (meta) {
+        set({ podcastMeta: meta });
+      }
+      return;
+    }
+    
     // Clean up existing audio if there is one
     const currentAudio = get().audioElement;
     if (currentAudio) {
-      currentAudio.pause();
-      currentAudio.src = '';
-      currentAudio.removeEventListener('timeupdate', () => {});
-      currentAudio.removeEventListener('ended', () => {});
+      try {
+        currentAudio.pause();
+        // Don't clear the source - we want to keep playing the same audio
+      } catch (e) {
+        console.error("Error cleaning up previous audio:", e);
+      }
     }
     
     // Set the volume based on store state
@@ -54,9 +63,9 @@ export const useAudioStore = create<AudioState>((set, get) => ({
       audioElement, 
       currentPodcastId: podcastId,
       isPlaying: false,
-      currentTime: 0,
+      currentTime: audioElement.currentTime || 0,
       duration: audioElement.duration || 0,
-      podcastMeta: meta || null
+      podcastMeta: meta || get().podcastMeta
     });
     
     // Add event listeners
