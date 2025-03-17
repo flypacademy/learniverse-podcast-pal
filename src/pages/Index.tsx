@@ -8,47 +8,7 @@ import StreakCalendar from "@/components/StreakCalendar";
 import Leaderboard from "@/components/Leaderboard";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { useToast } from "@/components/ui/use-toast";
-
-// Mock data
-const featuredCourses = [
-  {
-    id: "math-gcse",
-    title: "Mathematics GCSE",
-    subject: "math",
-    totalPodcasts: 12,
-    completedPodcasts: 5,
-    image: "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png",
-    exam: "GCSE",
-    board: "AQA",
-    achievements: [
-      { type: "streak" as const, value: 3 }
-    ]
-  },
-  {
-    id: "english-gcse",
-    title: "English GCSE",
-    subject: "english",
-    totalPodcasts: 10,
-    completedPodcasts: 2,
-    image: "/lovable-uploads/b8505be1-663c-4327-9a5f-8c5bb7419180.png",
-    exam: "GCSE",
-    board: "Edexcel",
-    achievements: [
-      { type: "popular" as const }
-    ]
-  },
-  {
-    id: "science-gcse",
-    title: "Science GCSE",
-    subject: "science",
-    totalPodcasts: 15,
-    completedPodcasts: 0,
-    image: "",
-    exam: "GCSE",
-    board: "OCR",
-    achievements: []
-  }
-];
+import { useRecentCourses } from "@/hooks/useRecentCourses";
 
 // Mock streak data
 const streakData = [
@@ -75,6 +35,7 @@ const Index = () => {
   const totalXP = 1250;
   const [activeSlide, setActiveSlide] = useState(0);
   const { toast } = useToast();
+  const { recentCourses, loading } = useRecentCourses();
   
   // XP calculation information
   const xpInfo = () => {
@@ -130,44 +91,72 @@ const Index = () => {
             </Link>
           </div>
           
-          <Carousel 
-            className="w-full"
-            onSelect={(index) => {
-              // Fix: Ensure we're working with a number
-              if (typeof index === 'number') {
-                setActiveSlide(index);
-              }
-            }}
-          >
-            <CarouselContent>
-              {featuredCourses.map((course, index) => (
-                <CarouselItem key={course.id} className="md:basis-1/1">
-                  <CourseCard 
-                    id={course.id}
-                    title={course.title}
-                    subject={course.subject}
-                    totalPodcasts={course.totalPodcasts}
-                    completedPodcasts={course.completedPodcasts}
-                    image={course.image}
-                    size="large"
-                    exam={course.exam}
-                    board={course.board}
-                    achievements={course.achievements}
-                  />
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-            <div className="flex justify-center mt-2">
-              <div className="flex gap-1.5">
-                {featuredCourses.map((_, index) => (
-                  <div 
-                    key={index} 
-                    className={`h-1.5 rounded-full ${index === activeSlide ? 'w-4 bg-primary' : 'w-1.5 bg-gray-200'}`}
-                  />
-                ))}
+          {loading ? (
+            <div className="space-y-4">
+              <div className="h-48 bg-gray-100 animate-pulse rounded-xl"></div>
+              <div className="flex justify-center">
+                <div className="flex gap-1.5">
+                  <div className="h-1.5 w-4 rounded-full bg-gray-200"></div>
+                  <div className="h-1.5 w-1.5 rounded-full bg-gray-200"></div>
+                  <div className="h-1.5 w-1.5 rounded-full bg-gray-200"></div>
+                </div>
               </div>
             </div>
-          </Carousel>
+          ) : recentCourses.length > 0 ? (
+            <Carousel 
+              className="w-full"
+              onSelect={(index) => {
+                // Fix: Ensure we're working with a number
+                if (typeof index === 'number') {
+                  setActiveSlide(index);
+                }
+              }}
+            >
+              <CarouselContent>
+                {recentCourses.map((course, index) => (
+                  <CarouselItem key={course.id} className="md:basis-1/1">
+                    <CourseCard 
+                      id={course.id}
+                      title={course.title}
+                      subject={course.subject}
+                      totalPodcasts={course.totalPodcasts}
+                      completedPodcasts={course.completedPodcasts}
+                      image={course.image}
+                      size="large"
+                      exam={course.exam}
+                      board={course.board}
+                      achievements={course.achievements}
+                    />
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <div className="flex justify-center mt-2">
+                <div className="flex gap-1.5">
+                  {recentCourses.map((_, index) => (
+                    <div 
+                      key={index} 
+                      className={`h-1.5 rounded-full ${index === activeSlide ? 'w-4 bg-primary' : 'w-1.5 bg-gray-200'}`}
+                    />
+                  ))}
+                </div>
+              </div>
+            </Carousel>
+          ) : (
+            <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-100">
+              <BookOpen className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+              <h3 className="text-gray-700 font-medium mb-1">No Courses Yet</h3>
+              <p className="text-gray-500 text-sm mb-4">
+                You haven't started any courses yet
+              </p>
+              <Link 
+                to="/courses" 
+                className="text-primary font-medium text-sm hover:underline"
+                onClick={handleLinkClick}
+              >
+                Browse courses
+              </Link>
+            </div>
+          )}
         </div>
         
         {/* Weekly Streak */}
