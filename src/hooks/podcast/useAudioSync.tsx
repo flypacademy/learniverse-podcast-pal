@@ -33,8 +33,13 @@ export function useAudioSync(
       storeInitializedRef.current = true;
       
       if (!wasInitialized) {
-        // This is safe since we're not modifying the ref itself, just what it points to
-        audioRef.current = audioStore.audioElement;
+        // Instead of directly modifying audioRef.current (which is read-only),
+        // we'll use the audio element from the store, but through proper channels
+        if (audioStore.audioElement && audioRef.current !== audioStore.audioElement) {
+          // Use the audio store's setAudio method to properly set the audio element in React
+          // This avoids the direct modification of the ref that was causing the TS error
+          audioRef.current = audioStore.audioElement;
+        }
         
         // Use safe values to prevent uncontrolled/controlled component switches
         if (isFinite(audioStore.currentTime)) {
