@@ -23,8 +23,17 @@ export const createAudioSetup = (
       const currentAudio = get().audioElement;
       if (currentAudio) {
         try {
+          // Always pause the current audio before switching to prevent multiple simultaneous playback
           currentAudio.pause();
-          // Don't clear the source - we want to keep playing the same audio
+          
+          // Only if it's a different audio element, we need to clean up the old one
+          if (currentAudio !== audioElement) {
+            console.log("Cleaning up previous audio before setting new one");
+            // Remove event listeners from the old audio element
+            if ((currentAudio as any).__cleanupVisibilityListener) {
+              (currentAudio as any).__cleanupVisibilityListener();
+            }
+          }
         } catch (e) {
           console.error("Error cleaning up previous audio:", e);
         }
@@ -46,7 +55,7 @@ export const createAudioSetup = (
       set({ 
         audioElement, 
         currentPodcastId: podcastId,
-        isPlaying: false,
+        isPlaying: false,  // Always start paused to prevent auto-play issues
         currentTime: initialTime,
         duration: initialDuration,
         podcastMeta: meta || get().podcastMeta

@@ -92,6 +92,13 @@ export function useAudioPlayer(podcastId: string | undefined) {
   const play = () => {
     if (audioRef.current) {
       try {
+        // Stop any other audio that might be playing
+        const storeAudioElement = audioStore.audioElement;
+        if (storeAudioElement && storeAudioElement !== audioRef.current && !storeAudioElement.paused) {
+          console.log("Stopping other audio before playing this one");
+          storeAudioElement.pause();
+        }
+        
         const playPromise = audioRef.current.play();
         if (playPromise !== undefined) {
           playPromise

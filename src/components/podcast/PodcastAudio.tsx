@@ -21,6 +21,18 @@ const PodcastAudio = ({
       sourceUpdateAttemptedRef.current = false;
     }
     
+    // Check if there's already an audio element in the store with a different ref
+    const storeAudioRef = audioStore.audioElement;
+    if (storeAudioRef && storeAudioRef !== audioRef.current && storeAudioRef.src) {
+      // We have a different audio element in the store - pause it to prevent multiple playback
+      try {
+        console.log("Pausing existing audio element to prevent double playback");
+        storeAudioRef.pause();
+      } catch (error) {
+        console.error("Error pausing existing audio:", error);
+      }
+    }
+    
     // Only update the source if it's different from the previous one
     // and if we have both a valid reference and source
     if (
@@ -34,7 +46,6 @@ const PodcastAudio = ({
         sourceUpdateAttemptedRef.current = true;
         
         // If this audio is already registered in the store with the same src, don't reload
-        const storeAudioRef = audioStore.audioElement;
         if (storeAudioRef === audioRef.current && storeAudioRef.src === src) {
           console.log("Audio already loaded with this source, skipping reload");
           return;
