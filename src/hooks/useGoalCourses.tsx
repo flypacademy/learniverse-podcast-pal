@@ -80,20 +80,26 @@ export function useGoalCourses() {
           throw podcastsError;
         }
         
-        // Format podcasts data - Fix the TypeScript error here
-        const formattedPodcasts = podcastsData.map(podcast => {
-          // Fix: Access the first element of the courses array if it exists
-          const courseTitle = podcast.courses && 
-                            typeof podcast.courses === 'object' && 
-                            'title' in podcast.courses ? 
-                            podcast.courses.title : 
-                            "Unknown Course";
+        // Format podcasts data with proper type checking
+        const formattedPodcasts: GoalPodcast[] = podcastsData.map(podcast => {
+          // Get course title with proper type checking
+          let courseTitle = "Unknown Course";
+          
+          if (podcast.courses) {
+            // Check if courses is an object with title property
+            if (typeof podcast.courses === 'object' && podcast.courses !== null && 'title' in podcast.courses) {
+              const title = podcast.courses.title;
+              if (typeof title === 'string') {
+                courseTitle = title;
+              }
+            }
+          }
           
           return {
             id: podcast.id,
             title: podcast.title,
             courseId: podcast.course_id,
-            courseName: courseTitle,
+            courseName: courseTitle, // Now explicitly a string
             duration: podcast.duration || 600, // Default 10 minutes if not set
             progress: 0,
             completed: false,
@@ -103,7 +109,7 @@ export function useGoalCourses() {
         
         // If no podcasts are found, use fallback data
         if (!formattedPodcasts.length) {
-          const fallbackPodcasts = [
+          const fallbackPodcasts: GoalPodcast[] = [
             {
               id: "podcast-1",
               title: "Algebra Fundamentals",
