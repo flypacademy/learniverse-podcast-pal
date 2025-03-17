@@ -22,15 +22,6 @@ const streakData = [
   { date: "2023-06-18", completed: false }
 ];
 
-// Mock leaderboard data with string literals for change values
-const leaderboardData = [
-  { id: "user1", name: "Alex", xp: 2430, rank: 1, change: "same" as const },
-  { id: "user2", name: "Jordan", xp: 2180, rank: 2, change: "up" as const },
-  { id: "user3", name: "Taylor", xp: 2050, rank: 3, change: "down" as const },
-  { id: "current", name: "Student", xp: 1250, rank: 8, change: "up" as const },
-  { id: "user5", name: "Casey", xp: 1100, rank: 9, change: "down" as const }
-];
-
 const Index = () => {
   const userName = "Student";
   const totalXP = 1250;
@@ -60,10 +51,7 @@ const Index = () => {
         <WeeklyStreakSection streak={3} days={streakData} />
         
         {/* Leaderboard */}
-        <LeaderboardSection 
-          leaderboardData={leaderboardData}
-          currentUserId="current"
-        />
+        <LeaderboardSection />
         
         {/* Today's Goal Button */}
         <TodaysGoalButton handleLinkClick={handleLinkClick} />

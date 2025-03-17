@@ -1,12 +1,13 @@
 
 import React from "react";
-import { Trophy, Medal, Crown, ArrowUp, Sparkles } from "lucide-react";
+import { Trophy, Medal, Crown, ArrowUp, ArrowDown, Minus, Sparkles } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface LeaderboardUser {
   id: string;
-  name: string;
-  xp: number;
-  avatar?: string;
+  display_name: string;
+  total_xp: number;
+  avatar_url?: string;
   rank: number;
   change?: "up" | "down" | "same";
 }
@@ -14,11 +15,12 @@ interface LeaderboardUser {
 interface LeaderboardProps {
   users: LeaderboardUser[];
   currentUserId: string;
+  isLoading?: boolean;
 }
 
-const Leaderboard = ({ users, currentUserId }: LeaderboardProps) => {
+const Leaderboard = ({ users, currentUserId, isLoading = false }: LeaderboardProps) => {
   // Sort users by XP descending
-  const sortedUsers = [...users].sort((a, b) => b.xp - a.xp);
+  const sortedUsers = [...users].sort((a, b) => b.total_xp - a.total_xp);
   
   // Find current user's position
   const currentUserIndex = sortedUsers.findIndex(user => user.id === currentUserId);
@@ -34,6 +36,24 @@ const Leaderboard = ({ users, currentUserId }: LeaderboardProps) => {
     relevantUsers = sortedUsers.slice(start, end);
   }
   
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="font-display font-semibold text-lg">Leaderboard</h3>
+          <span className="text-sm text-primary font-medium">Loading...</span>
+        </div>
+        <div className="animate-pulse space-y-3">
+          <div className="flex justify-between gap-2 mb-4">
+            {[1, 2, 3].map(index => (
+              <div key={index} className="flex-1 p-3 rounded-lg bg-gray-100 h-24"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -48,7 +68,7 @@ const Leaderboard = ({ users, currentUserId }: LeaderboardProps) => {
         {topUsers.map((user, index) => (
           <div 
             key={user.id} 
-            className={`flex-1 p-3 rounded-lg ${user.id === currentUserId ? 'bg-primary/10 border border-primary/30' : 'bg-gray-50'}`}
+            className={`flex-1 p-3 rounded-lg ${user.id === currentUserId ? 'bg-primary/10 border border-primary/30' : 'bg-gray-50 dark:bg-gray-800'}`}
           >
             <div className="flex flex-col items-center text-center">
               <div className="relative">
@@ -56,21 +76,23 @@ const Leaderboard = ({ users, currentUserId }: LeaderboardProps) => {
                   <Crown className="absolute -top-3 left-1/2 transform -translate-x-1/2 h-5 w-5 text-yellow-500" />
                 )}
                 
-                <div className={`h-10 w-10 rounded-full flex items-center justify-center ${getRankBgColor(index)}`}>
-                  {user.avatar ? (
-                    <img src={user.avatar} alt={user.name} className="h-full w-full object-cover rounded-full" />
+                <Avatar className={`h-10 w-10 ${getRankBgColor(index)}`}>
+                  {user.avatar_url ? (
+                    <AvatarImage src={user.avatar_url} alt={user.display_name} />
                   ) : (
-                    <span className="text-white font-bold">{user.name.charAt(0)}</span>
+                    <AvatarFallback className="text-white font-bold">
+                      {user.display_name.charAt(0)}
+                    </AvatarFallback>
                   )}
-                </div>
+                </Avatar>
                 
-                <div className={`absolute -bottom-1 -right-1 h-5 w-5 rounded-full ${getRankBgColor(index)} flex items-center justify-center text-white text-xs font-bold border-2 border-white`}>
+                <div className={`absolute -bottom-1 -right-1 h-5 w-5 rounded-full ${getRankBgColor(index)} flex items-center justify-center text-white text-xs font-bold border-2 border-white dark:border-gray-800`}>
                   {index + 1}
                 </div>
               </div>
               
-              <p className="font-medium text-sm mt-2 truncate w-full">{user.name}</p>
-              <p className="text-xs font-bold text-primary mt-1">{user.xp.toLocaleString()} XP</p>
+              <p className="font-medium text-sm mt-2 truncate w-full">{user.display_name}</p>
+              <p className="text-xs font-bold text-primary mt-1">{user.total_xp.toLocaleString()} XP</p>
             </div>
           </div>
         ))}
@@ -79,26 +101,32 @@ const Leaderboard = ({ users, currentUserId }: LeaderboardProps) => {
       {/* Users around current user */}
       {relevantUsers.length > 0 && (
         <div className="space-y-2 mt-3">
-          <h4 className="text-sm font-medium text-gray-500">Your Ranking</h4>
+          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Your Ranking</h4>
           
           {relevantUsers.map((user) => (
             <div 
               key={user.id} 
-              className={`flex items-center p-2 rounded-lg ${user.id === currentUserId ? 'bg-primary/10 border border-primary/30' : 'bg-gray-50'}`}
+              className={`flex items-center p-2 rounded-lg ${user.id === currentUserId ? 'bg-primary/10 border border-primary/30' : 'bg-gray-50 dark:bg-gray-800'}`}
             >
-              <div className="h-7 w-7 rounded-full bg-gray-200 flex items-center justify-center mr-3 text-sm font-bold">
+              <div className="h-7 w-7 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center mr-3 text-sm font-bold">
                 {user.rank}
               </div>
               
               <div className="flex-1">
-                <p className="font-medium">{user.name}</p>
+                <p className="font-medium">{user.display_name}</p>
               </div>
               
               <div className="flex items-center">
-                <p className="font-bold text-primary mr-2">{user.xp.toLocaleString()} XP</p>
+                <p className="font-bold text-primary mr-2">{user.total_xp.toLocaleString()} XP</p>
                 
                 {user.change === "up" && (
                   <ArrowUp className="h-4 w-4 text-green-500" />
+                )}
+                {user.change === "down" && (
+                  <ArrowDown className="h-4 w-4 text-red-500" />
+                )}
+                {user.change === "same" && (
+                  <Minus className="h-4 w-4 text-gray-500" />
                 )}
               </div>
             </div>

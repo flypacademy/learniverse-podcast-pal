@@ -207,6 +207,57 @@ export type Database = {
           },
         ]
       }
+      user_experience: {
+        Row: {
+          created_at: string
+          id: string
+          last_updated: string
+          total_xp: number
+          user_id: string
+          weekly_xp: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_updated?: string
+          total_xp?: number
+          user_id: string
+          weekly_xp?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_updated?: string
+          total_xp?: number
+          user_id?: string
+          weekly_xp?: number
+        }
+        Relationships: []
+      }
+      user_profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name: string
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_progress: {
         Row: {
           completed: boolean

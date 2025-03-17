@@ -1,24 +1,26 @@
 
 import React from "react";
 import Leaderboard from "@/components/Leaderboard";
+import { useLeaderboard } from "@/hooks/useLeaderboard";
+import { Skeleton } from "@/components/ui/skeleton";
 
-interface LeaderboardSectionProps {
-  leaderboardData: {
-    id: string;
-    name: string;
-    xp: number;
-    rank: number;
-    change: "up" | "down" | "same";
-  }[];
-  currentUserId: string;
-}
-
-const LeaderboardSection = ({ leaderboardData, currentUserId }: LeaderboardSectionProps) => {
+const LeaderboardSection = () => {
+  const { leaderboardData, currentUserId, loading, error } = useLeaderboard();
+  
+  if (error) {
+    return (
+      <div className="glass-card p-4 rounded-xl">
+        <p className="text-red-500">Failed to load leaderboard data.</p>
+      </div>
+    );
+  }
+  
   return (
     <div className="glass-card p-4 rounded-xl">
       <Leaderboard 
         users={leaderboardData} 
-        currentUserId={currentUserId} 
+        currentUserId={currentUserId}
+        isLoading={loading}
       />
     </div>
   );
