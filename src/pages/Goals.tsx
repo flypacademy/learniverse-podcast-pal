@@ -1,44 +1,30 @@
+
 import React, { useState, useEffect } from "react";
-import { Clock, BookOpen, Play, Calendar, Sparkles, SkipForward } from "lucide-react";
 import Layout from "@/components/Layout";
-import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import PodcastCard from "@/components/PodcastCard";
+import { useGoalCourses } from "@/hooks/useGoalCourses";
 import { useToast } from "@/components/ui/use-toast";
-import { useGoalCourses, GoalCourse, GoalPodcast } from "@/hooks/useGoalCourses";
-
-interface GoalSettings {
-  timeGoal: number; // in minutes
-  selectedCourses: string[];
-}
-
-interface CurrentSession {
-  isActive: boolean;
-  podcastsQueue: GoalPodcast[];
-  currentPodcastIndex: number;
-  timeRemaining: number; // in seconds
-  earnedXP: number;
-}
+import { useGoalSession } from "@/hooks/useGoalSession";
+import GoalSettingsCard from "@/components/goals/GoalSettingsCard";
+import RecommendedPodcastsList from "@/components/goals/RecommendedPodcastsList";
+import ActiveSessionCard from "@/components/goals/ActiveSessionCard";
+import LoadingState from "@/components/goals/LoadingState";
 
 const Goals = () => {
   const { courses, podcasts, loading, error } = useGoalCourses();
-  const [goalSettings, setGoalSettings] = useState<GoalSettings>({
-    timeGoal: 20, // default 20 minutes
-    selectedCourses: [],
-  });
-  
-  const [currentSession, setCurrentSession] = useState<CurrentSession>({
-    isActive: false,
-    podcastsQueue: [],
-    currentPodcastIndex: 0,
-    timeRemaining: 0,
-    earnedXP: 0
-  });
-  
-  const [recommendedPodcasts, setRecommendedPodcasts] = useState<GoalPodcast[]>([]);
+  const [recommendedPodcasts, setRecommendedPodcasts] = useState([]);
   const { toast } = useToast();
+  
+  const {
+    goalSettings,
+    currentSession,
+    handleTimeGoalChange,
+    toggleCourseSelection,
+    startGoalSession,
+    completeGoalSession,
+    skipCurrentPodcast,
+    formatTime
+  } = useGoalSession(recommendedPodcasts);
   
   // Update recommended podcasts when goal settings change
   useEffect(() => {
@@ -67,158 +53,9 @@ const Goals = () => {
     }
   }, [error, toast]);
   
-  const handleTimeGoalChange = (value: number[]) => {
-    setGoalSettings(prev => ({ ...prev, timeGoal: value[0] }));
-  };
-  
-  const toggleCourseSelection = (courseId: string) => {
-    setGoalSettings(prev => {
-      const isSelected = prev.selectedCourses.includes(courseId);
-      if (isSelected) {
-        return {
-          ...prev,
-          selectedCourses: prev.selectedCourses.filter(id => id !== courseId)
-        };
-      } else {
-        return {
-          ...prev,
-          selectedCourses: [...prev.selectedCourses, courseId]
-        };
-      }
-    });
-  };
-  
-  const startGoalSession = () => {
-    if (navigator.vibrate) {
-      navigator.vibrate(20);
-    }
-    
-    if (recommendedPodcasts.length === 0) {
-      toast({
-        title: "No podcasts available",
-        description: "Please select at least one course with available podcasts",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // Create a queue of podcasts that fit within the time goal
-    let queue = [];
-    let totalDuration = 0;
-    
-    for (const podcast of recommendedPodcasts) {
-      if (totalDuration < goalSettings.timeGoal * 60) {
-        queue.push(podcast);
-        totalDuration += podcast.duration;
-      }
-    }
-    
-    setCurrentSession({
-      isActive: true,
-      podcastsQueue: queue,
-      currentPodcastIndex: 0,
-      timeRemaining: goalSettings.timeGoal * 60, // convert to seconds
-      earnedXP: 0
-    });
-    
-    toast({
-      title: "Goal session started!",
-      description: `${queue.length} podcasts queued for ${goalSettings.timeGoal} minutes`,
-    });
-  };
-  
-  const completeGoalSession = () => {
-    if (navigator.vibrate) {
-      navigator.vibrate(20);
-    }
-    
-    const minutesListened = Math.ceil((goalSettings.timeGoal * 60 - currentSession.timeRemaining) / 60);
-    const earnedXP = minutesListened * 10; // 10 XP per minute listened
-    
-    toast({
-      title: "Goal completed!",
-      description: `You earned ${earnedXP} XP for listening to ${minutesListened} minutes of content.`,
-    });
-    
-    setCurrentSession({
-      isActive: false,
-      podcastsQueue: [],
-      currentPodcastIndex: 0,
-      timeRemaining: 0,
-      earnedXP: 0
-    });
-  };
-  
-  const skipCurrentPodcast = () => {
-    if (navigator.vibrate) {
-      navigator.vibrate(10);
-    }
-    
-    if (currentSession.currentPodcastIndex < currentSession.podcastsQueue.length - 1) {
-      setCurrentSession(prev => ({
-        ...prev,
-        currentPodcastIndex: prev.currentPodcastIndex + 1
-      }));
-      
-      toast({
-        title: "Skipped podcast",
-        description: "Playing the next podcast in your queue",
-      });
-    } else {
-      completeGoalSession();
-    }
-  };
-  
-  // Simulate time passing (in a real app, this would be based on actual listening time)
-  useEffect(() => {
-    if (!currentSession.isActive) return;
-    
-    const timer = setInterval(() => {
-      setCurrentSession(prev => {
-        // If time is up, complete the session
-        if (prev.timeRemaining <= 0) {
-          clearInterval(timer);
-          completeGoalSession();
-          return prev;
-        }
-        
-        // Update time remaining and earn XP for listening
-        const newTimeRemaining = prev.timeRemaining - 1;
-        const newEarnedXP = prev.earnedXP + (1/6); // 10 XP per minute = 1/6 XP per second
-        
-        return {
-          ...prev,
-          timeRemaining: newTimeRemaining,
-          earnedXP: newEarnedXP
-        };
-      });
-    }, 1000);
-    
-    return () => clearInterval(timer);
-  }, [currentSession.isActive]);
-  
-  // Format seconds to mm:ss
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-  
   // Show loading state with a skeleton UI instead of a toast
   if (loading) {
-    return (
-      <Layout>
-        <div className="space-y-6 animate-slide-up p-4">
-          <h1 className="font-display font-bold text-2xl text-gray-900">
-            Podcast Goals
-          </h1>
-          <div className="flex justify-center items-center py-16">
-            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
-            <span className="ml-3">Loading...</span>
-          </div>
-        </div>
-      </Layout>
-    );
+    return <LoadingState />;
   }
   
   return (
@@ -239,198 +76,33 @@ const Goals = () => {
           </TabsList>
           
           <TabsContent value="set-goal" className="space-y-4 pt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Clock className="h-5 w-5 mr-2" />
-                  Time Goal
-                </CardTitle>
-                <CardDescription>
-                  How many minutes would you like to listen today?
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">
-                      {goalSettings.timeGoal} minutes
-                    </span>
-                    <span className="text-sm text-gray-500">
-                      {Math.round(goalSettings.timeGoal / 10)} XP per min = {goalSettings.timeGoal * 10} XP
-                    </span>
-                  </div>
-                  
-                  <Slider
-                    defaultValue={[goalSettings.timeGoal]}
-                    max={60}
-                    min={5}
-                    step={5}
-                    onValueChange={handleTimeGoalChange}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+            <GoalSettingsCard 
+              timeGoal={goalSettings.timeGoal}
+              selectedCourses={goalSettings.selectedCourses}
+              courses={courses}
+              onTimeGoalChange={handleTimeGoalChange}
+              toggleCourseSelection={toggleCourseSelection}
+              startGoalSession={startGoalSession}
+            />
             
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <BookOpen className="h-5 w-5 mr-2" />
-                  Select Courses
-                </CardTitle>
-                <CardDescription>
-                  Choose which subjects you want to focus on
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-2">
-                  {courses.map((course) => (
-                    <button
-                      key={course.id}
-                      onClick={() => toggleCourseSelection(course.id)}
-                      className={`p-3 rounded-lg border text-left transition-colors ${
-                        goalSettings.selectedCourses.includes(course.id)
-                          ? 'border-primary bg-primary/10 text-primary'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <div className="font-medium">{course.name}</div>
-                      <div className="flex mt-1 space-x-2">
-                        <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
-                          {course.exam}
-                        </span>
-                        <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">
-                          {course.board}
-                        </span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button 
-                  onClick={startGoalSession} 
-                  className="w-full"
-                  size="lg"
-                >
-                  <Play className="h-4 w-4 mr-2" />
-                  Start Listening Session
-                </Button>
-              </CardFooter>
-            </Card>
-            
-            <div className="space-y-3">
-              <h2 className="font-semibold text-lg">Recommended Podcasts</h2>
-              <div className="space-y-3">
-                {recommendedPodcasts.slice(0, 3).map((podcast) => (
-                  <PodcastCard
-                    key={podcast.id}
-                    {...podcast}
-                  />
-                ))}
-                {recommendedPodcasts.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    <p>No podcasts available. Please select a course.</p>
-                  </div>
-                )}
-              </div>
-            </div>
+            <RecommendedPodcastsList podcasts={recommendedPodcasts} />
           </TabsContent>
           
           <TabsContent value="active" className="space-y-4 pt-4">
             {currentSession.isActive && currentSession.podcastsQueue.length > 0 && (
-              <>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <Clock className="h-5 w-5 mr-2" />
-                        Time Remaining
-                      </div>
-                      <div className="text-xl font-mono">
-                        {formatTime(currentSession.timeRemaining)}
-                      </div>
-                    </CardTitle>
-                    <CardDescription>
-                      You've earned {Math.floor(currentSession.earnedXP)} XP so far in this session
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-primary"
-                        style={{ 
-                          width: `${100 - (currentSession.timeRemaining / (goalSettings.timeGoal * 60) * 100)}%` 
-                        }}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <div className="space-y-4">
-                  <h2 className="font-semibold text-lg">Now Playing</h2>
-                  
-                  <Card className="relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
-                    <CardContent className="p-4">
-                      <div className="flex items-center">
-                        <div className="h-16 w-16 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <Play className="h-8 w-8 text-primary" />
-                        </div>
-                        
-                        <div className="ml-4">
-                          <h3 className="font-semibold text-lg">
-                            {currentSession.podcastsQueue[currentSession.currentPodcastIndex].title}
-                          </h3>
-                          <p className="text-sm text-gray-500">
-                            {currentSession.podcastsQueue[currentSession.currentPodcastIndex].courseName}
-                          </p>
-                          <div className="mt-1 flex items-center text-xs text-gray-500">
-                            <Clock className="h-3 w-3 mr-1" />
-                            <span>
-                              {formatTime(currentSession.podcastsQueue[currentSession.currentPodcastIndex].duration)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="mt-3 flex justify-end">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={skipCurrentPodcast}
-                        >
-                          <SkipForward className="h-4 w-4 mr-1" />
-                          Skip
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  
-                  {currentSession.podcastsQueue.length > currentSession.currentPodcastIndex + 1 && (
-                    <>
-                      <h2 className="font-semibold text-lg mt-4">Up Next</h2>
-                      <div className="space-y-3">
-                        {currentSession.podcastsQueue
-                          .slice(currentSession.currentPodcastIndex + 1, currentSession.currentPodcastIndex + 3)
-                          .map((podcast) => (
-                            <PodcastCard
-                              key={podcast.id}
-                              {...podcast}
-                            />
-                          ))}
-                      </div>
-                    </>
-                  )}
-                  
-                  <Button 
-                    onClick={completeGoalSession} 
-                    variant="destructive" 
-                    className="w-full mt-4"
-                  >
-                    End Session
-                  </Button>
-                </div>
-              </>
+              <ActiveSessionCard 
+                timeRemaining={currentSession.timeRemaining}
+                earnedXP={currentSession.earnedXP}
+                goalDuration={goalSettings.timeGoal}
+                currentPodcast={currentSession.podcastsQueue[currentSession.currentPodcastIndex]}
+                upNextPodcasts={currentSession.podcastsQueue.slice(
+                  currentSession.currentPodcastIndex + 1, 
+                  currentSession.currentPodcastIndex + 3
+                )}
+                onSkipPodcast={skipCurrentPodcast}
+                onEndSession={completeGoalSession}
+                formatTime={formatTime}
+              />
             )}
           </TabsContent>
         </Tabs>
