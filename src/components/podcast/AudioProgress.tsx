@@ -1,6 +1,6 @@
 
 import React from "react";
-import ProgressBar from "@/components/ProgressBar";
+import { Slider } from "@/components/ui/slider";
 
 interface AudioProgressProps {
   currentTime: number;
@@ -18,27 +18,22 @@ const AudioProgress = ({ currentTime, duration, onSeek }: AudioProgressProps) =>
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
   
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!onSeek) return;
-    
-    const progressBar = e.currentTarget;
-    const rect = progressBar.getBoundingClientRect();
-    const percent = ((e.clientX - rect.left) / rect.width) * 100;
-    onSeek(Math.max(0, Math.min(100, percent)));
+  const handleSliderChange = (value: number[]) => {
+    if (onSeek) {
+      onSeek(value[0]);
+    }
   };
   
   return (
     <div className="space-y-1.5">
-      <div 
-        className="relative cursor-pointer" 
-        onClick={handleSeek}
-      >
-        <ProgressBar 
-          value={progress} 
-          size="lg" 
-          color="bg-primary"
-        />
-      </div>
+      <Slider 
+        value={[progress]} 
+        min={0}
+        max={100}
+        step={0.1}
+        onValueChange={handleSliderChange}
+        className="w-full"
+      />
       <div className="flex justify-between text-xs text-gray-500">
         <span>{formatTime(currentTime)}</span>
         <span>{formatTime(duration)}</span>
