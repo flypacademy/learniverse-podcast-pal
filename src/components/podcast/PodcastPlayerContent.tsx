@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Link } from "react-router-dom";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Headphones } from "lucide-react";
 import PodcastHeader from "./PodcastHeader";
 import PodcastCover from "./PodcastCover";
 import PodcastInfo from "./PodcastInfo";
@@ -13,6 +13,7 @@ import QuizButton from "./QuizButton";
 import PodcastAudio from "./PodcastAudio";
 import PodcastAudioEvents from "./PodcastAudioEvents";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { PodcastData, CourseData } from "@/types/podcast";
 
 interface PodcastPlayerContentProps {
@@ -61,55 +62,60 @@ const PodcastPlayerContent = ({
   handleAudioError
 }: PodcastPlayerContentProps) => {
   return (
-    <div className="flex flex-col space-y-6">
+    <div className="flex flex-col space-y-6 max-w-md mx-auto pb-6">
       {/* Back button and course name */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-2">
         <Link to={`/course/${podcastData.course_id}`}>
           <Button variant="ghost" size="icon" className="rounded-full">
             <ChevronLeft className="h-5 w-5" />
           </Button>
         </Link>
-        <div className="text-sm font-medium">
+        <div className="text-sm font-medium text-gray-500">
           {courseData?.title || "Course"}
         </div>
         <div className="w-10"></div> {/* Spacer for alignment */}
       </div>
       
-      {/* Podcast header (Now Playing) */}
-      <PodcastHeader courseName={courseData?.title || "Course"} />
-      
-      {/* Podcast cover art */}
-      <PodcastCover 
-        image={podcastData.image_url || undefined} 
-        title={podcastData.title}
-      />
-      
-      {/* Podcast info (title, course) */}
-      <PodcastInfo 
-        title={podcastData.title} 
-        courseName={courseData?.title || "Course"} 
-      />
-      
-      {/* Audio player controls */}
-      <div className="space-y-6">
-        <AudioProgress 
-          currentTime={currentTime} 
-          duration={duration} 
-          onSeek={seek}
+      {/* Main content card with shadow and rounded corners */}
+      <Card className="overflow-hidden bg-white shadow-lg rounded-3xl p-6 border-none">
+        {/* Podcast cover art - larger and more prominent */}
+        <PodcastCover 
+          image={podcastData.image_url || undefined} 
+          title={podcastData.title}
         />
         
-        <PlayerControls 
-          isPlaying={isPlaying}
-          onPlayPause={togglePlayPause}
-          onSkipBack={skipBackward}
-          onSkipForward={skipForward}
+        {/* Podcast info (title, course) */}
+        <PodcastInfo 
+          title={podcastData.title} 
+          courseName={courseData?.title || "Course"} 
         />
         
-        <VolumeControl 
-          volume={volume} 
-          onVolumeChange={changeVolume} 
-        />
-      </div>
+        {/* Audio player controls - Modern look */}
+        <div className="space-y-6 mt-6">
+          <AudioProgress 
+            currentTime={currentTime} 
+            duration={duration} 
+            onSeek={seek}
+          />
+          
+          <PlayerControls 
+            isPlaying={isPlaying}
+            onPlayPause={togglePlayPause}
+            onSkipBack={skipBackward}
+            onSkipForward={skipForward}
+          />
+          
+          <VolumeControl 
+            volume={volume} 
+            onVolumeChange={changeVolume} 
+          />
+        </div>
+      </Card>
+      
+      {/* About this episode section - Clean card look */}
+      <Card className="bg-gradient-to-br from-white to-gray-50 shadow-md rounded-3xl p-5 border-none">
+        <PodcastDescription description={podcastData.description || "Learn more about this topic."} />
+      </Card>
       
       {/* Audio element with event handlers */}
       <PodcastAudioEvents
@@ -127,12 +133,7 @@ const PodcastPlayerContent = ({
         />
       </PodcastAudioEvents>
       
-      {/* About this episode section */}
-      <div className="border rounded-lg bg-white shadow-sm overflow-hidden">
-        <PodcastDescription description={podcastData.description || "Learn more about this topic."} />
-      </div>
-      
-      {/* Quiz button if available */}
+      {/* Quiz button if available - Attractive floating button */}
       {isQuizAvailable && (
         <QuizButton onClick={() => window.location.href = `/quiz/${podcastData.id}`} />
       )}

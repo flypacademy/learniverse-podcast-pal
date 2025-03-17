@@ -20,41 +20,37 @@ const PlayerControls = ({
   const isSmall = size === "small";
   
   return (
-    <div className={`flex items-center justify-center ${isSmall ? 'gap-1' : 'gap-6'}`}>
-      {!isSmall && (
-        <button 
-          className="text-gray-500 hover:text-gray-700"
-          onClick={onSkipBack}
-          aria-label="Skip back 10 seconds"
-        >
-          <SkipBack className="h-6 w-6" />
-        </button>
-      )}
+    <div className={`flex items-center justify-center ${isSmall ? 'gap-2' : 'gap-8'}`}>
+      <button 
+        className="text-gray-500 hover:text-gray-700 transition-colors"
+        onClick={onSkipBack}
+        aria-label="Skip back 10 seconds"
+      >
+        <SkipBack className="h-7 w-7" />
+      </button>
       
       <button 
         onClick={onPlayPause}
         className={`${
           isSmall 
-            ? 'h-8 w-8' 
-            : 'h-14 w-14'
-        } rounded-full bg-primary text-white flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors`}
+            ? 'h-10 w-10' 
+            : 'h-16 w-16'
+        } rounded-full bg-primary text-white flex items-center justify-center shadow-lg hover:bg-primary/90 transition-all duration-300 transform hover:scale-105`}
         aria-label={isPlaying ? "Pause" : "Play"}
       >
         {isPlaying ? 
-          <Pause className={`${isSmall ? 'h-4 w-4' : 'h-6 w-6'}`} /> : 
-          <Play className={`${isSmall ? 'h-4 w-4 ml-0.5' : 'h-6 w-6 ml-1'}`} />
+          <Pause className={`${isSmall ? 'h-5 w-5' : 'h-7 w-7'}`} /> : 
+          <Play className={`${isSmall ? 'h-5 w-5 ml-0.5' : 'h-7 w-7 ml-1'}`} />
         }
       </button>
       
-      {!isSmall && (
-        <button 
-          className="text-gray-500 hover:text-gray-700"
-          onClick={onSkipForward}
-          aria-label="Skip forward 10 seconds"
-        >
-          <SkipForward className="h-6 w-6" />
-        </button>
-      )}
+      <button 
+        className="text-gray-500 hover:text-gray-700 transition-colors"
+        onClick={onSkipForward}
+        aria-label="Skip forward 10 seconds"
+      >
+        <SkipForward className="h-7 w-7" />
+      </button>
     </div>
   );
 };

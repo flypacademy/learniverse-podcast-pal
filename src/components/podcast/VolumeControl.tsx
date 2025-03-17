@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Volume2 } from "lucide-react";
+import { Volume, Volume1, Volume2, VolumeX } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 
 interface VolumeControlProps {
@@ -18,9 +18,18 @@ const VolumeControl = ({ volume, onVolumeChange }: VolumeControlProps) => {
     }
   };
 
+  const getVolumeIcon = () => {
+    if (safeVolume === 0) return <VolumeX className="h-4 w-4" />;
+    if (safeVolume < 30) return <Volume className="h-4 w-4" />;
+    if (safeVolume < 70) return <Volume1 className="h-4 w-4" />;
+    return <Volume2 className="h-4 w-4" />;
+  };
+
   return (
     <div className="flex items-center gap-3 max-w-xs mx-auto">
-      <Volume2 className="h-4 w-4 text-gray-500" />
+      <div className="text-gray-500">
+        {getVolumeIcon()}
+      </div>
       <Slider
         value={[safeVolume]}
         max={100}
