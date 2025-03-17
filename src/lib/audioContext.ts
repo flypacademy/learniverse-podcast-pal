@@ -58,29 +58,63 @@ export const useAudioStore = create<AudioState>((set, get) => ({
     // Set the volume based on store state
     audioElement.volume = get().volume / 100;
     
+    // Ensure we have valid duration and currentTime before setting state
+    const initialDuration = isFinite(audioElement.duration) && audioElement.duration > 0 
+      ? audioElement.duration 
+      : 0;
+      
+    const initialTime = isFinite(audioElement.currentTime) 
+      ? audioElement.currentTime 
+      : 0;
+    
     // Update state with new audio
     set({ 
       audioElement, 
       currentPodcastId: podcastId,
       isPlaying: false,
-      currentTime: audioElement.currentTime || 0,
-      duration: audioElement.duration || 0,
+      currentTime: initialTime,
+      duration: initialDuration,
       podcastMeta: meta || get().podcastMeta
     });
     
     // Add event listeners
-    audioElement.addEventListener('timeupdate', () => {
-      set({ currentTime: audioElement.currentTime });
-    });
+    const handleTimeUpdate = () => {
+      const newTime = audioElement.currentTime;
+      if (isFinite(newTime)) {
+        set({ currentTime: newTime });
+      }
+    };
     
-    audioElement.addEventListener('ended', () => {
+    const handleEnded = () => {
       set({ isPlaying: false, currentTime: 0 });
       audioElement.currentTime = 0;
-    });
+    };
     
-    audioElement.addEventListener('loadedmetadata', () => {
-      set({ duration: audioElement.duration });
-    });
+    const handleLoadedMetadata = () => {
+      const newDuration = audioElement.duration;
+      if (isFinite(newDuration) && newDuration > 0) {
+        set({ duration: newDuration });
+      }
+    };
+    
+    audioElement.addEventListener('timeupdate', handleTimeUpdate);
+    audioElement.addEventListener('ended', handleEnded);
+    audioElement.addEventListener('loadedmetadata', handleLoadedMetadata);
+    
+    // Attach cleanup functions to the audio element
+    const originalRemoveEventListener = audioElement.removeEventListener.bind(audioElement);
+    audioElement.removeEventListener = function(type, listener, options) {
+      if (type === 'timeupdate' && listener === handleTimeUpdate) {
+        return originalRemoveEventListener(type, handleTimeUpdate, options);
+      }
+      if (type === 'ended' && listener === handleEnded) {
+        return originalRemoveEventListener(type, handleEnded, options);
+      }
+      if (type === 'loadedmetadata' && listener === handleLoadedMetadata) {
+        return originalRemoveEventListener(type, handleLoadedMetadata, options);
+      }
+      return originalRemoveEventListener(type, listener, options);
+    };
   },
   
   setPodcastMeta: (meta) => {
@@ -107,14 +141,16 @@ export const useAudioStore = create<AudioState>((set, get) => ({
   
   setCurrentTime: (time) => {
     const { audioElement } = get();
-    if (audioElement) {
+    if (audioElement && isFinite(time)) {
       audioElement.currentTime = time;
       set({ currentTime: time });
     }
   },
   
   setDuration: (duration) => {
-    set({ duration });
+    if (isFinite(duration) && duration > 0) {
+      set({ duration });
+    }
   },
   
   setVolume: (volume) => {
@@ -130,8 +166,7 @@ export const useAudioStore = create<AudioState>((set, get) => ({
     if (audioElement) {
       audioElement.pause();
       audioElement.src = '';
-      audioElement.removeEventListener('timeupdate', () => {});
-      audioElement.removeEventListener('ended', () => {});
+      // Event listeners will be garbage collected with the audio element
     }
     set({ 
       audioElement: null, 

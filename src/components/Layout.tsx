@@ -13,10 +13,10 @@ const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
   const { currentPodcastId, podcastMeta } = useAudioStore();
   
-  // Don't show mini player on the podcast page
+  // Don't show mini player on the podcast page but ensure it's displayed on other pages
   const isPodcastPage = location.pathname.includes('/podcast/') && 
                        !location.pathname.includes('/podcast-sample');
-  const showMiniPlayer = currentPodcastId && podcastMeta && !isPodcastPage;
+  const showMiniPlayer = !!currentPodcastId && !!podcastMeta && !isPodcastPage;
   
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-white to-gray-50">

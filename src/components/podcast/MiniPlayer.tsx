@@ -24,6 +24,10 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
     setCurrentTime
   } = useAudioStore();
 
+  // Ensure we have valid values to prevent uncontrolled/controlled component switches
+  const safeCurrentTime = isFinite(currentTime) ? currentTime : 0;
+  const safeDuration = isFinite(duration) && duration > 0 ? duration : 1;
+
   const togglePlay = () => {
     if (isPlaying) {
       pause();
@@ -33,12 +37,12 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
   };
 
   const skipForward = () => {
-    const newTime = Math.min(currentTime + 10, duration);
+    const newTime = Math.min(safeCurrentTime + 10, safeDuration);
     setCurrentTime(newTime);
   };
 
   const skipBackward = () => {
-    const newTime = Math.max(currentTime - 10, 0);
+    const newTime = Math.max(safeCurrentTime - 10, 0);
     setCurrentTime(newTime);
   };
 
@@ -71,7 +75,7 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
           <div className="mt-1 w-full h-1 bg-gray-200 rounded-full overflow-hidden">
             <div 
               className="h-full bg-primary rounded-full"
-              style={{ width: `${(currentTime / duration) * 100}%` }}
+              style={{ width: `${(safeCurrentTime / safeDuration) * 100}%` }}
             ></div>
           </div>
         </div>

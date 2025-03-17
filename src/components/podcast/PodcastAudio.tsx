@@ -26,16 +26,23 @@ const PodcastAudio = ({
   useEffect(() => {
     // Ensure audio element is created and configured properly
     if (audioRef.current && src) {
-      console.log("Audio component: setting source to", src);
-      audioRef.current.src = src;
-      audioRef.current.load();
+      try {
+        console.log("Audio component: setting source to", src);
+        audioRef.current.src = src;
+        audioRef.current.load();
+      } catch (error) {
+        console.error("Error setting audio source:", error);
+      }
     }
+    
+    return () => {
+      // Don't reset src on unmount as it would stop playback in the mini player
+    };
   }, [src, audioRef]);
 
   return (
     <audio
       ref={audioRef}
-      src={src}
       onLoadedMetadata={onLoadedMetadata}
       onTimeUpdate={onTimeUpdate}
       onEnded={onEnded}

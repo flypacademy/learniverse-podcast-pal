@@ -1,4 +1,5 @@
-import React, { useEffect, useCallback } from "react";
+
+import React, { useEffect, useCallback, useState } from "react";
 import Layout from "@/components/Layout";
 import PodcastPlayerContent from "@/components/podcast/PodcastPlayerContent";
 import PodcastError from "@/components/podcast/PodcastError";
@@ -13,6 +14,7 @@ const PodcastPlayer = () => {
   const { toast } = useToast();
   const { podcastId } = useParams<{ podcastId: string }>();
   const audioStore = useAudioStore();
+  const [audioInitialized, setAudioInitialized] = useState(false);
   
   const {
     podcastData,
@@ -69,26 +71,37 @@ const PodcastPlayer = () => {
 
   // Create and configure audio element when podcast data is loaded
   useEffect(() => {
-    if (podcastData?.audio_url && audioRef.current) {
-      // Make sure audio is properly configured
-      console.log("Configuring audio element with URL:", podcastData.audio_url);
-      audioRef.current.src = podcastData.audio_url;
-      audioRef.current.load();
-      
-      // Register with audio store
-      if (podcastId && audioRef.current) {
-        audioStore.setAudio(audioRef.current, podcastId, {
-          id: podcastData.id,
-          title: podcastData.title,
-          courseName: courseData?.title || "Unknown Course",
-          image: podcastData.image_url || undefined
+    if (podcastData?.audio_url && audioRef.current && !audioInitialized) {
+      try {
+        // Make sure audio is properly configured
+        console.log("Configuring audio element with URL:", podcastData.audio_url);
+        audioRef.current.src = podcastData.audio_url;
+        audioRef.current.load();
+        
+        // Register with audio store
+        if (podcastId && audioRef.current) {
+          audioStore.setAudio(audioRef.current, podcastId, {
+            id: podcastData.id,
+            title: podcastData.title,
+            courseName: courseData?.title || "Unknown Course",
+            image: podcastData.image_url || undefined
+          });
+          setAudioInitialized(true);
+        }
+      } catch (error) {
+        console.error("Error initializing audio:", error);
+        toast({
+          title: "Error",
+          description: "Failed to initialize audio player",
+          variant: "destructive"
         });
       }
     }
-  }, [podcastData, audioRef, courseData, audioStore, podcastId]);
+  }, [podcastData, audioRef, courseData, audioStore, podcastId, audioInitialized, toast]);
   
   const handleRetry = useCallback(() => {
     console.log("Retrying podcast fetch...");
+    setAudioInitialized(false);
     refetchPodcastData();
   }, [refetchPodcastData]);
   
@@ -116,7 +129,9 @@ const PodcastPlayer = () => {
   const handleAudioTimeUpdate = () => {
     if (audioRef.current) {
       try {
-        setCurrentTime(audioRef.current.currentTime);
+        if (isFinite(audioRef.current.currentTime)) {
+          setCurrentTime(audioRef.current.currentTime);
+        }
       } catch (error) {
         console.error("Error in handleAudioTimeUpdate:", error);
       }
@@ -150,6 +165,7 @@ const PodcastPlayer = () => {
       description: errorMessage,
       variant: "destructive"
     });
+    setAudioInitialized(false);
   };
   
   return (
