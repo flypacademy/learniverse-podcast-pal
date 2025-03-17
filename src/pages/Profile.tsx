@@ -5,6 +5,7 @@ import Layout from "@/components/Layout";
 import ProgressBar from "@/components/ProgressBar";
 import StreakCalendar from "@/components/StreakCalendar";
 import AchievementBadge from "@/components/AchievementBadge";
+import { useListeningAnalytics } from "@/hooks/useListeningAnalytics";
 
 // Mock data
 const userData = {
@@ -75,6 +76,23 @@ const activityDays = [
 ];
 
 const Profile = () => {
+  // Fetch real listening analytics data
+  const { analytics, loading } = useListeningAnalytics(7);
+  
+  // Create data for chart
+  const chartData = analytics.map(day => {
+    // Extract the day of the week (e.g., 'M', 'T', etc.)
+    const date = new Date(day.date);
+    const dayOfWeek = ['S', 'M', 'T', 'W', 'T', 'F', 'S'][date.getDay()];
+    
+    return {
+      day: dayOfWeek,
+      minutes: day.minutesListened,
+      // Calculate height percentage (max 100%)
+      height: Math.min(100, (day.minutesListened / 60) * 100)
+    };
+  });
+  
   return (
     <Layout>
       <div className="space-y-6 animate-slide-up">
@@ -154,7 +172,7 @@ const Profile = () => {
           <StreakCalendar streak={userData.streak} days={activityDays} />
         </div>
         
-        {/* Learning Analytics */}
+        {/* Learning Analytics - Updated to use real data */}
         <div className="glass-card p-4 rounded-xl">
           <div className="flex justify-between items-center mb-3">
             <h3 className="font-display font-semibold text-gray-900">Learning Analytics</h3>
@@ -164,15 +182,18 @@ const Profile = () => {
           </div>
           
           <div className="h-48 flex items-end justify-between px-2">
-            {/* Simple bar chart representation */}
-            {[30, 45, 20, 80, 60, 25, 10].map((height, index) => (
+            {/* Real bar chart representation with analytics data */}
+            {chartData.map((item, index) => (
               <div key={index} className="flex flex-col items-center">
                 <div 
                   className="w-6 bg-gradient-to-t from-primary to-brand-purple rounded-t-md"
-                  style={{ height: `${height}%` }}
+                  style={{ height: `${item.height}%` }}
                 />
                 <span className="text-xs text-gray-500 mt-1">
-                  {['M', 'T', 'W', 'T', 'F', 'S', 'S'][index]}
+                  {item.day}
+                </span>
+                <span className="text-xs font-medium">
+                  {item.minutes}m
                 </span>
               </div>
             ))}
