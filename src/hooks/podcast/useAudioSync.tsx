@@ -24,11 +24,16 @@ export function useAudioSync(
   useEffect(() => {
     if (!storeInitializedRef.current && audioStore.currentPodcastId === podcastId && audioStore.audioElement) {
       console.log("useAudioPlayer: Initializing from global store");
-      // Use a mutable variable to track initialization state
+      
+      // We need to use a local variable instead of directly modifying the ref
+      // to avoid the TypeScript error with read-only properties
       const wasInitialized = storeInitializedRef.current;
+      
+      // Set the ref value to true AFTER checking it
       storeInitializedRef.current = true;
       
       if (!wasInitialized) {
+        // This is safe since we're not modifying the ref itself, just what it points to
         audioRef.current = audioStore.audioElement;
         
         // Use safe values to prevent uncontrolled/controlled component switches
