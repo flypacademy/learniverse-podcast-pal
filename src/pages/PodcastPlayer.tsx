@@ -7,9 +7,12 @@ import PodcastLoading from "@/components/podcast/PodcastLoading";
 import XPModal from "@/components/podcast/XPModal";
 import { usePodcastPlayer } from "@/hooks/usePodcastPlayer";
 import { useToast } from "@/components/ui/use-toast";
+import { useParams } from "react-router-dom";
 
 const PodcastPlayer = () => {
   const { toast } = useToast();
+  const { podcastId } = useParams<{ podcastId: string }>();
+  
   const {
     podcastData,
     courseData,
@@ -44,6 +47,7 @@ const PodcastPlayer = () => {
     console.log("Loading state:", loading);
     console.log("Error state:", error);
     console.log("Podcast data:", podcastData);
+    console.log("Podcast ID from params:", podcastId);
     
     return () => {
       console.log("PodcastPlayer component unmounting");
@@ -51,7 +55,7 @@ const PodcastPlayer = () => {
         audioRef.current.pause();
       }
     };
-  }, [loading, error, podcastData, audioRef]);
+  }, [loading, error, podcastData, audioRef, podcastId]);
 
   // Create and configure audio element when podcast data is loaded
   useEffect(() => {

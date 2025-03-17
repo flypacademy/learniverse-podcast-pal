@@ -6,7 +6,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { PodcastData, PodcastProgressData, CourseData } from "@/types/podcast";
 
 export function usePodcastData() {
-  const { podcastId } = useParams();
+  const { podcastId } = useParams<{ podcastId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   
