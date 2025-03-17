@@ -1,5 +1,6 @@
 
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,7 @@ import {
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabase";
 
 interface SettingsModalProps {
   open: boolean;
@@ -27,16 +29,36 @@ interface SettingsModalProps {
 
 const SettingsModal = ({ open, onOpenChange }: SettingsModalProps) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  
   // Initialize state for the switches
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
 
-  const handleLogout = () => {
-    toast({
-      title: "Logged out",
-      description: "You have been logged out successfully",
-    });
-    onOpenChange(false);
+  const handleLogout = async () => {
+    try {
+      // Sign out from Supabase
+      await supabase.auth.signOut();
+      
+      // Show success toast
+      toast({
+        title: "Logged out",
+        description: "You have been logged out successfully",
+      });
+      
+      // Close the modal
+      onOpenChange(false);
+      
+      // Redirect to onboarding page
+      navigate("/onboarding", { replace: true });
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast({
+        title: "Error logging out",
+        description: "There was a problem logging out. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
