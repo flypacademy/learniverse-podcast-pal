@@ -25,9 +25,11 @@ const WelcomeStep = ({ onContinueWithEmail }: WelcomeStepProps) => {
         
         {/* Logo */}
         <div className="mt-4">
-          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M16 2L20.5 11L30 12.5L23 19.5L25 29L16 24.5L7 29L9 19.5L2 12.5L11.5 11L16 2Z" fill="currentColor"/>
-          </svg>
+          <img 
+            src="/lovable-uploads/84fb211b-5353-4f32-9e4e-5fdb191bca2e.png"
+            alt="Learniverse Logo"
+            className="w-12 h-12"
+          />
         </div>
         
         {/* Tagline */}
