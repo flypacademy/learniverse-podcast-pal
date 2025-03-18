@@ -23,6 +23,9 @@ export const createAudioSetup = (
       const currentAudio = get().audioElement;
       if (currentAudio) {
         try {
+          // Store if it was playing before switching
+          const wasPlaying = !currentAudio.paused;
+          
           // Always pause the current audio before switching to prevent multiple simultaneous playback
           currentAudio.pause();
           
@@ -51,11 +54,14 @@ export const createAudioSetup = (
         ? audioElement.currentTime 
         : 0;
       
+      // Get the current playing state
+      const wasPlaying = get().isPlaying;
+      
       // Update state with new audio
       set({ 
         audioElement, 
         currentPodcastId: podcastId,
-        isPlaying: false,  // Always start paused to prevent auto-play issues
+        isPlaying: wasPlaying,  // Preserve playing state when switching podcasts
         currentTime: initialTime,
         duration: initialDuration,
         podcastMeta: meta || get().podcastMeta
@@ -74,6 +80,22 @@ export const createAudioSetup = (
       (audioElement as any).__cleanupVisibilityListener = () => {
         document.removeEventListener('visibilitychange', visibilityChangeHandler);
       };
+      
+      // Resume playback if it was playing before
+      if (wasPlaying) {
+        try {
+          const playPromise = audioElement.play();
+          if (playPromise !== undefined) {
+            playPromise.catch(error => {
+              console.warn("Could not auto-resume audio after setting new source:", error);
+              set({ isPlaying: false });
+            });
+          }
+        } catch (error) {
+          console.warn("Error auto-resuming audio:", error);
+          set({ isPlaying: false });
+        }
+      }
     },
     
     setPodcastMeta: (meta: PodcastMeta) => {

@@ -19,6 +19,7 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
     isPlaying, 
     currentTime, 
     duration,
+    audioElement,
     play, 
     pause,
     setCurrentTime
@@ -27,6 +28,7 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
   // Use local state to prevent rendering issues during transitions
   const [localCurrentTime, setLocalCurrentTime] = useState(0);
   const [localDuration, setLocalDuration] = useState(100);
+  const [localIsPlaying, setLocalIsPlaying] = useState(isPlaying);
   
   // Sync with audio store values once they're stable
   useEffect(() => {
@@ -40,9 +42,26 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
       setLocalDuration(duration);
     }
   }, [duration]);
+  
+  useEffect(() => {
+    setLocalIsPlaying(isPlaying);
+  }, [isPlaying]);
+  
+  // Auto-resume playback if it was playing before
+  useEffect(() => {
+    if (localIsPlaying && audioElement && audioElement.paused) {
+      // Short timeout to let the DOM settle after navigation
+      const timer = setTimeout(() => {
+        console.log("MiniPlayer: Auto-resuming playback");
+        play();
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [audioElement, localIsPlaying, play]);
 
   const togglePlay = () => {
-    if (isPlaying) {
+    if (localIsPlaying) {
       pause();
     } else {
       play();
@@ -99,7 +118,7 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
         {/* Controls */}
         <div className="flex items-center">
           <PlayerControls 
-            isPlaying={isPlaying}
+            isPlaying={localIsPlaying}
             onPlayPause={togglePlay}
             onSkipBack={skipBackward}
             onSkipForward={skipForward}

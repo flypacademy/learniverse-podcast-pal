@@ -24,7 +24,10 @@ const PodcastAudio = ({
     // Check if there's already an audio element in the store with a different ref
     const storeAudioRef = audioStore.audioElement;
     if (storeAudioRef && storeAudioRef !== audioRef.current && storeAudioRef.src) {
-      // We have a different audio element in the store - pause it to prevent multiple playback
+      // We have a different audio element in the store - preserve its playing state
+      const wasPlaying = !storeAudioRef.paused;
+      
+      // Pause it to prevent multiple playback
       try {
         console.log("Pausing existing audio element to prevent double playback");
         storeAudioRef.pause();
@@ -54,6 +57,9 @@ const PodcastAudio = ({
           return;
         }
         
+        // Get the current playing state before changing source
+        const wasPlaying = audioStore.isPlaying;
+        
         // Set the src and load the audio
         audioRef.current.src = src;
         audioRef.current.load();
@@ -62,11 +68,26 @@ const PodcastAudio = ({
         audioRef.current.currentTime = 0;
         
         prevSrcRef.current = src;
+        
+        // Auto-resume if it was playing before
+        if (wasPlaying && audioRef.current) {
+          setTimeout(() => {
+            if (audioRef.current) {
+              console.log("Auto-resuming playback after source change");
+              const playPromise = audioRef.current.play();
+              if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                  console.warn("Could not auto-play after source change:", error);
+                });
+              }
+            }
+          }, 100);
+        }
       } catch (error) {
         console.error("Error setting audio source:", error);
       }
     }
-  }, [src, audioRef, audioStore.audioElement]);
+  }, [src, audioRef, audioStore]);
 
   return (
     <audio
