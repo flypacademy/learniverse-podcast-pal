@@ -76,6 +76,13 @@ export function useAudioInitialization({
       // Check if we already have this podcast in the store
       if (audioStore.currentPodcastId === podcastId && audioStore.audioElement) {
         console.log("useAudioInitialization: Using existing audio element from store");
+        
+        // Reset any stored currentTime to start at 0
+        if (audioStore.audioElement) {
+          audioStore.audioElement.currentTime = 0;
+          audioStore.setCurrentTime(0);
+        }
+        
         setAudioInitialized(true);
         return;
       }
@@ -88,6 +95,10 @@ export function useAudioInitialization({
           courseName: courseData?.title || "Unknown Course",
           image: podcastData.image_url || courseData?.image || undefined
         });
+        
+        // Force set audio time to 0
+        audioRef.current.currentTime = 0;
+        audioStore.setCurrentTime(0);
       }
       
       setAudioInitialized(true);

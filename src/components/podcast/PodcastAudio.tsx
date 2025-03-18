@@ -48,12 +48,19 @@ const PodcastAudio = ({
         // If this audio is already registered in the store with the same src, don't reload
         if (storeAudioRef === audioRef.current && storeAudioRef.src === src) {
           console.log("Audio already loaded with this source, skipping reload");
+          
+          // Force reset the time to 0
+          audioRef.current.currentTime = 0;
           return;
         }
         
         // Set the src and load the audio
         audioRef.current.src = src;
         audioRef.current.load();
+        
+        // Always reset current time to 0 when loading a new audio
+        audioRef.current.currentTime = 0;
+        
         prevSrcRef.current = src;
       } catch (error) {
         console.error("Error setting audio source:", error);

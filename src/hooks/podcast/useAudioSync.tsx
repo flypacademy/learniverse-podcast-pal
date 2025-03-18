@@ -19,18 +19,19 @@ export function useAudioSync(
   const storeInitializedRef = useRef(false);
   const syncInProgressRef = useRef(false);
   const lastUpdateTimeRef = useRef(0);
+  const initialSyncCompleteRef = useRef(false);
   
-  // Initialize audio from global store if available, but only once
+  // Only initialize from the store once when the component mounts
   useEffect(() => {
+    // Only sync from store if we're loading the same podcast and we haven't synced yet
     if (!storeInitializedRef.current && audioStore.currentPodcastId === podcastId && audioStore.audioElement) {
       console.log("useAudioSync: Initializing from global store");
       storeInitializedRef.current = true;
       
-      // Use safe values to prevent uncontrolled/controlled component switches
-      if (isFinite(audioStore.currentTime)) {
-        setCurrentTime(audioStore.currentTime);
-      }
+      // Always start from beginning when opening a podcast
+      setCurrentTime(0);
       
+      // Only set other values if they're valid
       if (isFinite(audioStore.duration) && audioStore.duration > 0) {
         setDuration(audioStore.duration);
       }
@@ -38,12 +39,21 @@ export function useAudioSync(
       setVolume(audioStore.volume);
       setIsPlaying(audioStore.isPlaying);
       setReady(true);
+      
+      // Reset the audio element's current time to ensure we start from the beginning
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+      }
+      
+      initialSyncCompleteRef.current = true;
     }
-  }, [audioStore, podcastId, setCurrentTime, setDuration, setIsPlaying, setReady, setVolume]);
+  }, [audioStore, podcastId, setCurrentTime, setDuration, setIsPlaying, setReady, setVolume, audioRef]);
   
-  // Only update state from store if significant time has passed (throttling)
-  // and only for specific properties that have changed significantly
+  // Only update state from store when significant changes occur
   useEffect(() => {
+    // If initial sync is complete and this is just a normal update, we can be more selective
+    if (!initialSyncCompleteRef.current) return;
+    
     // Skip if audio ref doesn't match store or if we're already syncing
     if (syncInProgressRef.current || !audioRef.current || audioRef.current !== audioStore.audioElement) {
       return;
@@ -69,6 +79,7 @@ export function useAudioSync(
       const storeDuration = audioStore.duration;
       const storeVolume = audioStore.volume;
       
+      // Only update time if the difference is significant
       if (isFinite(storeTime) && Math.abs(currentTime - storeTime) > 1) {
         setCurrentTime(storeTime);
       }

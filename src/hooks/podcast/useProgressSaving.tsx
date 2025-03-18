@@ -12,8 +12,9 @@ export function useProgressSaving(podcastId: string | undefined, podcastCourseId
       const userId = session.user.id;
       const last_position = Math.floor(audioElement.currentTime);
       
-      // Only save progress if we have a meaningful position
-      if (last_position <= 0 && !completed) return;
+      // Only save progress if we have a meaningful position (greater than 5 seconds)
+      // or if it's explicitly marked as completed
+      if (last_position <= 5 && !completed) return;
       
       console.log("Saving progress with data:", {
         user_id: userId,
