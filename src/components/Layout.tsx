@@ -1,3 +1,4 @@
+
 import React, { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Home, BookOpen, User, Target } from "lucide-react";
@@ -16,6 +17,24 @@ const Layout = ({ children }: LayoutProps) => {
   const isPodcastPage = location.pathname.includes('/podcast/') && 
                        !location.pathname.includes('/podcast-sample');
   const showMiniPlayer = !!currentPodcastId && !!podcastMeta && !isPodcastPage;
+  
+  // Critical: Ensure audio continues playing during navigation
+  useEffect(() => {
+    if (showMiniPlayer && isPlaying && audioElement && audioElement.paused) {
+      console.log("Layout: Ensuring audio playback continues during navigation");
+      // Using a synchronous approach for immediate playback
+      try {
+        const playPromise = audioElement.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(error => {
+            console.warn("Layout: Could not auto-play during navigation:", error);
+          });
+        }
+      } catch (error) {
+        console.warn("Layout: Error auto-playing audio during navigation:", error);
+      }
+    }
+  }, [showMiniPlayer, isPlaying, audioElement, location.pathname]);
   
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-white to-gray-50 relative">

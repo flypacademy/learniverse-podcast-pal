@@ -47,17 +47,23 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
     setLocalIsPlaying(isPlaying);
   }, [isPlaying]);
   
-  // Ensure audio continues playing when mini player appears
+  // Critical: Ensure audio continues playing when mini player appears
   useEffect(() => {
-    // If audio is supposed to be playing but actually isn't, restart it
-    if (localIsPlaying && audioElement && audioElement.paused) {
-      // Small timeout to allow for DOM updates
-      const timer = setTimeout(() => {
+    const checkAudioContinuity = () => {
+      // If audio is supposed to be playing but actually isn't, restart it
+      if (localIsPlaying && audioElement && audioElement.paused) {
+        console.log("MiniPlayer: Detected audio should be playing but is paused, restarting playback");
         play();
-      }, 50);
-      
-      return () => clearTimeout(timer);
-    }
+      }
+    };
+    
+    // Check immediately
+    checkAudioContinuity();
+    
+    // And also check after a short delay to ensure the browser has processed events
+    const timer = setTimeout(checkAudioContinuity, 100);
+    
+    return () => clearTimeout(timer);
   }, [localIsPlaying, audioElement, play]);
 
   const togglePlay = () => {

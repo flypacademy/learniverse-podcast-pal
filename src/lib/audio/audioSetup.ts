@@ -49,15 +49,20 @@ export const createAudioSetup = (
           // Add event listeners to the new audio element
           setupEventListeners(audioElement);
           
-          // If it was playing, resume playback on the new element immediately
+          // If it was playing, resume playback on the new element immediately without any delays
           if (shouldKeepPlaying) {
-            // Play immediately without delay
-            const playPromise = audioElement.play();
-            if (playPromise !== undefined) {
-              playPromise.catch(error => {
-                console.warn("Could not resume after audio element change:", error);
-                set({ isPlaying: false });
-              });
+            console.log("Audio setup: Immediate playback continuation");
+            try {
+              const playPromise = audioElement.play();
+              if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                  console.warn("Could not resume after audio element change:", error);
+                  set({ isPlaying: false });
+                });
+              }
+            } catch (error) {
+              console.warn("Error during immediate playback continuation:", error);
+              set({ isPlaying: false });
             }
           }
         }
@@ -110,7 +115,7 @@ export const createAudioSetup = (
         delete audioElement.dataset.shouldAutoPlay;
       }
       
-      // Update state with new audio
+      // Update state with new audio - critical for seamless transition
       set({ 
         audioElement, 
         currentPodcastId: podcastId,
@@ -123,20 +128,43 @@ export const createAudioSetup = (
       // Add event listeners
       setupEventListeners(audioElement);
       
-      // Resume playback if needed - do it immediately
+      // Resume playback if needed - do it immediately with robust error handling
       if (shouldPlay) {
         try {
           console.log("Audio setup: Immediately playing new audio source");
+          // Directly attempt playback without any delay
           const playPromise = audioElement.play();
           if (playPromise !== undefined) {
             playPromise.catch(error => {
               console.warn("Could not auto-play audio after setting new source:", error);
-              set({ isPlaying: false });
+              // Try one more time after a short delay as a fallback
+              setTimeout(() => {
+                try {
+                  audioElement.play().catch(e => {
+                    console.warn("Second attempt to auto-play failed:", e);
+                    set({ isPlaying: false });
+                  });
+                } catch (retryError) {
+                  console.warn("Error during retry playback:", retryError);
+                  set({ isPlaying: false });
+                }
+              }, 50);
             });
           }
         } catch (error) {
           console.warn("Error auto-playing audio:", error);
-          set({ isPlaying: false });
+          // Also try one more time after a short delay
+          setTimeout(() => {
+            try {
+              audioElement.play().catch(e => {
+                console.warn("Second attempt after error failed:", e);
+                set({ isPlaying: false });
+              });
+            } catch (retryError) {
+              console.warn("Error during retry playback after error:", retryError);
+              set({ isPlaying: false });
+            }
+          }, 50);
         }
       }
     },

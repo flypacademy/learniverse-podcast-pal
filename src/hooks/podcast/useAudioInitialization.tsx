@@ -76,6 +76,7 @@ export function useAudioInitialization({
         
         // Preserve current time when returning to the same podcast
         const storedCurrentTime = audioStore.currentTime;
+        const wasPlaying = audioStore.isPlaying;
         
         if (audioRef.current !== audioStore.audioElement) {
           // If we have a different audio element reference but same podcast
@@ -89,13 +90,22 @@ export function useAudioInitialization({
           audioRef.current.currentTime = storedCurrentTime;
         }
         
-        // Register with audio store, but preserve current time
+        // Register with audio store, but preserve current time and playing state
         audioStore.setAudio(audioRef.current, podcastId, {
           id: podcastData.id,
           title: podcastData.title,
           courseName: courseData?.title || "Unknown Course",
           image: podcastData.image_url || courseData?.image || undefined
         });
+        
+        // Ensure playing state is preserved
+        if (wasPlaying) {
+          // Small timeout to ensure DOM is ready
+          setTimeout(() => {
+            console.log("Resuming playback after navigation");
+            audioStore.play();
+          }, 50);
+        }
         
         setAudioInitialized(true);
         return;
