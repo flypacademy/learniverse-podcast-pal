@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useListeningAnalytics } from "@/hooks/useListeningAnalytics";
 import ProfileHeader from "./ProfileHeader";
@@ -8,9 +7,9 @@ import WeeklyAnalytics from "./WeeklyAnalytics";
 import StreakCalendar from "@/components/StreakCalendar";
 import AchievementsSection from "./AchievementsSection";
 import { Award, BookOpen, Calendar, Clock, Headphones } from "lucide-react";
+import { UserXPData } from "@/hooks/useUserXP";
 
-// Mock data
-const userData = {
+const defaultUserData = {
   name: "Student",
   email: "student@example.com",
   xp: 1250,
@@ -77,9 +76,27 @@ const activityDays = [
   { date: "2023-06-11", completed: false }
 ];
 
-const ProfileContent: React.FC = () => {
-  // Fetch real listening analytics data
+interface ProfileContentProps {
+  userData?: UserXPData;
+}
+
+const ProfileContent: React.FC<ProfileContentProps> = ({ userData }) => {
   const { analytics, loading } = useListeningAnalytics(7);
+  
+  const totalXP = userData?.totalXP || defaultUserData.xp;
+  const level = Math.floor(totalXP / 500) + 1;
+  const nextLevelXP = level * 500;
+  const progress = ((totalXP % 500) / 500) * 100;
+  
+  const userCardData = {
+    name: userData?.userName || defaultUserData.name,
+    email: defaultUserData.email,
+    xp: totalXP,
+    level,
+    streak: defaultUserData.streak,
+    nextLevelXP,
+    progress
+  };
   
   return (
     <div className="space-y-6 animate-slide-up">
@@ -88,24 +105,19 @@ const ProfileContent: React.FC = () => {
         subtitle="Track your progress and achievements" 
       />
       
-      {/* User Profile & Level */}
-      <UserCard userData={userData} />
+      <UserCard userData={userCardData} />
       
-      {/* Stats */}
       <ProfileStats 
-        totalPodcastsCompleted={userData.totalPodcastsCompleted}
-        totalHoursListened={userData.totalHoursListened}
+        totalPodcastsCompleted={defaultUserData.totalPodcastsCompleted}
+        totalHoursListened={defaultUserData.totalHoursListened}
       />
       
-      {/* Weekly Streak */}
       <div className="glass-card p-4 rounded-xl">
-        <StreakCalendar streak={userData.streak} days={activityDays} />
+        <StreakCalendar streak={defaultUserData.streak} days={activityDays} />
       </div>
       
-      {/* Learning Analytics */}
       <WeeklyAnalytics analytics={analytics} loading={loading} />
       
-      {/* Achievements */}
       <AchievementsSection achievements={achievements} />
     </div>
   );

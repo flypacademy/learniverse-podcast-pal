@@ -3,8 +3,9 @@ import React, { useState } from "react";
 import Layout from "@/components/Layout";
 import { useToast } from "@/components/ui/use-toast";
 import { useRecentCourses } from "@/hooks/useRecentCourses";
+import { useUserXP } from "@/hooks/useUserXP";
 
-// Import our new components
+// Import our components
 import UserHeader from "@/components/home/UserHeader";
 import ContinueLearning from "@/components/home/ContinueLearning";
 import WeeklyStreakSection from "@/components/home/WeeklyStreakSection";
@@ -23,10 +24,9 @@ const streakData = [
 ];
 
 const Index = () => {
-  const userName = "Student";
-  const totalXP = 1250;
   const { toast } = useToast();
-  const { recentCourses, loading } = useRecentCourses();
+  const { recentCourses, loading: coursesLoading } = useRecentCourses();
+  const { data: userData, loading: userLoading } = useUserXP();
   
   const handleLinkClick = () => {
     if (navigator.vibrate) {
@@ -37,13 +37,16 @@ const Index = () => {
   return (
     <Layout>
       <div className="space-y-5 animate-slide-up pt-3">
-        {/* User Header */}
-        <UserHeader userName={userName} totalXP={totalXP} />
+        {/* User Header with real XP data */}
+        <UserHeader 
+          userName={userData.userName} 
+          totalXP={userData.totalXP} 
+        />
         
         {/* Continue Learning with Carousel */}
         <ContinueLearning 
           courses={recentCourses}
-          loading={loading}
+          loading={coursesLoading}
           handleLinkClick={handleLinkClick}
         />
         
