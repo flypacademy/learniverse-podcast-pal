@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { useAudioStore } from "@/lib/audioContext";
 import { useToast } from "@/components/ui/use-toast";
@@ -67,14 +68,19 @@ export function useAudioInitialization({
     try {
       console.log("useAudioInitialization: Configuring audio element with URL:", podcastData.audio_url);
       
-      // Check if we already have this podcast in the store and preserve playback state
+      // Ensure the audio is reset to prevent incorrect times
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+      }
+      
+      // Check if we already have this podcast in the store
       if (audioStore.currentPodcastId === podcastId && audioStore.audioElement) {
         console.log("useAudioInitialization: Using existing audio element from store");
         
-        // Don't reset stored currentTime if it exists - keep playback position
-        if (audioStore.audioElement && audioRef.current) {
-          // Synchronize the times
-          audioRef.current.currentTime = audioStore.currentTime;
+        // Reset any stored currentTime to start at 0
+        if (audioStore.audioElement) {
+          audioStore.audioElement.currentTime = 0;
+          audioStore.setCurrentTime(0);
         }
         
         setAudioInitialized(true);
@@ -89,6 +95,10 @@ export function useAudioInitialization({
           courseName: courseData?.title || "Unknown Course",
           image: podcastData.image_url || courseData?.image || undefined
         });
+        
+        // Force set audio time to 0
+        audioRef.current.currentTime = 0;
+        audioStore.setCurrentTime(0);
       }
       
       setAudioInitialized(true);

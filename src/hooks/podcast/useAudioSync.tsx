@@ -28,10 +28,8 @@ export function useAudioSync(
       console.log("useAudioSync: Initializing from global store");
       storeInitializedRef.current = true;
       
-      // Preserve playback position when returning to a podcast
-      if (audioStore.currentTime > 0) {
-        setCurrentTime(audioStore.currentTime);
-      }
+      // Always start from beginning when opening a podcast
+      setCurrentTime(0);
       
       // Only set other values if they're valid
       if (isFinite(audioStore.duration) && audioStore.duration > 0) {
@@ -42,9 +40,9 @@ export function useAudioSync(
       setIsPlaying(audioStore.isPlaying);
       setReady(true);
       
-      // Ensure audio element's current time matches store
-      if (audioRef.current && audioStore.currentTime > 0) {
-        audioRef.current.currentTime = audioStore.currentTime;
+      // Reset the audio element's current time to ensure we start from the beginning
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
       }
       
       initialSyncCompleteRef.current = true;

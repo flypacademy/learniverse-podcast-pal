@@ -1,3 +1,4 @@
+
 import { AudioState, PodcastMeta } from './types';
 import { createAudioEventHandlers } from './audioEventHandlers';
 
@@ -15,21 +16,11 @@ export const createAudioSetup = (
         if (meta) {
           set({ podcastMeta: meta });
         }
-        
-        // Keep the current time if we have one
-        if (get().currentTime > 0 && audioElement) {
-          audioElement.currentTime = get().currentTime;
-        }
-        
         return;
       }
       
       // Clean up existing audio if there is one
       const currentAudio = get().audioElement;
-      const currentPodcastId = get().currentPodcastId;
-      const isCurrentlyPlaying = get().isPlaying;
-      const currentAudioTime = get().currentTime;
-      
       if (currentAudio) {
         try {
           // Store if it was playing before switching
@@ -54,39 +45,27 @@ export const createAudioSetup = (
       // Set the volume based on store state
       audioElement.volume = get().volume / 100;
       
-      // For the same podcast, preserve the current time
-      if (currentPodcastId === podcastId && currentAudioTime > 0) {
-        console.log("Same podcast detected, preserving time:", currentAudioTime);
-        audioElement.currentTime = currentAudioTime;
+      // Ensure we have valid duration and currentTime before setting state
+      const initialDuration = isFinite(audioElement.duration) && audioElement.duration > 0 
+        ? audioElement.duration 
+        : 0;
         
-        // Update state with new audio but keep the time
-        set({ 
-          audioElement, 
-          currentPodcastId: podcastId,
-          isPlaying: isCurrentlyPlaying,  // Preserve playing state
-          currentTime: currentAudioTime,  // Preserve time
-          podcastMeta: meta || get().podcastMeta
-        });
-      } else {
-        // Ensure we have valid duration and currentTime before setting state for new podcast
-        const initialDuration = isFinite(audioElement.duration) && audioElement.duration > 0 
-          ? audioElement.duration 
-          : 0;
-          
-        const initialTime = isFinite(audioElement.currentTime) 
-          ? audioElement.currentTime 
-          : 0;
-        
-        // Update state with new audio
-        set({ 
-          audioElement, 
-          currentPodcastId: podcastId,
-          isPlaying: isCurrentlyPlaying,  // Preserve playing state
-          currentTime: initialTime,
-          duration: initialDuration,
-          podcastMeta: meta || get().podcastMeta
-        });
-      }
+      const initialTime = isFinite(audioElement.currentTime) 
+        ? audioElement.currentTime 
+        : 0;
+      
+      // Get the current playing state
+      const wasPlaying = get().isPlaying;
+      
+      // Update state with new audio
+      set({ 
+        audioElement, 
+        currentPodcastId: podcastId,
+        isPlaying: wasPlaying,  // Preserve playing state when switching podcasts
+        currentTime: initialTime,
+        duration: initialDuration,
+        podcastMeta: meta || get().podcastMeta
+      });
       
       // Add event listeners
       audioElement.addEventListener('timeupdate', () => eventHandlers.handleTimeUpdate(audioElement));
@@ -103,7 +82,7 @@ export const createAudioSetup = (
       };
       
       // Resume playback if it was playing before
-      if (isCurrentlyPlaying) {
+      if (wasPlaying) {
         try {
           const playPromise = audioElement.play();
           if (playPromise !== undefined) {

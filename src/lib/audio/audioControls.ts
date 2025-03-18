@@ -41,7 +41,6 @@ export const createAudioControls = (
     setCurrentTime: (time: number) => {
       const { audioElement } = get();
       if (audioElement && isFinite(time)) {
-        console.log("Audio controls: setting current time to", time);
         audioElement.currentTime = time;
         set({ currentTime: time });
       }
@@ -59,20 +58,6 @@ export const createAudioControls = (
         audioElement.volume = volume / 100;
       }
       set({ volume });
-    },
-    
-    // Add this method to preserve current playback state
-    preservePlaybackState: () => {
-      const { audioElement, currentTime, isPlaying } = get();
-      if (audioElement) {
-        // Store current playback information to ensure continuity
-        return {
-          time: audioElement.currentTime || currentTime,
-          playing: isPlaying,
-          src: audioElement.src || ""
-        };
-      }
-      return null;
     }
   };
 };

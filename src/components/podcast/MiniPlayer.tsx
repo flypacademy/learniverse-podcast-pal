@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAudioStore } from "@/lib/audioContext";
 import { formatTime } from "@/lib/utils";
@@ -29,7 +29,6 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
   const [localCurrentTime, setLocalCurrentTime] = useState(0);
   const [localDuration, setLocalDuration] = useState(100);
   const [localIsPlaying, setLocalIsPlaying] = useState(isPlaying);
-  const initializedRef = useRef(false);
   
   // Sync with audio store values once they're stable
   useEffect(() => {
@@ -50,11 +49,10 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
   
   // Auto-resume playback if it was playing before
   useEffect(() => {
-    if (localIsPlaying && audioElement && audioElement.paused && !initializedRef.current) {
+    if (localIsPlaying && audioElement && audioElement.paused) {
       // Short timeout to let the DOM settle after navigation
       const timer = setTimeout(() => {
         console.log("MiniPlayer: Auto-resuming playback");
-        initializedRef.current = true;
         play();
       }, 100);
       
