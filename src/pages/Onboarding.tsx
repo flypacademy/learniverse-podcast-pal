@@ -104,7 +104,7 @@ const Onboarding = () => {
   const currentStep = steps[step];
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col">
       <div className="flex-1 w-full px-6 py-12 flex flex-col">
         <OnboardingContainer 
           title={currentStep.title} 

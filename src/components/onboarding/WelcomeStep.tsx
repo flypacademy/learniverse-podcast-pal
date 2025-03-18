@@ -13,9 +13,15 @@ const WelcomeStep = ({ onContinueWithEmail }: WelcomeStepProps) => {
 
   return (
     <div className="space-y-8 w-full">
-      {/* Colorful gradient blob */}
+      {/* Gradient image */}
       <div className="flex flex-col items-center justify-center space-y-6">
-        <div className="w-48 h-48 rounded-full bg-gradient-to-br from-purple-500/80 via-blue-600/80 to-blue-400/80 blur-xl opacity-80"></div>
+        <div className="w-64 h-64 relative">
+          <img 
+            src="/lovable-uploads/7751c67e-702f-4612-9002-a1d68ced72c3.png" 
+            alt="Gradient circle" 
+            className="w-full h-full object-contain"
+          />
+        </div>
         
         {/* Logo */}
         <div className="mt-4">
