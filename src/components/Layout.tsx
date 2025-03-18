@@ -36,23 +36,10 @@ const Layout = ({ children }: LayoutProps) => {
     }
   }, [showMiniPlayer, isPlaying, audioElement, location.pathname]);
   
-  // Split the children to extract the header and content
-  const childrenArray = React.Children.toArray(children);
-  const headerElement = childrenArray[0]; // First child is assumed to be the header
-  const contentElements = childrenArray.slice(1); // Rest are content
-  
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-white to-gray-50 relative">
-      {/* Fixed Header Section */}
-      <div className="fixed top-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm">
-        <div className="max-w-md mx-auto">
-          {headerElement}
-        </div>
-      </div>
-      
-      {/* Scrollable Content - add padding to account for fixed header */}
-      <main className={`flex-1 mt-24 px-4 max-w-md mx-auto w-full ${showMiniPlayer ? 'pb-36' : 'pb-20'}`}>
-        {contentElements}
+      <main className={`flex-1 pt-6 px-4 max-w-md mx-auto w-full ${showMiniPlayer ? 'pb-36' : 'pb-20'}`}>
+        {children}
       </main>
       
       {/* Mini Player */}
