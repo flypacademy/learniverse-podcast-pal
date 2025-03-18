@@ -46,19 +46,6 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
   useEffect(() => {
     setLocalIsPlaying(isPlaying);
   }, [isPlaying]);
-  
-  // Auto-resume playback if it was playing before
-  useEffect(() => {
-    if (localIsPlaying && audioElement && audioElement.paused) {
-      // Short timeout to let the DOM settle after navigation
-      const timer = setTimeout(() => {
-        console.log("MiniPlayer: Auto-resuming playback");
-        play();
-      }, 100);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [audioElement, localIsPlaying, play]);
 
   const togglePlay = () => {
     if (localIsPlaying) {

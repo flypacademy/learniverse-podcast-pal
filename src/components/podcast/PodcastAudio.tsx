@@ -26,6 +26,7 @@ const PodcastAudio = ({
     if (storeAudioRef && storeAudioRef !== audioRef.current && storeAudioRef.src) {
       // We have a different audio element in the store - preserve its playing state
       const wasPlaying = !storeAudioRef.paused;
+      const currentPosition = storeAudioRef.currentTime;
       
       // Pause it to prevent multiple playback
       try {
@@ -33,6 +34,11 @@ const PodcastAudio = ({
         storeAudioRef.pause();
       } catch (error) {
         console.error("Error pausing existing audio:", error);
+      }
+      
+      // Transfer the current playback position to the new audio element
+      if (audioRef.current && isFinite(currentPosition)) {
+        audioRef.current.currentTime = currentPosition;
       }
     }
     
