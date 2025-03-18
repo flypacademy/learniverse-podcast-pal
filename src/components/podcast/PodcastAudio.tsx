@@ -49,23 +49,27 @@ const PodcastAudio = ({
         sourceUpdateAttemptedRef.current = true;
         
         // If this audio is already registered in the store with the same src, don't reload
-        if (storeAudioRef === audioRef.current && storeAudioRef.src === src) {
+        if (audioStore.audioElement === audioRef.current && audioStore.audioElement.src === src) {
           console.log("Audio already loaded with this source, skipping reload");
-          
-          // Force reset the time to 0
-          audioRef.current.currentTime = 0;
           return;
         }
         
-        // Get the current playing state before changing source
+        // Get the current playing state and time before changing source
         const wasPlaying = audioStore.isPlaying;
+        const currentTime = audioStore.currentTime;
         
         // Set the src and load the audio
         audioRef.current.src = src;
         audioRef.current.load();
         
-        // Always reset current time to 0 when loading a new audio
-        audioRef.current.currentTime = 0;
+        // Preserve current time when returning to the same podcast
+        if (audioStore.currentPodcastId && currentTime > 0) {
+          console.log("Preserving audio position at:", currentTime);
+          audioRef.current.currentTime = currentTime;
+        } else {
+          // Reset current time to 0 when loading a new audio
+          audioRef.current.currentTime = 0;
+        }
         
         prevSrcRef.current = src;
         

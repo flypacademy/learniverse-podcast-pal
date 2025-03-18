@@ -68,27 +68,28 @@ export function useAudioInitialization({
     try {
       console.log("useAudioInitialization: Configuring audio element with URL:", podcastData.audio_url);
       
-      // Ensure the audio is reset to prevent incorrect times
-      if (audioRef.current) {
-        audioRef.current.currentTime = 0;
-      }
-      
       // Check if we already have this podcast in the store
-      if (audioStore.currentPodcastId === podcastId && audioStore.audioElement) {
+      const isSamePodcast = audioStore.currentPodcastId === podcastId;
+      
+      if (isSamePodcast && audioStore.audioElement) {
         console.log("useAudioInitialization: Using existing audio element from store");
         
-        // Reset any stored currentTime to start at 0
-        if (audioStore.audioElement) {
-          audioStore.audioElement.currentTime = 0;
-          audioStore.setCurrentTime(0);
+        // Preserve current time when returning to the same podcast
+        const storedCurrentTime = audioStore.currentTime;
+        
+        if (audioRef.current !== audioStore.audioElement) {
+          // If we have a different audio element reference but same podcast
+          audioRef.current.src = podcastData.audio_url;
+          audioRef.current.load();
+        }
+
+        // Set audio element to the stored position
+        if (storedCurrentTime > 0) {
+          console.log("Restoring audio position to:", storedCurrentTime);
+          audioRef.current.currentTime = storedCurrentTime;
         }
         
-        setAudioInitialized(true);
-        return;
-      }
-      
-      // Register with audio store
-      if (audioRef.current) {
+        // Register with audio store, but preserve current time
         audioStore.setAudio(audioRef.current, podcastId, {
           id: podcastData.id,
           title: podcastData.title,
@@ -96,9 +97,24 @@ export function useAudioInitialization({
           image: podcastData.image_url || courseData?.image || undefined
         });
         
-        // Force set audio time to 0
+        setAudioInitialized(true);
+        return;
+      }
+      
+      // For a new podcast, reset time to 0
+      if (audioRef.current) {
         audioRef.current.currentTime = 0;
-        audioStore.setCurrentTime(0);
+      }
+      
+      // Register with audio store
+      if (audioRef.current) {
+        console.log("Registering new audio element with store for podcast:", podcastId);
+        audioStore.setAudio(audioRef.current, podcastId, {
+          id: podcastData.id,
+          title: podcastData.title,
+          courseName: courseData?.title || "Unknown Course",
+          image: podcastData.image_url || courseData?.image || undefined
+        });
       }
       
       setAudioInitialized(true);

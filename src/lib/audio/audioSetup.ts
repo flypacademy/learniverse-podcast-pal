@@ -11,16 +11,43 @@ export const createAudioSetup = (
   
   return {
     setAudio: (audioElement: HTMLAudioElement, podcastId: string, meta?: PodcastMeta) => {
-      // If this is the same podcast that's already playing, don't reset
-      if (get().currentPodcastId === podcastId && get().audioElement) {
+      // Get current state for comparison
+      const { currentPodcastId, audioElement: currentAudio, currentTime: storedTime } = get();
+      
+      // If this is the same podcast that's already playing, preserve the time
+      if (currentPodcastId === podcastId && currentAudio) {
+        console.log("Audio setup: Same podcast detected, preserving state");
+        
+        // Only update metadata if provided
         if (meta) {
           set({ podcastMeta: meta });
         }
+        
+        // If it's a different audio element for the same podcast, sync the time
+        if (currentAudio !== audioElement) {
+          console.log("Audio setup: Different audio element for same podcast, syncing time:", storedTime);
+          
+          // Ensure stored time is applied to the new audio element
+          if (isFinite(storedTime) && storedTime > 0) {
+            audioElement.currentTime = storedTime;
+          }
+          
+          // Clean up event listeners from the old audio element
+          if ((currentAudio as any).__cleanupVisibilityListener) {
+            (currentAudio as any).__cleanupVisibilityListener();
+          }
+          
+          // Update the audio element in the state but preserve everything else
+          set({ audioElement });
+          
+          // Add event listeners to the new audio element
+          setupEventListeners(audioElement);
+        }
+        
         return;
       }
       
       // Clean up existing audio if there is one
-      const currentAudio = get().audioElement;
       if (currentAudio) {
         try {
           // Store if it was playing before switching
@@ -68,18 +95,7 @@ export const createAudioSetup = (
       });
       
       // Add event listeners
-      audioElement.addEventListener('timeupdate', () => eventHandlers.handleTimeUpdate(audioElement));
-      audioElement.addEventListener('ended', () => eventHandlers.handleEnded(audioElement));
-      audioElement.addEventListener('loadedmetadata', () => eventHandlers.handleLoadedMetadata(audioElement));
-      
-      // Preserve playback state across navigation
-      const visibilityChangeHandler = () => eventHandlers.handleVisibilityChange(audioElement);
-      document.addEventListener('visibilitychange', visibilityChangeHandler);
-      
-      // Store cleanup function on the element for later use
-      (audioElement as any).__cleanupVisibilityListener = () => {
-        document.removeEventListener('visibilitychange', visibilityChangeHandler);
-      };
+      setupEventListeners(audioElement);
       
       // Resume playback if it was playing before
       if (wasPlaying) {
@@ -124,4 +140,20 @@ export const createAudioSetup = (
       });
     }
   };
+  
+  // Helper function to set up event listeners for an audio element
+  function setupEventListeners(audioElement: HTMLAudioElement) {
+    audioElement.addEventListener('timeupdate', () => eventHandlers.handleTimeUpdate(audioElement));
+    audioElement.addEventListener('ended', () => eventHandlers.handleEnded(audioElement));
+    audioElement.addEventListener('loadedmetadata', () => eventHandlers.handleLoadedMetadata(audioElement));
+    
+    // Preserve playback state across navigation
+    const visibilityChangeHandler = () => eventHandlers.handleVisibilityChange(audioElement);
+    document.addEventListener('visibilitychange', visibilityChangeHandler);
+    
+    // Store cleanup function on the element for later use
+    (audioElement as any).__cleanupVisibilityListener = () => {
+      document.removeEventListener('visibilitychange', visibilityChangeHandler);
+    };
+  }
 };
