@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Home, BookOpen, User, Target } from "lucide-react";
@@ -11,24 +10,12 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
-  const { currentPodcastId, podcastMeta, isPlaying, play, audioElement } = useAudioStore();
+  const { currentPodcastId, podcastMeta, isPlaying, audioElement } = useAudioStore();
   
   // Don't show mini player on the podcast page but ensure it's displayed on other pages
   const isPodcastPage = location.pathname.includes('/podcast/') && 
                        !location.pathname.includes('/podcast-sample');
   const showMiniPlayer = !!currentPodcastId && !!podcastMeta && !isPodcastPage;
-  
-  // Resume playback when navigating away from podcast page if it was playing
-  useEffect(() => {
-    if (showMiniPlayer && isPlaying && audioElement && audioElement.paused) {
-      console.log("Layout: Auto-resuming audio after navigation");
-      const resumeTimer = setTimeout(() => {
-        play();
-      }, 100);
-      
-      return () => clearTimeout(resumeTimer);
-    }
-  }, [showMiniPlayer, isPlaying, audioElement, play, location.pathname]);
   
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-white to-gray-50 relative">

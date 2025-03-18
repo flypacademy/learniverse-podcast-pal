@@ -14,7 +14,7 @@ export const createAudioSetup = (
       // Get current state for comparison
       const { currentPodcastId, audioElement: currentAudio, currentTime: storedTime, isPlaying: wasPlaying } = get();
       
-      // If this is the same podcast that's already playing, preserve the time
+      // If this is the same podcast that's already playing, preserve the state
       if (currentPodcastId === podcastId && currentAudio) {
         console.log("Audio setup: Same podcast detected, preserving state");
         
@@ -37,28 +37,28 @@ export const createAudioSetup = (
             (currentAudio as any).__cleanupVisibilityListener();
           }
           
+          // Check if it was playing before (either from state or actual element state)
+          const shouldKeepPlaying = wasPlaying || (currentAudio && !currentAudio.paused);
+          
           // Update the audio element in the state but preserve everything else
           set({ 
             audioElement,
-            isPlaying: wasPlaying  // Explicitly preserve playing state 
+            isPlaying: shouldKeepPlaying  // Preserve playing state 
           });
           
           // Add event listeners to the new audio element
           setupEventListeners(audioElement);
           
-          // If it was playing, resume playback on the new element
-          if (wasPlaying) {
-            setTimeout(() => {
-              if (audioElement) {
-                console.log("Audio setup: Auto-resuming after audio element change");
-                const playPromise = audioElement.play();
-                if (playPromise !== undefined) {
-                  playPromise.catch(error => {
-                    console.warn("Could not auto-resume after audio element change:", error);
-                  });
-                }
-              }
-            }, 50);
+          // If it was playing, resume playback on the new element immediately
+          if (shouldKeepPlaying) {
+            // Play immediately without delay
+            const playPromise = audioElement.play();
+            if (playPromise !== undefined) {
+              playPromise.catch(error => {
+                console.warn("Could not resume after audio element change:", error);
+                set({ isPlaying: false });
+              });
+            }
           }
         }
         
@@ -71,8 +71,11 @@ export const createAudioSetup = (
           // Store if it was playing before switching
           const wasPlaying = !currentAudio.paused;
           
-          // Always pause the current audio before switching to prevent multiple simultaneous playback
-          currentAudio.pause();
+          // Don't pause if it's already paused
+          if (!currentAudio.paused) {
+            // Pause directly without triggering state updates
+            currentAudio.pause();
+          }
           
           // Only if it's a different audio element, we need to clean up the old one
           if (currentAudio !== audioElement) {
@@ -99,14 +102,19 @@ export const createAudioSetup = (
         ? audioElement.currentTime 
         : 0;
       
-      // Get the current playing state
-      const wasStillPlaying = get().isPlaying;
+      // Check if it was playing previously or marked for auto-play
+      const shouldPlay = wasPlaying || audioElement.dataset.shouldAutoPlay === "true";
+      
+      // Remove the auto-play marker if it exists
+      if (audioElement.dataset.shouldAutoPlay) {
+        delete audioElement.dataset.shouldAutoPlay;
+      }
       
       // Update state with new audio
       set({ 
         audioElement, 
         currentPodcastId: podcastId,
-        isPlaying: wasStillPlaying,  // Preserve playing state when switching podcasts
+        isPlaying: shouldPlay,  // Preserve playing state when switching podcasts
         currentTime: initialTime,
         duration: initialDuration,
         podcastMeta: meta || get().podcastMeta
@@ -115,21 +123,19 @@ export const createAudioSetup = (
       // Add event listeners
       setupEventListeners(audioElement);
       
-      // Resume playback if it was playing before
-      if (wasStillPlaying) {
+      // Resume playback if needed - do it immediately
+      if (shouldPlay) {
         try {
-          setTimeout(() => {
-            console.log("Audio setup: Auto-playing after setting new audio source");
-            const playPromise = audioElement.play();
-            if (playPromise !== undefined) {
-              playPromise.catch(error => {
-                console.warn("Could not auto-resume audio after setting new source:", error);
-                set({ isPlaying: false });
-              });
-            }
-          }, 50);
+          console.log("Audio setup: Immediately playing new audio source");
+          const playPromise = audioElement.play();
+          if (playPromise !== undefined) {
+            playPromise.catch(error => {
+              console.warn("Could not auto-play audio after setting new source:", error);
+              set({ isPlaying: false });
+            });
+          }
         } catch (error) {
-          console.warn("Error auto-resuming audio:", error);
+          console.warn("Error auto-playing audio:", error);
           set({ isPlaying: false });
         }
       }

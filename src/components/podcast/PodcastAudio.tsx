@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef } from "react";
 import { useAudioStore } from "@/lib/audioContext";
 
@@ -28,17 +27,27 @@ const PodcastAudio = ({
       const wasPlaying = !storeAudioRef.paused;
       const currentPosition = storeAudioRef.currentTime;
       
-      // Pause it to prevent multiple playback
+      // Pause it to prevent multiple playback - BUT don't use pause() directly
+      // as it might trigger unnecessary state updates
       try {
-        console.log("Pausing existing audio element to prevent double playback");
-        storeAudioRef.pause();
+        console.log("Transferring playback to new audio element");
+        if (wasPlaying) {
+          storeAudioRef.pause(); // Pause without updating global state
+        }
       } catch (error) {
-        console.error("Error pausing existing audio:", error);
+        console.error("Error handling existing audio:", error);
       }
       
       // Transfer the current playback position to the new audio element
       if (audioRef.current && isFinite(currentPosition)) {
         audioRef.current.currentTime = currentPosition;
+        
+        // If it was playing, prepare to auto-play but don't start yet
+        // This will be handled by the audio store during setAudio
+        if (wasPlaying && audioRef.current) {
+          // Keep track that it was playing for later
+          audioRef.current.dataset.shouldAutoPlay = "true";
+        }
       }
     }
     
@@ -79,19 +88,10 @@ const PodcastAudio = ({
         
         prevSrcRef.current = src;
         
-        // Auto-resume if it was playing before
-        if (wasPlaying && audioRef.current) {
-          setTimeout(() => {
-            if (audioRef.current) {
-              console.log("Auto-resuming playback after source change");
-              const playPromise = audioRef.current.play();
-              if (playPromise !== undefined) {
-                playPromise.catch(error => {
-                  console.warn("Could not auto-play after source change:", error);
-                });
-              }
-            }
-          }, 100);
+        // Mark for auto-play without actually playing it yet
+        // This avoids the delay when transitioning
+        if (wasPlaying) {
+          audioRef.current.dataset.shouldAutoPlay = "true";
         }
       } catch (error) {
         console.error("Error setting audio source:", error);
