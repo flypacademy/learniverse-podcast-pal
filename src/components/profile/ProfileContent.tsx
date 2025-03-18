@@ -1,7 +1,5 @@
-
 import React from "react";
 import { useListeningAnalytics } from "@/hooks/useListeningAnalytics";
-import ProfileHeader from "./ProfileHeader";
 import UserCard from "./UserCard";
 import ProfileStats from "./ProfileStats";
 import WeeklyAnalytics from "./WeeklyAnalytics";
@@ -83,11 +81,6 @@ const ProfileContent: React.FC = () => {
   
   return (
     <div className="space-y-6 animate-slide-up">
-      <ProfileHeader 
-        title="Profile" 
-        subtitle="Track your progress and achievements" 
-      />
-      
       {/* User Profile & Level */}
       <UserCard userData={userData} />
       

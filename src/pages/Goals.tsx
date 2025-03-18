@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -26,15 +25,12 @@ const Goals = () => {
     formatTime
   } = useGoalSession(recommendedPodcasts);
   
-  // Update recommended podcasts when goal settings change
   useEffect(() => {
     if (goalSettings.selectedCourses.length === 0) {
-      // If no courses selected, show all podcasts sorted by duration
       setRecommendedPodcasts([...podcasts].sort((a, b) => a.duration - b.duration));
       return;
     }
     
-    // Filter podcasts from selected courses
     const filtered = podcasts.filter(podcast => 
       goalSettings.selectedCourses.includes(podcast.courseId)
     );
@@ -42,7 +38,6 @@ const Goals = () => {
     setRecommendedPodcasts(filtered);
   }, [goalSettings, podcasts]);
   
-  // Show error toast if there's an error
   useEffect(() => {
     if (error) {
       toast({
@@ -53,18 +48,16 @@ const Goals = () => {
     }
   }, [error, toast]);
   
-  // Show loading state with a skeleton UI instead of a toast
   if (loading) {
     return <LoadingState />;
   }
   
   return (
     <Layout>
-      <div className="space-y-6 animate-slide-up pt-4">
-        <h1 className="font-display font-bold text-2xl text-gray-900">
-          Podcast Goals
-        </h1>
-        
+      <h1 className="font-display font-bold text-2xl text-gray-900 pt-4 pb-2">
+        Podcast Goals
+      </h1>
+      <div className="space-y-6 animate-slide-up">
         <Tabs defaultValue={currentSession.isActive ? "active" : "set-goal"}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="set-goal" disabled={currentSession.isActive}>

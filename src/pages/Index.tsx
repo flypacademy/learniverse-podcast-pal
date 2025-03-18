@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import Layout from "@/components/Layout";
 import { useToast } from "@/components/ui/use-toast";
@@ -36,10 +35,8 @@ const Index = () => {
   
   return (
     <Layout>
-      <div className="space-y-5 animate-slide-up pt-3">
-        {/* User Header */}
-        <UserHeader userName={userName} totalXP={totalXP} />
-        
+      <UserHeader userName={userName} totalXP={totalXP} />
+      <div className="space-y-5 animate-slide-up">
         {/* Continue Learning with Carousel */}
         <ContinueLearning 
           courses={recentCourses}
