@@ -15,7 +15,7 @@ const WelcomeStep = ({ onContinueWithEmail }: WelcomeStepProps) => {
     <div className="space-y-8 w-full">
       {/* Gradient image */}
       <div className="flex flex-col items-center justify-center space-y-6">
-        <div className="w-64 h-64 relative">
+        <div className="w-72 h-72 relative">
           <img 
             src="/lovable-uploads/7751c67e-702f-4612-9002-a1d68ced72c3.png" 
             alt="Gradient circle" 
