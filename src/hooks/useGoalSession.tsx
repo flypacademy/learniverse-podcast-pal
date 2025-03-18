@@ -32,6 +32,9 @@ export function useGoalSession(recommendedPodcasts: GoalPodcast[]) {
   
   const { toast } = useToast();
   
+  // Constants for XP calculation
+  const XP_PER_MINUTE = 10;
+  
   const handleTimeGoalChange = (value: number[]) => {
     setGoalSettings(prev => ({ ...prev, timeGoal: value[0] }));
   };
@@ -98,7 +101,7 @@ export function useGoalSession(recommendedPodcasts: GoalPodcast[]) {
     }
     
     const minutesListened = Math.ceil((goalSettings.timeGoal * 60 - currentSession.timeRemaining) / 60);
-    const earnedXP = minutesListened * 10; // 10 XP per minute listened
+    const earnedXP = minutesListened * XP_PER_MINUTE; // Consistent XP calculation
     
     toast({
       title: "Goal completed!",
@@ -155,8 +158,9 @@ export function useGoalSession(recommendedPodcasts: GoalPodcast[]) {
         }
         
         // Update time remaining and earn XP for listening
+        // Calculate XP earned at a rate of 10 XP per minute (which is 10/60 XP per second)
         const newTimeRemaining = prev.timeRemaining - 1;
-        const newEarnedXP = prev.earnedXP + (1/6); // 10 XP per minute = 1/6 XP per second
+        const newEarnedXP = prev.earnedXP + (XP_PER_MINUTE / 60); // XP_PER_MINUTE per minute = XP_PER_MINUTE/60 per second
         
         return {
           ...prev,

@@ -24,6 +24,10 @@ const GoalSettingsCard: React.FC<GoalSettingsProps> = ({
   toggleCourseSelection,
   startGoalSession
 }) => {
+  // Calculate XP consistently - always 10 XP per minute
+  const xpPerMinute = 10;
+  const totalXP = timeGoal * xpPerMinute;
+  
   return (
     <>
       <Card>
@@ -43,7 +47,7 @@ const GoalSettingsCard: React.FC<GoalSettingsProps> = ({
                 {timeGoal} minutes
               </span>
               <span className="text-sm text-gray-500">
-                {Math.round(timeGoal / 10)} XP per min = {timeGoal * 10} XP
+                {xpPerMinute} XP per min = {totalXP} XP
               </span>
             </div>
             
