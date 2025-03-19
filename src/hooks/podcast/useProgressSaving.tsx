@@ -1,5 +1,5 @@
-
 import { supabase } from "@/lib/supabase";
+import { awardXP, calculateListeningXP } from "@/utils/xpUtils";
 
 export function useProgressSaving(podcastId: string | undefined, podcastCourseId?: string) {
   const saveProgress = async (audioElement: HTMLAudioElement | null, completed = false) => {
@@ -39,6 +39,9 @@ export function useProgressSaving(podcastId: string | undefined, podcastCourseId
       
       // If record exists, update it
       if (existingRecord) {
+        // Check if we're newly completing the podcast
+        const newlyCompleted = !existingRecord.completed && completed;
+        
         const { error: updateError } = await supabase
           .from('user_progress')
           .update({

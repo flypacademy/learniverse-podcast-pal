@@ -1,7 +1,7 @@
-
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/lib/supabase";
 
 interface UserHeaderProps {
   userName: string;
@@ -10,6 +10,60 @@ interface UserHeaderProps {
 
 const UserHeader = ({ userName, totalXP }: UserHeaderProps) => {
   const { toast } = useToast();
+  const [currentXP, setCurrentXP] = useState(totalXP);
+  
+  // Keep XP updated in real-time
+  useEffect(() => {
+    const fetchCurrentXP = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return;
+        
+        const { data, error } = await supabase
+          .from('user_experience')
+          .select('total_xp')
+          .eq('user_id', session.user.id)
+          .single();
+          
+        if (error) {
+          console.error("Error fetching current XP:", error);
+          return;
+        }
+        
+        if (data) {
+          setCurrentXP(data.total_xp);
+        }
+      } catch (err) {
+        console.error("Exception fetching XP:", err);
+      }
+    };
+    
+    fetchCurrentXP();
+    
+    // Set up subscription for XP updates
+    const channel = supabase
+      .channel('public:user_experience')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'user_experience' 
+        }, 
+        () => {
+          fetchCurrentXP();
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+  
+  // Update when props change
+  useEffect(() => {
+    setCurrentXP(totalXP);
+  }, [totalXP]);
   
   // XP calculation information
   const xpInfo = () => {
@@ -19,7 +73,7 @@ const UserHeader = ({ userName, totalXP }: UserHeaderProps) => {
     
     toast({
       title: "XP System",
-      description: "Earn 10 XP per minute of listening and 200 XP for maintaining a daily streak. Complete 7 consecutive days for 1000 XP bonus!",
+      description: "Earn 10 XP per minute of listening and 50 XP for completing podcasts. Maintain a daily streak for 200 XP per day!",
     });
   };
   
@@ -36,7 +90,7 @@ const UserHeader = ({ userName, totalXP }: UserHeaderProps) => {
         onClick={xpInfo}
       >
         <Sparkles className="h-4 w-4 mr-1" />
-        {totalXP} XP
+        {currentXP} XP
       </div>
     </div>
   );
