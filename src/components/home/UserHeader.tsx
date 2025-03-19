@@ -62,48 +62,27 @@ const UserHeader = ({ userName, totalXP }: UserHeaderProps) => {
     
     fetchCurrentXP();
     
-    // Enable real-time subscription for XP updates
-    const setupRealtimeSubscription = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) return;
-      
-      // First make sure the table is set up for realtime
-      try {
-        await supabase.rpc('supabase_realtime.enable_subscription', {
-          table_name: 'user_experience'
-        });
-      } catch (err) {
-        console.log("Note: Realtime setup error (may be normal):", err);
-      }
-      
-      // Set up subscription for XP updates
-      const userId = session.user.id;
-      const channel = supabase
-        .channel('user-xp-changes')
-        .on('postgres_changes', 
-          { 
-            event: '*', 
-            schema: 'public', 
-            table: 'user_experience',
-            filter: `user_id=eq.${userId}`
-          }, 
-          (payload) => {
-            console.log("XP update received:", payload);
-            if (payload.new && 'total_xp' in payload.new) {
-              setCurrentXP(payload.new.total_xp as number);
-            }
-          }
-        )
-        .subscribe();
-        
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    };
+    // Set up subscription for XP updates
+    const userId = supabase.auth.getSession().then(({ data }) => data.session?.user.id);
     
-    const cleanup = setupRealtimeSubscription();
+    const channel = supabase
+      .channel('table-db-changes')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'user_experience',
+          filter: `user_id=eq.${userId}`
+        }, 
+        (payload) => {
+          console.log("XP update received:", payload);
+          fetchCurrentXP();
+        }
+      )
+      .subscribe();
+      
     return () => {
-      if (cleanup) cleanup.then(fn => fn && fn());
+      supabase.removeChannel(channel);
     };
   }, []);
   

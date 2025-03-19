@@ -19,22 +19,7 @@ export function useProgressTracking(
   // Track listening time for XP awards
   const [lastXpAwardTime, setLastXpAwardTime] = useState<number>(0);
   const [accumulatedTime, setAccumulatedTime] = useState<number>(0);
-  const [showXpModal, setShowXpModal] = useState(false);
-  const [xpEarned, setXpEarned] = useState(0);
   const xpTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const userIdRef = useRef<string | null>(null);
-  
-  // Get and store the user ID for XP awards
-  useEffect(() => {
-    const getUserId = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session?.user) {
-        userIdRef.current = data.session.user.id;
-      }
-    };
-    
-    getUserId();
-  }, []);
   
   // Set up dedicated XP award timer that runs when podcast is playing
   useEffect(() => {
@@ -48,29 +33,19 @@ export function useProgressTracking(
       console.log("Starting XP tracking timer for podcast playback");
       
       // Create a new timer to track XP
-      xpTimerRef.current = setInterval(async () => {
-        if (!audioRef.current || !userIdRef.current) return;
+      xpTimerRef.current = setInterval(() => {
+        if (!audioRef.current) return;
         
         const currentTime = audioRef.current.currentTime;
         if (lastXpAwardTime > 0) {
-          // Calculate time listened since last check
-          const timeDiff = Math.max(0, currentTime - lastXpAwardTime);
-          const newAccumulatedTime = accumulatedTime + timeDiff;
+          const newTime = Math.max(0, currentTime - lastXpAwardTime);
+          const newAccumulatedTime = accumulatedTime + newTime;
           setAccumulatedTime(newAccumulatedTime);
           
           // Award XP every 60 seconds of listening
           if (newAccumulatedTime >= 60) {
             console.log(`XP timer: accumulated ${newAccumulatedTime} seconds of listening time`);
-            const awardedXp = await awardListeningXP(newAccumulatedTime);
-            if (awardedXp > 0) {
-              setXpEarned(awardedXp);
-              setShowXpModal(true);
-              
-              // Hide XP modal after 3 seconds
-              setTimeout(() => {
-                setShowXpModal(false);
-              }, 3000);
-            }
+            awardListeningXP(newAccumulatedTime);
             setAccumulatedTime(0); // Reset accumulated time after awarding XP
           }
         }
@@ -107,9 +82,15 @@ export function useProgressTracking(
   }, []);
   
   // Award XP for listening time
-  const awardListeningXP = async (seconds: number = accumulatedTime): Promise<number> => {
+  const awardListeningXP = async (seconds: number = accumulatedTime) => {
     try {
-      if (!userIdRef.current || seconds < 30) return 0; // Minimum threshold
+      if (seconds < 30) return; // Minimum threshold
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        console.error("No user session found, cannot award XP");
+        return;
+      }
       
       const xpAmount = calculateListeningXP(seconds);
       console.log(`Awarding XP for ${seconds} seconds of listening: ${xpAmount} XP`);
@@ -120,7 +101,7 @@ export function useProgressTracking(
         };
         
         const success = await awardXP(
-          userIdRef.current, 
+          session.user.id, 
           xpAmount, 
           "listening time", 
           showToastFn
@@ -131,20 +112,15 @@ export function useProgressTracking(
         if (success) {
           // Reset accumulated time after awarding XP
           setAccumulatedTime(0);
-          return xpAmount;
         }
       }
-      return 0;
     } catch (error) {
       console.error("Error awarding listening XP:", error);
-      return 0;
     }
   };
   
   const handleCompletion = async () => {
-    if (!audioRef.current || !userIdRef.current) return false;
-    
-    try {
+    if (audioRef.current) {
       // First award XP for any accumulated listening time
       await awardListeningXP();
       
@@ -152,42 +128,36 @@ export function useProgressTracking(
       await saveProgress(audioRef.current, true);
       
       // Award XP for completing the podcast
-      const showToastFn = (props: { title: string; description: string }) => {
-        toast(props);
-      };
-      
-      const completionSuccess = await awardXP(
-        userIdRef.current,
-        XP_AMOUNTS.PODCAST_COMPLETION,
-        "completing a podcast",
-        showToastFn
-      );
-      
-      console.log("Podcast completion XP award success:", completionSuccess);
-      
-      if (completionSuccess) {
-        setXpEarned(XP_AMOUNTS.PODCAST_COMPLETION);
-        setShowXpModal(true);
-        
-        // Hide XP modal after 3 seconds
-        setTimeout(() => {
-          setShowXpModal(false);
-        }, 3000);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const showToastFn = (props: { title: string; description: string }) => {
+            toast(props);
+          };
+          
+          const completionSuccess = await awardXP(
+            session.user.id,
+            XP_AMOUNTS.PODCAST_COMPLETION,
+            "completing a podcast",
+            showToastFn
+          );
+          
+          console.log("Podcast completion XP award success:", completionSuccess);
+          return completionSuccess;
+        }
+      } catch (error) {
+        console.error("Error awarding completion XP:", error);
       }
       
-      return completionSuccess;
-    } catch (error) {
-      console.error("Error in handleCompletion:", error);
-      return false;
+      return true; // Signal completion was successful
     }
+    return false;
   };
   
   return {
     saveProgress: (completed = false) => audioRef.current && saveProgress(audioRef.current, completed),
     handleCompletion,
     fetchUserProgress,
-    awardListeningXP,
-    showXpModal,
-    xpEarned
+    awardListeningXP
   };
 }

@@ -110,7 +110,6 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ userData }) => {
       <ProfileStats 
         totalPodcastsCompleted={defaultUserData.totalPodcastsCompleted}
         totalHoursListened={defaultUserData.totalHoursListened}
-        totalXP={totalXP}
       />
       
       <div className="glass-card p-4 rounded-xl">

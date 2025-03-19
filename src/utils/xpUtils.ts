@@ -1,6 +1,5 @@
 
 import { supabase } from "@/lib/supabase";
-import { useToast } from "@/hooks/use-toast";
 
 /**
  * Awards XP to a user and updates their experience
@@ -26,21 +25,14 @@ export const awardXP = async (
       return false;
     }
     
-    // Ensure amount is a positive integer
-    const xpToAward = Math.max(0, Math.floor(amount));
-    if (xpToAward <= 0) {
-      console.log("No XP to award (amount was zero or negative)");
-      return true; // Not an error, just no XP to award
-    }
-    
     if (existingXP) {
-      console.log("Updating existing XP record:", existingXP.total_xp, "+", xpToAward);
+      console.log("Updating existing XP record:", existingXP.total_xp, "+", amount);
       // Update existing record
       const { error: updateError } = await supabase
         .from('user_experience')
         .update({
-          total_xp: existingXP.total_xp + xpToAward,
-          weekly_xp: existingXP.weekly_xp + xpToAward,
+          total_xp: existingXP.total_xp + amount,
+          weekly_xp: existingXP.weekly_xp + amount,
           last_updated: new Date().toISOString()
         })
         .eq('user_id', userId);
@@ -50,14 +42,14 @@ export const awardXP = async (
         return false;
       }
     } else {
-      console.log("Creating new XP record with initial amount:", xpToAward);
+      console.log("Creating new XP record with initial amount:", amount);
       // Create new record
       const { error: insertError } = await supabase
         .from('user_experience')
         .insert({
           user_id: userId,
-          total_xp: xpToAward,
-          weekly_xp: xpToAward,
+          total_xp: amount,
+          weekly_xp: amount,
           last_updated: new Date().toISOString()
         });
       
@@ -71,7 +63,7 @@ export const awardXP = async (
     if (showToast) {
       showToast({
         title: "XP Earned!",
-        description: `You earned ${xpToAward} XP for ${reason}`,
+        description: `You earned ${amount} XP for ${reason}`,
       });
     }
     
@@ -87,8 +79,7 @@ export const awardXP = async (
  */
 export const calculateListeningXP = (seconds: number): number => {
   // 10 XP per minute = 1/6 XP per second
-  // Ensure we get a positive integer result
-  return Math.max(0, Math.floor((seconds / 60) * 10));
+  return Math.floor((seconds / 60) * 10);
 };
 
 /**
