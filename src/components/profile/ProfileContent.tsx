@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useListeningAnalytics } from "@/hooks/useListeningAnalytics";
 import { useListeningStats } from "@/hooks/useListeningStats";
@@ -10,6 +11,7 @@ import AchievementsSection from "./AchievementsSection";
 import { Award, BookOpen, Calendar, Clock, Headphones } from "lucide-react";
 import { UserXPData } from "@/hooks/useUserXP";
 import { useXP } from "@/hooks/useXP";
+import { useToast } from "@/components/ui/use-toast";
 
 const defaultUserData = {
   name: "Student",
@@ -86,6 +88,7 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ userData }) => {
   const { analytics, loading: analyticsLoading } = useListeningAnalytics(7);
   const { stats, loading: statsLoading } = useListeningStats();
   const { xpData, loading: xpLoading } = useXP();
+  const { toast } = useToast();
   
   // Use the XP data from the hook or fall back to the props data or finally to default
   const totalXP = xpData?.totalXP ?? userData?.totalXP ?? defaultUserData.xp;
@@ -101,7 +104,16 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ userData }) => {
   // Format listening time to hours and minutes
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
-  const formattedTime = `${hours}h ${minutes}m`;
+  const formattedTime = totalMinutes > 0 ? `${hours}h ${minutes}m` : '0h 0m';
+  
+  // Log stats data for debugging
+  React.useEffect(() => {
+    if (stats) {
+      console.log("Listening stats retrieved:", stats);
+    } else if (!statsLoading) {
+      console.log("No listening stats available");
+    }
+  }, [stats, statsLoading]);
   
   // Use real data or fallback to default for podcasts completed
   const podcastsCompleted = defaultUserData.totalPodcastsCompleted; // We don't have a way to count this yet
