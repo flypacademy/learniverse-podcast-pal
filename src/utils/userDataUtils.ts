@@ -10,35 +10,50 @@ export const fetchRealUsers = async (): Promise<User[] | null> => {
   try {
     console.log("Attempting to fetch real users from auth system");
     
-    // First check if we have admin access
-    // Note: We'll skip the admin check since it's failing
-    // and proceed with standard access methods
-    
-    // Instead of using admin API directly, we'll get users from user_profiles
-    // which is a public table that mirrors auth.users
-    const { data: profilesData, error: profilesError } = await supabase
-      .from('user_profiles')
-      .select('id, display_name, created_at');
-    
-    if (profilesError) {
-      console.error("Error fetching user profiles:", profilesError);
+    // Get session to verify we're authenticated
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData?.session?.user) {
+      console.log("No authenticated session found");
       return null;
     }
     
-    if (!profilesData || profilesData.length === 0) {
-      console.log("No user profiles found");
+    // First check if we have admin access - this is required to fetch auth users
+    const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin');
+    
+    if (adminError) {
+      console.error("Error checking admin status:", adminError);
+      return null;
+    }
+    
+    console.log("Admin check result:", isAdmin);
+    
+    if (!isAdmin) {
+      console.log("User doesn't have admin access to fetch all users");
+      return null;
+    }
+    
+    // Fetch all users using the admin API
+    const { data: authUsers, error: usersError } = await supabase.auth.admin.listUsers();
+    
+    if (usersError) {
+      console.error("Error fetching auth users:", usersError);
+      return null;
+    }
+    
+    if (!authUsers || !authUsers.users || authUsers.users.length === 0) {
+      console.log("No auth users found");
       return [];
     }
     
-    console.log("Found profiles data:", profilesData);
+    console.log(`Found ${authUsers.users.length} auth users`);
     
-    // Transform profiles into User objects
-    const users: User[] = profilesData.map(profile => ({
-      id: profile.id,
-      email: `user-${profile.id.substring(0, 8)}@example.com`, // Email placeholder as we can't access actual emails
-      created_at: profile.created_at || new Date().toISOString(),
-      last_sign_in_at: null, // We don't have this info in the profiles table
-      display_name: profile.display_name || `User ${profile.id.substring(0, 6)}`
+    // Transform auth users to our User model
+    const users: User[] = authUsers.users.map(user => ({
+      id: user.id,
+      email: user.email || `user-${user.id.substring(0, 8)}@example.com`,
+      created_at: user.created_at || new Date().toISOString(),
+      last_sign_in_at: user.last_sign_in_at,
+      display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Unknown'
     }));
     
     return users;
@@ -55,31 +70,38 @@ export const fetchAllUsers = async (): Promise<User[] | null> => {
   try {
     console.log("Attempting alternative method to fetch users");
     
-    // Try to get users from user_experience table which might have user references
-    const { data: experienceData, error: experienceError } = await supabase
-      .from('user_experience')
-      .select('user_id, total_xp, created_at');
+    // Try to get user IDs from profiles table which anyone can access
+    const { data: profilesData, error: profilesError } = await supabase
+      .from('user_profiles')
+      .select('id, display_name, created_at');
     
-    if (experienceError) {
-      console.error("Error fetching user experience data:", experienceError);
+    if (profilesError) {
+      console.error("Error fetching user profiles:", profilesError);
       return null;
     }
     
-    if (!experienceData || experienceData.length === 0) {
-      console.log("No user experience data found");
+    if (!profilesData || profilesData.length === 0) {
+      console.log("No user profiles found");
       return [];
     }
     
-    console.log("Found user experience data:", experienceData);
+    console.log(`Found ${profilesData.length} user profiles`);
     
-    // Transform experience data into User objects
-    const users: User[] = experienceData.map(exp => ({
-      id: exp.user_id,
-      email: `user-${exp.user_id.substring(0, 8)}@example.com`, // Email placeholder
-      created_at: exp.created_at || new Date().toISOString(),
-      last_sign_in_at: null,
-      total_xp: exp.total_xp
-    }));
+    // Get the matching email addresses if possible
+    const users: User[] = await Promise.all(
+      profilesData.map(async (profile) => {
+        // Try to get the user's email from auth if we have permission
+        const { data: userData, error: userError } = await supabase.auth.admin.getUserById(profile.id);
+        
+        return {
+          id: profile.id,
+          email: userData?.user?.email || `user-${profile.id.substring(0, 8)}@example.com`,
+          created_at: profile.created_at || new Date().toISOString(),
+          last_sign_in_at: userData?.user?.last_sign_in_at || null,
+          display_name: profile.display_name || `User ${profile.id.substring(0, 6)}`
+        };
+      })
+    );
     
     return users;
   } catch (err) {
@@ -107,6 +129,51 @@ export const fetchUserProfiles = async () => {
   } catch (err) {
     console.error("Error in fetchUserProfiles:", err);
     return [];
+  }
+};
+
+/**
+ * Directly fetch auth users - new method to access users directly
+ */
+export const fetchAuthUsers = async (): Promise<User[] | null> => {
+  try {
+    console.log("Fetching auth users directly");
+    
+    // Try to access the auth users directly
+    const { data, error } = await supabase.from('auth.users').select('*');
+    
+    if (error) {
+      // This approach likely won't work due to RLS restrictions
+      console.error("Cannot directly query auth.users:", error);
+      
+      // Use the admin API instead
+      const { data: adminData, error: adminError } = await supabase.auth.admin.listUsers();
+      
+      if (adminError) {
+        console.error("Admin API also failed:", adminError);
+        return null;
+      }
+      
+      console.log("Successfully fetched users with admin API");
+      return adminData.users.map(user => ({
+        id: user.id,
+        email: user.email || 'Unknown',
+        created_at: user.created_at || new Date().toISOString(),
+        last_sign_in_at: user.last_sign_in_at,
+        display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Unknown'
+      }));
+    }
+    
+    return data.map(user => ({
+      id: user.id,
+      email: user.email || 'Unknown',
+      created_at: user.created_at || new Date().toISOString(),
+      last_sign_in_at: user.last_sign_in_at,
+      display_name: user.email?.split('@')[0] || 'Unknown'
+    }));
+  } catch (err) {
+    console.error("Error in fetchAuthUsers:", err);
+    return null;
   }
 };
 

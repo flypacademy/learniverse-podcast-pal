@@ -17,7 +17,7 @@ import ErrorState from "./components/ErrorState";
 import UsersTip from "./components/UsersTip";
 
 const AdminUsers = () => {
-  const { users, loading, error } = useUsers();
+  const { users, loading, error, refreshUsers } = useUsers();
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -45,7 +45,7 @@ const AdminUsers = () => {
   };
 
   const handleRefresh = () => {
-    window.location.reload();
+    refreshUsers();
   };
   
   return (

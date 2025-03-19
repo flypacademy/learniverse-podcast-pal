@@ -14,7 +14,7 @@ export const combineUserData = (authUsers: any[], profiles: any[], xpData: any[]
       email: user.email || `user-${user.id.substring(0, 8)}@example.com`,
       created_at: user.created_at || new Date().toISOString(),
       last_sign_in_at: user.last_sign_in_at,
-      display_name: profile?.display_name || user.email?.split('@')[0] || 'Unknown User',
+      display_name: profile?.display_name || user.display_name || user.email?.split('@')[0] || 'Unknown User',
       total_xp: xp?.total_xp || 0
     };
   });
