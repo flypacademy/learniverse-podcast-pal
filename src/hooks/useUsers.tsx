@@ -21,24 +21,26 @@ export function useUsers() {
       try {
         setLoading(true);
         
-        // Get all users from the auth schema through admin functions
-        const { data: usersData, error: usersError } = await supabase
+        // Fetch user profiles directly
+        const { data: profilesData, error: profilesError } = await supabase
           .from('user_profiles')
-          .select('id, display_name, created_at');
+          .select('*');
         
-        if (usersError) {
-          console.error("Error fetching users:", usersError);
-          throw usersError;
+        if (profilesError) {
+          console.error("Error fetching user profiles:", profilesError);
+          throw profilesError;
         }
 
-        if (!usersData || usersData.length === 0) {
+        console.log("Profiles data:", profilesData);
+        
+        if (!profilesData || profilesData.length === 0) {
           setUsers([]);
           setLoading(false);
           return;
         }
         
-        // Extract user IDs to fetch auth info for emails and sign in dates
-        const userIds = usersData.map(user => user.id);
+        // Extract user IDs to fetch XP data
+        const userIds = profilesData.map(profile => profile.id);
         
         // Fetch XP data for all users
         const { data: xpData, error: xpError } = await supabase
@@ -50,20 +52,18 @@ export function useUsers() {
           console.error("Error fetching user XP:", xpError);
         }
         
-        // Get user email addresses from auth metadata
-        // Since we can't directly query auth.users, we need to use auth API endpoints
-        // For now, we'll map the profiles data and rely on session data
+        console.log("XP data:", xpData);
         
         // Combine the data
-        const combinedUsers = usersData.map(user => {
-          const xp = xpData?.find(x => x.user_id === user.id);
+        const combinedUsers = profilesData.map(profile => {
+          const xp = xpData?.find(x => x.user_id === profile.id);
           
           return {
-            id: user.id,
-            email: `user-${user.id.substring(0, 8)}@example.com`, // Placeholder email since we can't access auth.users directly
-            created_at: user.created_at || new Date().toISOString(),
-            last_sign_in_at: null, // We don't have this information without admin access
-            display_name: user.display_name,
+            id: profile.id,
+            email: `user-${profile.id.substring(0, 8)}@example.com`, // Placeholder email
+            created_at: profile.created_at,
+            last_sign_in_at: null, // We don't have this info without admin access
+            display_name: profile.display_name,
             total_xp: xp?.total_xp || 0
           };
         });
