@@ -76,7 +76,10 @@ const AdminUsers = () => {
             {loading ? (
               <LoadingState />
             ) : error ? (
-              <ErrorState error={error} />
+              <ErrorState 
+                error={error} 
+                onRetry={handleRefresh}
+              />
             ) : paginatedUsers.length === 0 ? (
               <EmptyState 
                 searchTerm={searchTerm}

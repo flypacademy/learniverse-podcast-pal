@@ -33,53 +33,85 @@ const fetchUserProfiles = async () => {
  * Creates a sample user profile for demonstration
  */
 const createSampleUser = async () => {
-  console.log("No user profiles found, creating a sample user...");
-  
-  // Generate a proper UUID instead of using a string
-  const sampleUserId = uuidv4();
-  
-  // Create a sample user profile
-  const { data: sampleProfile, error: sampleProfileError } = await supabase
-    .from('user_profiles')
-    .insert([
-      { 
+  try {
+    console.log("No user profiles found, trying to create a sample user...");
+    
+    // Generate a proper UUID 
+    const sampleUserId = uuidv4();
+    
+    // Check if we have admin permissions by checking the user role
+    const { data: roleData } = await supabase.rpc('is_admin');
+    const hasAdminAccess = !!roleData;
+    
+    console.log("Has admin access:", hasAdminAccess);
+    
+    if (!hasAdminAccess) {
+      console.log("No admin access, returning mock sample user");
+      // If we don't have admin access, return a mock sample user
+      return {
         id: sampleUserId,
-        display_name: 'Sample User',
-        created_at: new Date().toISOString()
-      }
-    ])
-    .select();
+        email: 'sample@example.com (mock)',
+        created_at: new Date().toISOString(),
+        last_sign_in_at: null,
+        display_name: 'Sample User (mock)',
+        total_xp: 150
+      };
+    }
     
-  if (sampleProfileError) {
-    console.error("Error creating sample user:", sampleProfileError);
-    throw sampleProfileError;
-  }
-  
-  console.log("Sample user created successfully:", sampleProfile);
-  
-  // Create sample XP record
-  const { error: sampleXpError } = await supabase
-    .from('user_experience')
-    .insert([
-      {
-        user_id: sampleUserId,
-        total_xp: 150,
-        weekly_xp: 50
-      }
-    ]);
+    // Create a sample user profile
+    const { data: sampleProfile, error: sampleProfileError } = await supabase
+      .from('user_profiles')
+      .insert([
+        { 
+          id: sampleUserId,
+          display_name: 'Sample User',
+          created_at: new Date().toISOString()
+        }
+      ])
+      .select();
+      
+    if (sampleProfileError) {
+      console.error("Error creating sample user:", sampleProfileError);
+      throw sampleProfileError;
+    }
     
-  if (sampleXpError) {
-    console.error("Error creating sample XP record:", sampleXpError);
+    console.log("Sample user created successfully:", sampleProfile);
+    
+    // Create sample XP record
+    const { error: sampleXpError } = await supabase
+      .from('user_experience')
+      .insert([
+        {
+          user_id: sampleUserId,
+          total_xp: 150,
+          weekly_xp: 50
+        }
+      ]);
+      
+    if (sampleXpError) {
+      console.error("Error creating sample XP record:", sampleXpError);
+    }
+    
+    return {
+      id: sampleUserId,
+      email: 'sample@example.com',
+      created_at: new Date().toISOString(),
+      last_sign_in_at: null,
+      display_name: 'Sample User',
+      total_xp: 150
+    };
+  } catch (err) {
+    console.error("Error in createSampleUser:", err);
+    // Return a mock sample user as fallback
+    return {
+      id: uuidv4(),
+      email: 'sample@example.com (fallback)',
+      created_at: new Date().toISOString(),
+      last_sign_in_at: null,
+      display_name: 'Sample User (fallback)',
+      total_xp: 150
+    };
   }
-  
-  return {
-    id: sampleUserId,
-    email: 'sample@example.com',
-    created_at: new Date().toISOString(),
-    last_sign_in_at: null,
-    display_name: 'Sample User',
-    total_xp: 150
-  };
 };
 
 /**
@@ -120,35 +152,58 @@ const combineUserData = (profiles: any[], xpData: any[]): User[] => {
   });
 };
 
+async function loadUsers() {
+  try {
+    // Step 1: Fetch user profiles
+    const profilesData = await fetchUserProfiles();
+    
+    // Step 2: If no profiles exist, create a sample user
+    if (profilesData.length === 0) {
+      const sampleUser = await createSampleUser();
+      return {
+        users: [sampleUser],
+        error: null
+      };
+    }
+    
+    // Step 3: Extract user IDs and fetch XP data
+    const userIds = profilesData.map(profile => profile.id);
+    const xpData = await fetchUserXp(userIds);
+    
+    // Step 4: Combine the data
+    const combinedUsers = combineUserData(profilesData, xpData);
+    
+    return {
+      users: combinedUsers,
+      error: null
+    };
+  } catch (err: any) {
+    console.error("Error in loadUsers function:", err);
+    return {
+      users: [],
+      error: err.message
+    };
+  }
+}
+
 export function useUsers() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function loadUsers() {
+    async function fetchUsers() {
       try {
         setLoading(true);
         
-        // Step 1: Fetch user profiles
-        const profilesData = await fetchUserProfiles();
+        const result = await loadUsers();
         
-        // Step 2: If no profiles exist, create a sample user
-        if (profilesData.length === 0) {
-          const sampleUser = await createSampleUser();
-          setUsers([sampleUser]);
-          return;
+        if (result.error) {
+          setError(result.error);
+        } else {
+          setUsers(result.users);
+          setError(null);
         }
-        
-        // Step 3: Extract user IDs and fetch XP data
-        const userIds = profilesData.map(profile => profile.id);
-        const xpData = await fetchUserXp(userIds);
-        
-        // Step 4: Combine the data
-        const combinedUsers = combineUserData(profilesData, xpData);
-        
-        setUsers(combinedUsers);
-        setError(null);
       } catch (err: any) {
         setError(err.message);
         console.error("Error in useUsers hook:", err);
@@ -157,7 +212,7 @@ export function useUsers() {
       }
     }
     
-    loadUsers();
+    fetchUsers();
   }, []);
   
   return { users, loading, error };
