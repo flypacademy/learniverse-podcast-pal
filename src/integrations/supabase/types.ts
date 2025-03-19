@@ -349,6 +349,22 @@ export type Database = {
         }
         Returns: string
       }
+      get_user_emails: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          email: string
+        }[]
+      }
+      get_user_emails_for_ids: {
+        Args: {
+          user_ids: string[]
+        }
+        Returns: {
+          id: string
+          email: string
+        }[]
+      }
       is_admin: {
         Args: {
           user_id: string

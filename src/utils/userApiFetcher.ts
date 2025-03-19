@@ -69,17 +69,36 @@ export async function fetchUsers() {
         });
       }
       
+      // Try to get emails via a direct RPC function with proper typing
+      try {
+        const { data: emailsData, error: emailsError } = await supabase
+          .rpc('get_user_emails');
+        
+        if (!emailsError && emailsData && Array.isArray(emailsData)) {
+          console.log(`Got ${emailsData.length} emails from get_user_emails RPC`);
+          emailsData.forEach((item: any) => {
+            if (item && typeof item.id === 'string' && typeof item.email === 'string') {
+              emailMap.set(item.id, item.email);
+            }
+          });
+        }
+      } catch (err) {
+        console.log("RPC get_user_emails not available or failed:", err);
+      }
+      
       combinedUsers = profiles.map(profile => {
         const xp = xpData.find(x => x.user_id === profile.id);
         // Try to get email from multiple sources, prioritizing actual data
         const email = profile.id ? (emailMap.get(profile.id) || profile.email || "") : "";
+        const displayName = profile.display_name || 
+          (typeof email === 'string' && email ? email.split('@')[0] : `User ${(profile.id || "").substring(0, 6)}`);
         
         return {
           id: profile.id || "",
           email: email,
           created_at: profile.created_at || new Date().toISOString(),
           last_sign_in_at: profile.last_sign_in_at || null,
-          display_name: profile.display_name || (typeof email === 'string' && email ? email.split('@')[0] : `User ${(profile.id || "").substring(0, 6)}`),
+          display_name: displayName,
           total_xp: xp?.total_xp || 0
         };
       });

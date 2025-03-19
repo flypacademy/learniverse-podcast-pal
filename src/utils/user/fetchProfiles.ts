@@ -11,38 +11,42 @@ export async function fetchProfiles(): Promise<Partial<User>[]> {
     console.log("Fetching user profiles...");
     
     // Try to get user data from auth.users via RPC if available
-    const { data: authUsers, error: authError } = await supabase
-      .rpc('get_user_emails');
-    
-    // If we have auth user data via RPC, use it
-    if (!authError && authUsers && authUsers.length > 0) {
-      console.log(`Found ${authUsers.length} users from get_user_emails RPC`);
-      // Explicitly type the email map with correct structure
-      const emailMap = new Map<string, string>();
+    try {
+      const { data: authUsers, error: authError } = await supabase
+        .rpc('get_user_emails');
       
-      // Safely add items to the map with proper typing
-      authUsers.forEach(u => {
-        if (u && u.id && typeof u.email === 'string') {
-          emailMap.set(u.id, u.email);
-        }
-      });
-      
-      // Get profile data to merge with auth data
-      const { data: profiles } = await supabase
-        .from('user_profiles')
-        .select('*');
-      
-      // Merge data from both sources with proper typing
-      return (profiles || []).map(profile => {
-        const email = profile.id ? emailMap.get(profile.id) || "" : "";
-        return {
-          id: profile.id,
-          email: email,
-          created_at: profile.created_at,
-          display_name: profile.display_name || (email ? email.split('@')[0] : `User ${profile.id?.substring(0, 6)}`),
-          total_xp: 0
-        };
-      });
+      // If we have auth user data via RPC, use it
+      if (!authError && authUsers && Array.isArray(authUsers) && authUsers.length > 0) {
+        console.log(`Found ${authUsers.length} users from get_user_emails RPC`);
+        // Explicitly type the email map with correct structure
+        const emailMap = new Map<string, string>();
+        
+        // Safely add items to the map with proper typing
+        authUsers.forEach((u: any) => {
+          if (u && u.id && typeof u.email === 'string') {
+            emailMap.set(u.id, u.email);
+          }
+        });
+        
+        // Get profile data to merge with auth data
+        const { data: profiles } = await supabase
+          .from('user_profiles')
+          .select('*');
+        
+        // Merge data from both sources with proper typing
+        return (profiles || []).map(profile => {
+          const email = profile.id ? emailMap.get(profile.id) || "" : "";
+          return {
+            id: profile.id,
+            email: email,
+            created_at: profile.created_at,
+            display_name: profile.display_name || (typeof email === 'string' && email ? email.split('@')[0] : `User ${profile.id?.substring(0, 6)}`),
+            total_xp: 0
+          };
+        });
+      }
+    } catch (err) {
+      console.log("RPC get_user_emails not available or failed:", err);
     }
     
     // First try to get profiles with authentication metadata
@@ -73,28 +77,35 @@ export async function fetchProfiles(): Promise<Partial<User>[]> {
     }
     
     // Try to fetch emails via direct RPC function with proper typing
-    const { data: emailsData, error: emailsError } = await supabase
-      .rpc('get_user_emails_for_ids', {
-        user_ids: data?.map(profile => profile.id) || []
-      });
-    
-    // Create properly typed email map
     const emailMap = new Map<string, string>();
     
-    // Only add to map if we have valid email data
-    if (!emailsError && emailsData) {
-      emailsData.forEach((item: any) => {
-        if (item && item.id && typeof item.email === 'string') {
-          emailMap.set(item.id, item.email);
+    try {
+      if (data && data.length > 0) {
+        const userIds = data.map(profile => profile.id).filter(Boolean);
+        
+        const { data: emailsData, error: emailsError } = await supabase
+          .rpc('get_user_emails_for_ids', {
+            user_ids: userIds
+          });
+        
+        // Only add to map if we have valid email data
+        if (!emailsError && emailsData && Array.isArray(emailsData)) {
+          emailsData.forEach((item: any) => {
+            if (item && item.id && typeof item.email === 'string') {
+              emailMap.set(item.id, item.email);
+            }
+          });
         }
-      });
+      }
+    } catch (err) {
+      console.log("RPC get_user_emails_for_ids not available or failed:", err);
     }
     
     console.log(`Found ${data?.length || 0} profiles from user_profiles table`);
     return data?.map(profile => {
       const email = profile.id ? emailMap.get(profile.id) || "" : "";
       const displayName = profile.display_name || 
-        (email && typeof email === 'string' ? email.split('@')[0] : `User ${profile.id?.substring(0, 6)}`);
+        (typeof email === 'string' && email ? email.split('@')[0] : `User ${profile.id?.substring(0, 6)}`);
       
       return {
         id: profile.id || "",
