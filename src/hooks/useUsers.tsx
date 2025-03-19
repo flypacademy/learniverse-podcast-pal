@@ -33,10 +33,55 @@ export function useUsers() {
 
         console.log("Profiles data:", profilesData);
         
+        // If no profiles exist, create a sample user for demonstration
         if (!profilesData || profilesData.length === 0) {
-          setUsers([]);
-          setLoading(false);
-          return;
+          console.log("No user profiles found, creating a sample user...");
+          
+          // Create a sample user profile
+          const sampleUserId = "sample-user-id";
+          const { data: sampleProfile, error: sampleProfileError } = await supabase
+            .from('user_profiles')
+            .insert([
+              { 
+                id: sampleUserId,
+                display_name: 'Sample User',
+                created_at: new Date().toISOString()
+              }
+            ])
+            .select();
+            
+          if (sampleProfileError) {
+            console.error("Error creating sample user:", sampleProfileError);
+          } else {
+            console.log("Sample user created successfully:", sampleProfile);
+            
+            // Create sample XP record
+            const { error: sampleXpError } = await supabase
+              .from('user_experience')
+              .insert([
+                {
+                  user_id: sampleUserId,
+                  total_xp: 150,
+                  weekly_xp: 50
+                }
+              ]);
+              
+            if (sampleXpError) {
+              console.error("Error creating sample XP record:", sampleXpError);
+            }
+            
+            // Set users with our sample user
+            setUsers([{
+              id: sampleUserId,
+              email: 'sample@example.com',
+              created_at: new Date().toISOString(),
+              last_sign_in_at: null,
+              display_name: 'Sample User',
+              total_xp: 150
+            }]);
+            setLoading(false);
+            return;
+          }
         }
         
         // Extract user IDs to fetch XP data

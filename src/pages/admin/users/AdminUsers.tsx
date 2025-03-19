@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { BarChart, Users, Search, RefreshCw } from "lucide-react";
+import { BarChart, Users, Search, RefreshCw, AlertCircle, UserPlus } from "lucide-react";
 import { useUsers } from "@/hooks/useUsers";
 import { 
   Table, 
@@ -24,6 +24,8 @@ import {
   PaginationNext, 
   PaginationPrevious 
 } from "@/components/ui/pagination";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 const AdminUsers = () => {
   const { users, loading, error } = useUsers();
@@ -51,6 +53,11 @@ const AdminUsers = () => {
   
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  const handleRefresh = () => {
+    window.location.reload();
+    toast.info("Refreshing user data...");
   };
   
   return (
@@ -86,7 +93,7 @@ const AdminUsers = () => {
                 variant="outline" 
                 size="icon" 
                 className="ml-2"
-                onClick={() => window.location.reload()}
+                onClick={handleRefresh}
               >
                 <RefreshCw className="h-4 w-4" />
                 <span className="sr-only">Refresh</span>
@@ -95,16 +102,33 @@ const AdminUsers = () => {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="flex justify-center py-8">
-                <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+              <div className="space-y-4">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="flex items-center space-x-4">
+                    <Skeleton className="h-10 w-full" />
+                  </div>
+                ))}
               </div>
             ) : error ? (
-              <div className="bg-destructive/10 text-destructive p-4 rounded-md">
-                <p>Error loading users: {error}</p>
+              <div className="bg-destructive/10 text-destructive p-4 rounded-md flex items-center gap-2">
+                <AlertCircle className="h-5 w-5" />
+                <div>
+                  <p className="font-medium">Error loading users</p>
+                  <p className="text-sm">{error}</p>
+                </div>
               </div>
             ) : paginatedUsers.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                {searchTerm ? "No users match your search" : "No users found"}
+              <div className="text-center py-8 space-y-4">
+                <div className="flex justify-center">
+                  <UserPlus className="h-12 w-12 text-muted-foreground" />
+                </div>
+                <p className="text-muted-foreground text-lg">
+                  {searchTerm ? "No users match your search" : "No users found in the database"}
+                </p>
+                <Button onClick={handleRefresh} variant="outline" className="gap-2">
+                  <RefreshCw className="h-4 w-4" />
+                  Refresh
+                </Button>
               </div>
             ) : (
               <>
