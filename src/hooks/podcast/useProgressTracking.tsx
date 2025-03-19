@@ -12,7 +12,7 @@ export function useProgressTracking(
   isPlaying: boolean,
   podcastCourseId?: string
 ) {
-  const { toast } = useToast();
+  const toast = useToast();
   const { saveProgress } = useProgressSaving(podcastId, podcastCourseId);
   const { fetchUserProgress } = useProgressFetching(podcastId);
   
@@ -62,7 +62,7 @@ export function useProgressTracking(
           session.user.id, 
           xpAmount, 
           "listening time", 
-          { toast }
+          toast
         );
         
         // Reset accumulated time after awarding XP
@@ -89,7 +89,7 @@ export function useProgressTracking(
             session.user.id,
             XP_AMOUNTS.PODCAST_COMPLETION,
             "completing a podcast",
-            { toast }
+            toast
           );
         }
       } catch (error) {

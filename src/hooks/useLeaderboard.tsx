@@ -30,37 +30,28 @@ export function useLeaderboard() {
         setCurrentUserId(currentUser.id);
       }
       
-      // Query the tables using the established relationship
+      // Get the leaderboard data by joining user_experience with user_profiles
       const { data, error: fetchError } = await supabase
         .from('user_experience')
         .select(`
           user_id,
           total_xp,
-          user_profiles (
+          user_profiles!inner (
             id,
             display_name,
             avatar_url
           )
         `)
-        .order('total_xp', { ascending: false });
+        .order('total_xp', { ascending: false })
+        .limit(50);
         
       if (fetchError) {
         throw fetchError;
       }
       
-      // If there's no data yet, use fallback data
+      // If there's no data yet, return early with empty array
       if (!data || data.length === 0) {
-        // Use default mock data for initial state
-        const mockData = [
-          { id: "user1", display_name: "Alex", total_xp: 2430, rank: 1, change: "same" as const },
-          { id: "user2", display_name: "Jordan", total_xp: 2180, rank: 2, change: "up" as const },
-          { id: "user3", display_name: "Taylor", total_xp: 2050, rank: 3, change: "down" as const },
-          { id: "current", display_name: "Student", total_xp: 1250, rank: 8, change: "up" as const },
-          { id: "user5", display_name: "Casey", total_xp: 1100, rank: 9, change: "down" as const }
-        ];
-        
-        setLeaderboardData(mockData);
-        if (!currentUserId) setCurrentUserId("current");
+        setLeaderboardData([]);
         setLoading(false);
         return;
       }
