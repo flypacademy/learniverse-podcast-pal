@@ -1,6 +1,5 @@
 
 import { supabase } from "@/lib/supabase";
-import { useToast } from "@/hooks/use-toast";
 
 /**
  * Awards XP to a user and updates their experience
@@ -9,7 +8,7 @@ export const awardXP = async (
   userId: string,
   amount: number,
   reason: string,
-  toastObject?: ReturnType<typeof useToast>
+  showToast?: (props: { title: string; description: string }) => void
 ): Promise<boolean> => {
   try {
     console.log(`Awarding ${amount} XP to user ${userId} for ${reason}`);
@@ -60,9 +59,9 @@ export const awardXP = async (
       }
     }
     
-    // Show toast notification if toast is provided
-    if (toastObject) {
-      toastObject({
+    // Show toast notification if toast function is provided
+    if (showToast) {
+      showToast({
         title: "XP Earned!",
         description: `You earned ${amount} XP for ${reason}`,
       });

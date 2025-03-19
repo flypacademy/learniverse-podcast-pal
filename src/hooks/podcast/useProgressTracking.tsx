@@ -12,7 +12,7 @@ export function useProgressTracking(
   isPlaying: boolean,
   podcastCourseId?: string
 ) {
-  const toast = useToast();
+  const { toast } = useToast();
   const { saveProgress } = useProgressSaving(podcastId, podcastCourseId);
   const { fetchUserProgress } = useProgressFetching(podcastId);
   
@@ -21,7 +21,7 @@ export function useProgressTracking(
   const [accumulatedTime, setAccumulatedTime] = useState<number>(0);
   const xpTimerRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Set up dedicated XP award timer that runs more frequently
+  // Set up dedicated XP award timer that runs when podcast is playing
   useEffect(() => {
     // Clear any existing timer when component mounts or dependencies change
     if (xpTimerRef.current) {
@@ -30,6 +30,8 @@ export function useProgressTracking(
     }
     
     if (isPlaying && audioRef.current) {
+      console.log("Starting XP tracking timer for podcast playback");
+      
       // Create a new timer to track XP
       xpTimerRef.current = setInterval(() => {
         if (!audioRef.current) return;
@@ -94,11 +96,15 @@ export function useProgressTracking(
       console.log(`Awarding XP for ${seconds} seconds of listening: ${xpAmount} XP`);
       
       if (xpAmount > 0) {
+        const showToastFn = (props: { title: string; description: string }) => {
+          toast(props);
+        };
+        
         const success = await awardXP(
           session.user.id, 
           xpAmount, 
           "listening time", 
-          toast
+          showToastFn
         );
         
         console.log("XP award success:", success);
@@ -125,11 +131,15 @@ export function useProgressTracking(
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
+          const showToastFn = (props: { title: string; description: string }) => {
+            toast(props);
+          };
+          
           const completionSuccess = await awardXP(
             session.user.id,
             XP_AMOUNTS.PODCAST_COMPLETION,
             "completing a podcast",
-            toast
+            showToastFn
           );
           
           console.log("Podcast completion XP award success:", completionSuccess);

@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import XPModal from "@/components/podcast/XPModal";
 import { usePodcastPlayer } from "@/hooks/usePodcastPlayer";
@@ -12,7 +12,8 @@ import { XP_AMOUNTS } from "@/utils/xpUtils";
 const PodcastPlayer = () => {
   const { podcastId } = useParams<{ podcastId: string }>();
   const audioStore = useAudioStore();
-  const componentMountedRef = useRef(false);
+  const componentMountedRef = useRef(true);
+  const [xpEarned, setXpEarned] = useState(XP_AMOUNTS.PODCAST_COMPLETION);
   
   const {
     podcastData,
@@ -96,10 +97,45 @@ const PodcastPlayer = () => {
     };
   }, [loading, error, podcastData, audioRef, podcastId]);
   
+  const handlePodcastEnded = async () => {
+    console.log("Podcast ended - handling completion");
+    const success = await handleCompletion();
+    if (success && componentMountedRef.current) {
+      console.log("Setting XP modal to show with completion XP:", XP_AMOUNTS.PODCAST_COMPLETION);
+      setXpEarned(XP_AMOUNTS.PODCAST_COMPLETION);
+      setShowXPModal(true);
+      
+      // Auto-hide XP modal after 5 seconds
+      setTimeout(() => {
+        if (componentMountedRef.current) {
+          setShowXPModal(false);
+        }
+      }, 5000);
+    }
+  };
+  
   const combinedHandleRetry = () => {
     handleRetry();
     refetchPodcastData();
   };
+  
+  // Handle audio ended events to show XP modal
+  useEffect(() => {
+    const handleEnded = () => {
+      console.log("Audio ended event detected");
+      handlePodcastEnded();
+    };
+    
+    if (audioRef.current) {
+      audioRef.current.addEventListener('ended', handleEnded);
+    }
+    
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.removeEventListener('ended', handleEnded);
+      }
+    };
+  }, [audioRef.current]);
   
   return (
     <>
@@ -122,7 +158,7 @@ const PodcastPlayer = () => {
         skipBackward={skipBackward}
         handleAudioLoadedMetadata={handleAudioLoadedMetadata}
         handleAudioTimeUpdate={handleAudioTimeUpdate}
-        handleAudioEnded={handleAudioEnded}
+        handleAudioEnded={handlePodcastEnded} // Use our new handler
         handleAudioPlay={handleAudioPlay}
         handleAudioPause={handleAudioPause}
         handleAudioError={handleAudioError}
@@ -131,7 +167,7 @@ const PodcastPlayer = () => {
       
       <XPModal 
         show={showXPModal}
-        xpAmount={XP_AMOUNTS.PODCAST_COMPLETION}
+        xpAmount={xpEarned}
       />
     </>
   );

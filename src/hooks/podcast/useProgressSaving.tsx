@@ -1,5 +1,4 @@
 import { supabase } from "@/lib/supabase";
-import { awardXP, calculateListeningXP } from "@/utils/xpUtils";
 
 export function useProgressSaving(podcastId: string | undefined, podcastCourseId?: string) {
   const saveProgress = async (audioElement: HTMLAudioElement | null, completed = false) => {
@@ -7,14 +6,20 @@ export function useProgressSaving(podcastId: string | undefined, podcastCourseId
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) return;
+      if (!session?.user) {
+        console.log("No active session, can't save progress");
+        return;
+      }
       
       const userId = session.user.id;
       const last_position = Math.floor(audioElement.currentTime);
       
       // Only save progress if we have a meaningful position (greater than 5 seconds)
       // or if it's explicitly marked as completed
-      if (last_position <= 5 && !completed) return;
+      if (last_position <= 5 && !completed) {
+        console.log("Position too small to save progress:", last_position);
+        return;
+      }
       
       console.log("Saving progress with data:", {
         user_id: userId,
@@ -30,7 +35,7 @@ export function useProgressSaving(podcastId: string | undefined, podcastCourseId
         .select('*')
         .eq('user_id', userId)
         .eq('podcast_id', podcastId)
-        .single();
+        .maybeSingle();
       
       if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "no rows returned"
         console.error("Error checking existing progress:", fetchError);
@@ -41,6 +46,10 @@ export function useProgressSaving(podcastId: string | undefined, podcastCourseId
       if (existingRecord) {
         // Check if we're newly completing the podcast
         const newlyCompleted = !existingRecord.completed && completed;
+        
+        if (newlyCompleted) {
+          console.log("Podcast being marked as completed for the first time");
+        }
         
         const { error: updateError } = await supabase
           .from('user_progress')

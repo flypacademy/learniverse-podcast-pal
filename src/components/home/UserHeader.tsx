@@ -1,6 +1,7 @@
+
 import React, { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 
 interface UserHeaderProps {
@@ -20,6 +21,7 @@ const UserHeader = ({ userName, totalXP }: UserHeaderProps) => {
         setIsLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) {
+          console.log("No active session, can't fetch XP");
           setIsLoading(false);
           return;
         }
@@ -61,14 +63,16 @@ const UserHeader = ({ userName, totalXP }: UserHeaderProps) => {
     fetchCurrentXP();
     
     // Set up subscription for XP updates
+    const userId = supabase.auth.getSession().then(({ data }) => data.session?.user.id);
+    
     const channel = supabase
-      .channel('user_experience_updates')
+      .channel('table-db-changes')
       .on('postgres_changes', 
         { 
           event: '*', 
           schema: 'public', 
           table: 'user_experience',
-          filter: `user_id=eq.${supabase.auth.getSession().then(({ data }) => data.session?.user.id)}`
+          filter: `user_id=eq.${userId}`
         }, 
         (payload) => {
           console.log("XP update received:", payload);
