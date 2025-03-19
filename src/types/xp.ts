@@ -19,3 +19,10 @@ export enum XPReason {
   QUIZ_COMPLETION = "completing a quiz",
   QUIZ_PERFECT = "perfect quiz score"
 }
+
+export interface ListeningStats {
+  totalMinutes: number;
+  lastListened: string | null;
+  email?: string;
+  userId: string;
+}
