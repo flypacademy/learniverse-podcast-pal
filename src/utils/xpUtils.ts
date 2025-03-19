@@ -1,3 +1,4 @@
+
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 
@@ -18,7 +19,7 @@ export const awardXP = async (
       .from('user_experience')
       .select('total_xp, weekly_xp')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
     
     if (fetchError && fetchError.code !== 'PGRST116') {
       console.error("Error fetching user XP:", fetchError);
@@ -26,6 +27,7 @@ export const awardXP = async (
     }
     
     if (existingXP) {
+      console.log("Updating existing XP record:", existingXP.total_xp, "+", amount);
       // Update existing record
       const { error: updateError } = await supabase
         .from('user_experience')
@@ -41,6 +43,7 @@ export const awardXP = async (
         return false;
       }
     } else {
+      console.log("Creating new XP record with initial amount:", amount);
       // Create new record
       const { error: insertError } = await supabase
         .from('user_experience')
@@ -59,7 +62,7 @@ export const awardXP = async (
     
     // Show toast notification if toast is provided
     if (toastObject) {
-      toastObject.toast({
+      toastObject({
         title: "XP Earned!",
         description: `You earned ${amount} XP for ${reason}`,
       });

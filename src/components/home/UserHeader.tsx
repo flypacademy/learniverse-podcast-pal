@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
@@ -12,35 +11,50 @@ interface UserHeaderProps {
 const UserHeader = ({ userName, totalXP }: UserHeaderProps) => {
   const { toast } = useToast();
   const [currentXP, setCurrentXP] = useState(totalXP);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Keep XP updated in real-time
   useEffect(() => {
     const fetchCurrentXP = async () => {
       try {
+        setIsLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) return;
+        if (!session?.user) {
+          setIsLoading(false);
+          return;
+        }
+        
+        console.log("Fetching current XP for user:", session.user.id);
         
         const { data, error } = await supabase
           .from('user_experience')
           .select('total_xp')
           .eq('user_id', session.user.id)
-          .single();
+          .maybeSingle();
           
         if (error) {
           if (error.code === 'PGRST116') {
             console.log("No XP record yet for user");
+            setCurrentXP(0);
+            setIsLoading(false);
             return;
           }
           console.error("Error fetching current XP:", error);
+          setIsLoading(false);
           return;
         }
         
         if (data) {
           console.log("Updating XP display to:", data.total_xp);
           setCurrentXP(data.total_xp);
+        } else {
+          console.log("No XP data found, setting to 0");
+          setCurrentXP(0);
         }
+        setIsLoading(false);
       } catch (err) {
         console.error("Exception fetching XP:", err);
+        setIsLoading(false);
       }
     };
     
@@ -48,12 +62,13 @@ const UserHeader = ({ userName, totalXP }: UserHeaderProps) => {
     
     // Set up subscription for XP updates
     const channel = supabase
-      .channel('public:user_experience')
+      .channel('user_experience_updates')
       .on('postgres_changes', 
         { 
           event: '*', 
           schema: 'public', 
-          table: 'user_experience' 
+          table: 'user_experience',
+          filter: `user_id=eq.${supabase.auth.getSession().then(({ data }) => data.session?.user.id)}`
         }, 
         (payload) => {
           console.log("XP update received:", payload);
@@ -69,7 +84,9 @@ const UserHeader = ({ userName, totalXP }: UserHeaderProps) => {
   
   // Update when props change
   useEffect(() => {
-    setCurrentXP(totalXP);
+    if (totalXP > 0) {
+      setCurrentXP(totalXP);
+    }
   }, [totalXP]);
   
   // XP calculation information
@@ -97,7 +114,7 @@ const UserHeader = ({ userName, totalXP }: UserHeaderProps) => {
         onClick={xpInfo}
       >
         <Sparkles className="h-4 w-4 mr-1" />
-        {currentXP} XP
+        {isLoading ? "Loading..." : `${currentXP} XP`}
       </div>
     </div>
   );

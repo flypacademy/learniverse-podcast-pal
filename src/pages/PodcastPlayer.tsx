@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import XPModal from "@/components/podcast/XPModal";
@@ -44,11 +45,13 @@ const PodcastPlayer = () => {
   
   useEffect(() => {
     componentMountedRef.current = true;
+    console.log("PodcastPlayer component mounted, showXPModal:", showXPModal);
     
     return () => {
+      console.log("PodcastPlayer component unmounting, showXPModal:", showXPModal);
       componentMountedRef.current = false;
     };
-  }, []);
+  }, [showXPModal]);
   
   const {
     audioInitialized,
