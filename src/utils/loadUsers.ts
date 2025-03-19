@@ -9,12 +9,14 @@ import { createSampleUser } from "./sampleUserUtils";
  */
 export async function loadUsers() {
   try {
+    console.log("Starting to load users...");
+    
     // Step 1: Try to fetch real users from auth.users
     const authUsers = await fetchRealUsers();
     
     // If we have real users from auth, use those
     if (authUsers && authUsers.length > 0) {
-      console.log("Using real users from auth");
+      console.log(`Found ${authUsers.length} users from auth`);
       
       // Step 2: Fetch user profiles and XP data to combine with auth users
       const profilesData = await fetchUserProfiles();
@@ -23,6 +25,7 @@ export async function loadUsers() {
       
       // Step 3: Combine all the data
       const combinedUsers = combineUserData(authUsers, profilesData, xpData);
+      console.log(`Combined ${combinedUsers.length} users with profiles and XP data`);
       
       return {
         users: combinedUsers,
@@ -34,7 +37,6 @@ export async function loadUsers() {
     console.log("No auth users available, falling back to profiles");
     const profilesData = await fetchUserProfiles();
     
-    // If no profiles exist, create a sample user
     if (!profilesData || profilesData.length === 0) {
       console.log("No user profiles found, trying to create a sample user...");
       const sampleUser = await createSampleUser();
@@ -50,6 +52,7 @@ export async function loadUsers() {
     
     // Combine the profile data
     const combinedUsers = combineProfileData(profilesData, xpData);
+    console.log(`Combined ${combinedUsers.length} users from profiles and XP data`);
     
     return {
       users: combinedUsers,
@@ -59,7 +62,7 @@ export async function loadUsers() {
     console.error("Error in loadUsers function:", err);
     return {
       users: [],
-      error: err.message
+      error: err.message || "Failed to load users"
     };
   }
 }

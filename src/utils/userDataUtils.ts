@@ -41,17 +41,22 @@ export const fetchRealUsers = async () => {
  * Fetches user profiles from the database
  */
 export const fetchUserProfiles = async () => {
-  const { data, error } = await supabase
-    .from('user_profiles')
-    .select('*');
-  
-  if (error) {
-    console.error("Error fetching user profiles:", error);
-    throw error;
+  try {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('*');
+    
+    if (error) {
+      console.error("Error fetching user profiles:", error);
+      throw error;
+    }
+    
+    console.log("Profiles data:", data);
+    return data || [];
+  } catch (err) {
+    console.error("Error in fetchUserProfiles:", err);
+    return [];
   }
-  
-  console.log("Profiles data:", data);
-  return data || [];
 };
 
 /**
@@ -60,16 +65,21 @@ export const fetchUserProfiles = async () => {
 export const fetchUserXp = async (userIds: string[]) => {
   if (!userIds.length) return [];
   
-  const { data, error } = await supabase
-    .from('user_experience')
-    .select('user_id, total_xp')
-    .in('user_id', userIds);
+  try {
+    const { data, error } = await supabase
+      .from('user_experience')
+      .select('user_id, total_xp')
+      .in('user_id', userIds);
+      
+    if (error) {
+      console.error("Error fetching user XP:", error);
+      return [];
+    }
     
-  if (error) {
-    console.error("Error fetching user XP:", error);
+    console.log("XP data:", data);
+    return data || [];
+  } catch (err) {
+    console.error("Error in fetchUserXp:", err);
     return [];
   }
-  
-  console.log("XP data:", data);
-  return data || [];
 };
