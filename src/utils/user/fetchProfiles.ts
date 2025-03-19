@@ -37,17 +37,26 @@ export async function fetchProfiles(): Promise<Partial<User>[]> {
           .from('user_profiles')
           .select('*');
         
-        // Merge data from both sources with proper typing
-        return (profiles || []).map(profile => {
-          const email = profile.id ? emailMap.get(profile.id) || "" : "";
-          return {
-            id: profile.id,
-            email: email,
-            created_at: profile.created_at,
-            display_name: profile.display_name || (typeof email === 'string' && email ? email.split('@')[0] : `User ${profile.id?.substring(0, 6)}`),
-            total_xp: 0
-          };
-        });
+        // Return all users from the get_user_emails RPC directly
+        return authUsers.map(u => {
+          // Safely access properties with type checking
+          if (typeof u === 'object' && u !== null && 'id' in u && 'email' in u) {
+            const userId = u.id as string;
+            const userEmail = u.email as string;
+            
+            // Find matching profile if it exists
+            const profile = profiles?.find(p => p.id === userId);
+            
+            return {
+              id: userId,
+              email: userEmail,
+              created_at: profile?.created_at || new Date().toISOString(),
+              display_name: profile?.display_name || (typeof userEmail === 'string' ? userEmail.split('@')[0] : `User ${userId.substring(0, 6)}`),
+              total_xp: 0
+            };
+          }
+          return null;
+        }).filter(Boolean) as Partial<User>[];
       }
     } catch (err) {
       console.log("RPC get_user_emails not available or failed:", err);

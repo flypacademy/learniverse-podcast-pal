@@ -54,22 +54,9 @@ export async function fetchUsers() {
     else if (profiles && profiles.length > 0) {
       console.log(`No auth users available, using ${profiles.length} profiles as primary source`);
       
-      // Try to get actual emails from metadata store if possible
-      const { data: metaUsersResult } = await supabase.auth.admin.listUsers();
+      // Try to get emails from get_user_emails RPC
+      let allEmailsMap = new Map<string, string>();
       
-      // Create a properly typed email map
-      const emailMap = new Map<string, string>();
-      
-      // Only populate map if we have valid users data
-      if (metaUsersResult?.users) {
-        metaUsersResult.users.forEach(user => {
-          if (user.id && typeof user.email === 'string') {
-            emailMap.set(user.id, user.email);
-          }
-        });
-      }
-      
-      // Try to get emails via a direct RPC function with proper typing
       try {
         const { data: emailsData, error: emailsError } = await supabase
           .rpc('get_user_emails');
@@ -83,31 +70,59 @@ export async function fetchUsers() {
               const id = item.id as string;
               const email = item.email as string;
               if (id && typeof email === 'string') {
-                emailMap.set(id, email);
+                allEmailsMap.set(id, email);
               }
             }
           }
+          
+          // If we have emails from RPC but no profiles matching them, create user objects directly
+          if (allEmailsMap.size > 0 && (profiles.length === 0 || profiles.length < allEmailsMap.size)) {
+            console.log(`Creating users directly from get_user_emails RPC data (${allEmailsMap.size} users)`);
+            
+            // Convert the map entries to an array of users
+            const emailUsers: User[] = [];
+            allEmailsMap.forEach((email, id) => {
+              const profile = profiles.find(p => p.id === id);
+              const xp = xpData.find(x => x.user_id === id);
+              const displayName = profile?.display_name || email.split('@')[0];
+              
+              emailUsers.push({
+                id: id,
+                email: email,
+                created_at: profile?.created_at || new Date().toISOString(),
+                last_sign_in_at: null,
+                display_name: displayName,
+                total_xp: xp?.total_xp || 0
+              });
+            });
+            
+            combinedUsers = emailUsers;
+            return { data: combinedUsers, error: null };
+          }
         }
       } catch (err) {
-        console.log("RPC get_user_emails not available or failed:", err);
+        console.log("RPC get_user_emails error:", err);
       }
       
-      combinedUsers = profiles.map(profile => {
-        const xp = xpData.find(x => x.user_id === profile.id);
-        // Try to get email from multiple sources, prioritizing actual data
-        const email = profile.id ? (emailMap.get(profile.id) || profile.email || "") : "";
-        const displayName = profile.display_name || 
-          (typeof email === 'string' && email ? email.split('@')[0] : `User ${(profile.id || "").substring(0, 6)}`);
-        
-        return {
-          id: profile.id || "",
-          email: email,
-          created_at: profile.created_at || new Date().toISOString(),
-          last_sign_in_at: profile.last_sign_in_at || null,
-          display_name: displayName,
-          total_xp: xp?.total_xp || 0
-        };
-      });
+      // If we still need to fall back to profiles
+      if (combinedUsers.length === 0) {
+        combinedUsers = profiles.map(profile => {
+          const xp = xpData.find(x => x.user_id === profile.id);
+          // Try to get email from multiple sources, prioritizing actual data
+          const email = profile.id ? (allEmailsMap.get(profile.id) || profile.email || "") : "";
+          const displayName = profile.display_name || 
+            (typeof email === 'string' && email ? email.split('@')[0] : `User ${(profile.id || "").substring(0, 6)}`);
+          
+          return {
+            id: profile.id || "",
+            email: email,
+            created_at: profile.created_at || new Date().toISOString(),
+            last_sign_in_at: profile.last_sign_in_at || null,
+            display_name: displayName,
+            total_xp: xp?.total_xp || 0
+          };
+        });
+      }
     }
     
     // If we still don't have any users, try to get current user at minimum
