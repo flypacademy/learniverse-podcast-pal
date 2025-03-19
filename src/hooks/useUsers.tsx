@@ -11,107 +11,139 @@ export interface User {
   total_xp?: number;
 }
 
+/**
+ * Fetches user profiles from the database
+ */
+const fetchUserProfiles = async () => {
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .select('*');
+  
+  if (error) {
+    console.error("Error fetching user profiles:", error);
+    throw error;
+  }
+  
+  console.log("Profiles data:", data);
+  return data || [];
+};
+
+/**
+ * Creates a sample user profile for demonstration
+ */
+const createSampleUser = async () => {
+  console.log("No user profiles found, creating a sample user...");
+  
+  const sampleUserId = "sample-user-id";
+  
+  // Create a sample user profile
+  const { data: sampleProfile, error: sampleProfileError } = await supabase
+    .from('user_profiles')
+    .insert([
+      { 
+        id: sampleUserId,
+        display_name: 'Sample User',
+        created_at: new Date().toISOString()
+      }
+    ])
+    .select();
+    
+  if (sampleProfileError) {
+    console.error("Error creating sample user:", sampleProfileError);
+    throw sampleProfileError;
+  }
+  
+  console.log("Sample user created successfully:", sampleProfile);
+  
+  // Create sample XP record
+  const { error: sampleXpError } = await supabase
+    .from('user_experience')
+    .insert([
+      {
+        user_id: sampleUserId,
+        total_xp: 150,
+        weekly_xp: 50
+      }
+    ]);
+    
+  if (sampleXpError) {
+    console.error("Error creating sample XP record:", sampleXpError);
+  }
+  
+  return {
+    id: sampleUserId,
+    email: 'sample@example.com',
+    created_at: new Date().toISOString(),
+    last_sign_in_at: null,
+    display_name: 'Sample User',
+    total_xp: 150
+  };
+};
+
+/**
+ * Fetches XP data for a list of user IDs
+ */
+const fetchUserXp = async (userIds: string[]) => {
+  if (!userIds.length) return [];
+  
+  const { data, error } = await supabase
+    .from('user_experience')
+    .select('user_id, total_xp')
+    .in('user_id', userIds);
+    
+  if (error) {
+    console.error("Error fetching user XP:", error);
+    return [];
+  }
+  
+  console.log("XP data:", data);
+  return data || [];
+};
+
+/**
+ * Combines user profile and XP data
+ */
+const combineUserData = (profiles: any[], xpData: any[]): User[] => {
+  return profiles.map(profile => {
+    const xp = xpData.find(x => x.user_id === profile.id);
+    
+    return {
+      id: profile.id,
+      email: `user-${profile.id.substring(0, 8)}@example.com`, // Placeholder email
+      created_at: profile.created_at,
+      last_sign_in_at: null, // We don't have this info without admin access
+      display_name: profile.display_name,
+      total_xp: xp?.total_xp || 0
+    };
+  });
+};
+
 export function useUsers() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchUsers() {
+    async function loadUsers() {
       try {
         setLoading(true);
         
-        // Fetch user profiles directly
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('user_profiles')
-          .select('*');
+        // Step 1: Fetch user profiles
+        const profilesData = await fetchUserProfiles();
         
-        if (profilesError) {
-          console.error("Error fetching user profiles:", profilesError);
-          throw profilesError;
-        }
-
-        console.log("Profiles data:", profilesData);
-        
-        // If no profiles exist, create a sample user for demonstration
-        if (!profilesData || profilesData.length === 0) {
-          console.log("No user profiles found, creating a sample user...");
-          
-          // Create a sample user profile
-          const sampleUserId = "sample-user-id";
-          const { data: sampleProfile, error: sampleProfileError } = await supabase
-            .from('user_profiles')
-            .insert([
-              { 
-                id: sampleUserId,
-                display_name: 'Sample User',
-                created_at: new Date().toISOString()
-              }
-            ])
-            .select();
-            
-          if (sampleProfileError) {
-            console.error("Error creating sample user:", sampleProfileError);
-          } else {
-            console.log("Sample user created successfully:", sampleProfile);
-            
-            // Create sample XP record
-            const { error: sampleXpError } = await supabase
-              .from('user_experience')
-              .insert([
-                {
-                  user_id: sampleUserId,
-                  total_xp: 150,
-                  weekly_xp: 50
-                }
-              ]);
-              
-            if (sampleXpError) {
-              console.error("Error creating sample XP record:", sampleXpError);
-            }
-            
-            // Set users with our sample user
-            setUsers([{
-              id: sampleUserId,
-              email: 'sample@example.com',
-              created_at: new Date().toISOString(),
-              last_sign_in_at: null,
-              display_name: 'Sample User',
-              total_xp: 150
-            }]);
-            setLoading(false);
-            return;
-          }
+        // Step 2: If no profiles exist, create a sample user
+        if (profilesData.length === 0) {
+          const sampleUser = await createSampleUser();
+          setUsers([sampleUser]);
+          return;
         }
         
-        // Extract user IDs to fetch XP data
+        // Step 3: Extract user IDs and fetch XP data
         const userIds = profilesData.map(profile => profile.id);
+        const xpData = await fetchUserXp(userIds);
         
-        // Fetch XP data for all users
-        const { data: xpData, error: xpError } = await supabase
-          .from('user_experience')
-          .select('user_id, total_xp')
-          .in('user_id', userIds);
-          
-        if (xpError) {
-          console.error("Error fetching user XP:", xpError);
-        }
-        
-        console.log("XP data:", xpData);
-        
-        // Combine the data
-        const combinedUsers = profilesData.map(profile => {
-          const xp = xpData?.find(x => x.user_id === profile.id);
-          
-          return {
-            id: profile.id,
-            email: `user-${profile.id.substring(0, 8)}@example.com`, // Placeholder email
-            created_at: profile.created_at,
-            last_sign_in_at: null, // We don't have this info without admin access
-            display_name: profile.display_name,
-            total_xp: xp?.total_xp || 0
-          };
-        });
+        // Step 4: Combine the data
+        const combinedUsers = combineUserData(profilesData, xpData);
         
         setUsers(combinedUsers);
         setError(null);
@@ -123,7 +155,7 @@ export function useUsers() {
       }
     }
     
-    fetchUsers();
+    loadUsers();
   }, []);
   
   return { users, loading, error };
