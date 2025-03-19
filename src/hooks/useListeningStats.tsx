@@ -17,8 +17,14 @@ export function useListeningStats(userEmail?: string) {
         let userId: string | null = null;
         
         if (userEmail) {
-          // Try to find user by email
-          const { data: userData, error: userError } = await supabase.auth.admin.getUserByEmail(userEmail);
+          console.log("Looking up user by email:", userEmail);
+          
+          // Use correct method to find user by email
+          const { data: users, error: userError } = await supabase
+            .from('user_profiles')
+            .select('id')
+            .eq('email', userEmail)
+            .maybeSingle();
           
           if (userError) {
             console.error("Error finding user by email:", userError);
@@ -27,13 +33,34 @@ export function useListeningStats(userEmail?: string) {
             return;
           }
           
-          if (!userData?.user) {
-            setError(`No user found with email ${userEmail}`);
-            setLoading(false);
-            return;
+          if (!users) {
+            console.log("No user found with email:", userEmail);
+            
+            // Try alternative lookup using RPC if available
+            try {
+              const { data: emailData, error: emailError } = await supabase
+                .rpc('get_user_emails');
+                
+              if (!emailError && emailData) {
+                const userMatch = emailData.find((u: any) => u.email === userEmail);
+                if (userMatch) {
+                  userId = userMatch.id;
+                  console.log("Found user via RPC:", userId);
+                }
+              }
+            } catch (rpcErr) {
+              console.log("RPC lookup failed:", rpcErr);
+            }
+            
+            if (!userId) {
+              setError(`No user found with email ${userEmail}`);
+              setLoading(false);
+              return;
+            }
+          } else {
+            userId = users.id;
+            console.log("Found user with ID:", userId);
           }
-          
-          userId = userData.user.id;
         } else {
           // Get current user session
           const { data: { session } } = await supabase.auth.getSession();
@@ -95,11 +122,22 @@ export function useListeningStats(userEmail?: string) {
         
         // Get user email if needed
         let email = userEmail;
-        if (!email) {
+        if (!email && userId) {
           try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-              email = user.email;
+            // Try to get email via RPC if available
+            const { data: emailData, error: emailError } = await supabase
+              .rpc('get_user_emails_for_ids', {
+                user_ids: [userId]
+              });
+            
+            if (!emailError && emailData && emailData.length > 0) {
+              email = emailData[0].email;
+            } else {
+              // Fallback to current user's email
+              const { data: { user } } = await supabase.auth.getUser();
+              if (user) {
+                email = user.email;
+              }
             }
           } catch (emailErr) {
             console.log("Could not fetch user email:", emailErr);
