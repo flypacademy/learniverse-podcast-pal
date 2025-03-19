@@ -5,7 +5,7 @@ import StatCard from "./StatCard";
 
 interface ProfileStatsProps {
   totalPodcastsCompleted: number;
-  totalHoursListened: number | string;
+  totalHoursListened: string;
 }
 
 const ProfileStats = ({ totalPodcastsCompleted, totalHoursListened }: ProfileStatsProps) => {

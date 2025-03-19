@@ -17,11 +17,8 @@ export function useListeningStats(userEmail?: string) {
         let userId: string | null = null;
         
         if (userEmail) {
-          const { data: userData, error: userError } = await supabase
-            .from('auth.users')
-            .select('id')
-            .eq('email', userEmail)
-            .maybeSingle();
+          // Try to find user by email
+          const { data: userData, error: userError } = await supabase.auth.admin.getUserByEmail(userEmail);
           
           if (userError) {
             console.error("Error finding user by email:", userError);
@@ -30,13 +27,13 @@ export function useListeningStats(userEmail?: string) {
             return;
           }
           
-          if (!userData) {
+          if (!userData?.user) {
             setError(`No user found with email ${userEmail}`);
             setLoading(false);
             return;
           }
           
-          userId = userData.id;
+          userId = userData.user.id;
         } else {
           // Get current user session
           const { data: { session } } = await supabase.auth.getSession();
@@ -54,12 +51,15 @@ export function useListeningStats(userEmail?: string) {
         // Query the user_progress table to get listening data
         const { data, error: progressError } = await supabase
           .from('user_progress')
-          .select('last_position, updated_at, podcast_id')
+          .select('*')
           .eq('user_id', userId);
         
         if (progressError) {
+          console.error("Error fetching progress:", progressError);
           throw progressError;
         }
+        
+        console.log("Raw user_progress data:", data);
         
         // Calculate total seconds listened
         let totalSeconds = 0;
@@ -69,9 +69,12 @@ export function useListeningStats(userEmail?: string) {
           console.log("Found listening progress entries:", data.length);
           
           data.forEach(entry => {
-            if (entry.last_position && typeof entry.last_position === 'number') {
+            // Ensure last_position is a number and valid
+            if (entry.last_position && typeof entry.last_position === 'number' && !isNaN(entry.last_position)) {
               console.log(`Adding time from podcast ${entry.podcast_id}: ${entry.last_position} seconds`);
               totalSeconds += entry.last_position;
+            } else {
+              console.log(`Skipping invalid position from podcast ${entry.podcast_id}:`, entry.last_position);
             }
             
             // Track the most recent listening activity
@@ -86,20 +89,17 @@ export function useListeningStats(userEmail?: string) {
         console.log("Total seconds calculated:", totalSeconds);
         
         // Convert seconds to minutes (rounded)
-        const totalMinutes = Math.round(totalSeconds / 60);
+        const totalMinutes = Math.floor(totalSeconds / 60);
+        
+        console.log("Total minutes calculated:", totalMinutes);
         
         // Get user email if needed
         let email = userEmail;
         if (!email) {
           try {
-            const { data: userData, error: userError } = await supabase
-              .from('auth.users')
-              .select('email')
-              .eq('id', userId)
-              .maybeSingle();
-              
-            if (!userError && userData) {
-              email = userData.email;
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+              email = user.email;
             }
           } catch (emailErr) {
             console.log("Could not fetch user email:", emailErr);
@@ -112,6 +112,14 @@ export function useListeningStats(userEmail?: string) {
           userId,
           email: email || ""
         });
+        
+        console.log("Final stats object being set:", {
+          totalMinutes,
+          lastListened: lastListenedDate,
+          userId,
+          email: email || ""
+        });
+        
         setLoading(false);
       } catch (err: any) {
         console.error("Error fetching listening stats:", err);
