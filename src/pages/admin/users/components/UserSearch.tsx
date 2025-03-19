@@ -3,7 +3,6 @@ import React from "react";
 import { Search, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 
 interface UserSearchProps {
   searchTerm: string;
@@ -12,11 +11,6 @@ interface UserSearchProps {
 }
 
 const UserSearch = ({ searchTerm, onSearchChange, onRefresh }: UserSearchProps) => {
-  const handleRefresh = () => {
-    onRefresh();
-    toast.info("Refreshing user data...");
-  };
-
   return (
     <div className="flex items-center mt-2">
       <div className="relative flex-1 max-w-sm">
@@ -33,7 +27,7 @@ const UserSearch = ({ searchTerm, onSearchChange, onRefresh }: UserSearchProps) 
         variant="outline" 
         size="icon" 
         className="ml-2"
-        onClick={handleRefresh}
+        onClick={onRefresh}
       >
         <RefreshCw className="h-4 w-4" />
         <span className="sr-only">Refresh</span>

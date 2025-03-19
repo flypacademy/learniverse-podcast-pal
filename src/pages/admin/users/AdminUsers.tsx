@@ -3,11 +3,12 @@ import React, { useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { BarChart } from "lucide-react";
+import { BarChart, RefreshCw } from "lucide-react";
 import { useUsers } from "@/hooks/useUsers";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
 
-// Import new components
+// Import components
 import UserSearch from "./components/UserSearch";
 import UserTable from "./components/UserTable";
 import UserPagination from "./components/UserPagination";
@@ -45,6 +46,7 @@ const AdminUsers = () => {
   };
 
   const handleRefresh = () => {
+    toast.info("Refreshing user data...");
     refreshUsers();
   };
   
@@ -54,6 +56,14 @@ const AdminUsers = () => {
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold tracking-tight">Users</h1>
           <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleRefresh}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Refresh Users
+            </Button>
             <Link to="/admin/users/stats">
               <Button variant="outline" className="flex items-center gap-2">
                 <BarChart className="h-4 w-4" />
