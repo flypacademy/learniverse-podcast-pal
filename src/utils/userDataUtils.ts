@@ -56,6 +56,7 @@ export const fetchAllUsers = async () => {
     }
     
     console.log("Direct auth query data:", data);
+    // Ensure the returned data matches our User type
     return data || [];
   } catch (err) {
     console.error("Error in fetchAllUsers:", err);

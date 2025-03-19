@@ -17,7 +17,8 @@ export async function loadUsers() {
     // If admin API fails, try the direct approach
     if (!authUsers || authUsers.length === 0) {
       console.log("Admin API failed, trying direct approach");
-      authUsers = await fetchAllUsers();
+      const directUsers = await fetchAllUsers();
+      authUsers = directUsers; // Now properly typed
     }
     
     // If we have real users from either method, use those
