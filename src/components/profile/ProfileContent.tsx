@@ -1,6 +1,7 @@
 
 import React from "react";
 import { useListeningAnalytics } from "@/hooks/useListeningAnalytics";
+import { useListeningStats } from "@/hooks/useListeningStats";
 import ProfileHeader from "./ProfileHeader";
 import UserCard from "./UserCard";
 import ProfileStats from "./ProfileStats";
@@ -84,6 +85,7 @@ interface ProfileContentProps {
 
 const ProfileContent: React.FC<ProfileContentProps> = ({ userData }) => {
   const { analytics, loading: analyticsLoading } = useListeningAnalytics(7);
+  const { stats, loading: statsLoading } = useListeningStats();
   const { xpData, loading: xpLoading } = useXP();
   
   // Use the XP data from the hook or fall back to the props data or finally to default
@@ -93,6 +95,14 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ userData }) => {
   const level = Math.floor(totalXP / 500) + 1;
   const nextLevelXP = level * 500;
   const progress = ((totalXP % 500) / 500) * 100;
+  
+  // Get listening stats (either from real data or fallback to defaults)
+  const totalMinutes = stats?.totalMinutes ?? 0;
+  const totalHours = totalMinutes / 60;
+  const formattedHours = totalHours.toFixed(1);
+  
+  // Use real data or fallback to default for podcasts completed
+  const podcastsCompleted = defaultUserData.totalPodcastsCompleted; // We don't have a way to count this yet
   
   const userCardData = {
     name: userData?.userName || defaultUserData.name,
@@ -114,8 +124,8 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ userData }) => {
       <UserCard userData={userCardData} />
       
       <ProfileStats 
-        totalPodcastsCompleted={defaultUserData.totalPodcastsCompleted}
-        totalHoursListened={defaultUserData.totalHoursListened}
+        totalPodcastsCompleted={podcastsCompleted}
+        totalHoursListened={parseFloat(formattedHours)}
         totalXP={totalXP}
       />
       
