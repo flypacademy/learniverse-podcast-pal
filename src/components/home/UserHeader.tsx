@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
@@ -26,11 +27,16 @@ const UserHeader = ({ userName, totalXP }: UserHeaderProps) => {
           .single();
           
         if (error) {
+          if (error.code === 'PGRST116') {
+            console.log("No XP record yet for user");
+            return;
+          }
           console.error("Error fetching current XP:", error);
           return;
         }
         
         if (data) {
+          console.log("Updating XP display to:", data.total_xp);
           setCurrentXP(data.total_xp);
         }
       } catch (err) {
@@ -49,7 +55,8 @@ const UserHeader = ({ userName, totalXP }: UserHeaderProps) => {
           schema: 'public', 
           table: 'user_experience' 
         }, 
-        () => {
+        (payload) => {
+          console.log("XP update received:", payload);
           fetchCurrentXP();
         }
       )

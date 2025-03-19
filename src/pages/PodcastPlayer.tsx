@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import XPModal from "@/components/podcast/XPModal";
@@ -7,6 +6,7 @@ import { useAudioStore } from "@/lib/audioContext";
 import { useAudioInitialization } from "@/hooks/podcast/useAudioInitialization";
 import { useAudioEventHandlers } from "@/hooks/podcast/useAudioEventHandlers";
 import PodcastPlayerContainer from "@/components/podcast/PodcastPlayerContainer";
+import { XP_AMOUNTS } from "@/utils/xpUtils";
 
 const PodcastPlayer = () => {
   const { podcastId } = useParams<{ podcastId: string }>();
@@ -29,6 +29,7 @@ const PodcastPlayer = () => {
     volume,
     isQuizAvailable,
     showXPModal,
+    setShowXPModal,
     audioRef,
     play,
     pause,
@@ -41,7 +42,6 @@ const PodcastPlayer = () => {
     handleCompletion
   } = usePodcastPlayer();
   
-  // Prevent re-initialization of the component
   useEffect(() => {
     componentMountedRef.current = true;
     
@@ -50,7 +50,6 @@ const PodcastPlayer = () => {
     };
   }, []);
   
-  // Initialize audio handling
   const {
     audioInitialized,
     setAudioInitialized,
@@ -63,7 +62,6 @@ const PodcastPlayer = () => {
     loading
   });
 
-  // Set up audio event handlers
   const {
     handleAudioLoadedMetadata,
     handleAudioTimeUpdate,
@@ -83,7 +81,6 @@ const PodcastPlayer = () => {
     initializationAttemptedRef
   });
   
-  // Component lifecycle logging
   useEffect(() => {
     console.log("PodcastPlayer component mounted or updated");
     console.log("Loading state:", loading);
@@ -131,7 +128,7 @@ const PodcastPlayer = () => {
       
       <XPModal 
         show={showXPModal}
-        xpAmount={30}
+        xpAmount={XP_AMOUNTS.PODCAST_COMPLETION}
       />
     </>
   );

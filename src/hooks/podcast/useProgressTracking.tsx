@@ -31,13 +31,18 @@ export function useProgressTracking(
         if (lastXpAwardTime > 0) {
           const newTime = Math.max(0, currentTime - lastXpAwardTime);
           setAccumulatedTime(prev => prev + newTime);
+          
+          // If we've accumulated more than 60 seconds, award XP and reset timer
+          if (accumulatedTime + newTime > 60) {
+            awardListeningXP();
+          }
         }
         setLastXpAwardTime(currentTime);
       }
     }, 10000); // Save every 10 seconds while playing
     
     return () => clearInterval(progressInterval);
-  }, [isPlaying, audioRef, saveProgress, lastXpAwardTime]);
+  }, [isPlaying, audioRef, saveProgress, lastXpAwardTime, accumulatedTime]);
   
   // Award XP for accumulated listening time when component unmounts
   useEffect(() => {
@@ -57,6 +62,8 @@ export function useProgressTracking(
       if (!session?.user) return;
       
       const xpAmount = calculateListeningXP(accumulatedTime);
+      console.log(`Awarding XP for ${accumulatedTime} seconds of listening: ${xpAmount} XP`);
+      
       if (xpAmount > 0) {
         await awardXP(
           session.user.id, 

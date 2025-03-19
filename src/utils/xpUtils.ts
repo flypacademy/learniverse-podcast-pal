@@ -1,4 +1,3 @@
-
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 
@@ -45,14 +44,12 @@ export const awardXP = async (
       // Create new record
       const { error: insertError } = await supabase
         .from('user_experience')
-        .insert([
-          {
-            user_id: userId,
-            total_xp: amount,
-            weekly_xp: amount,
-            last_updated: new Date().toISOString()
-          }
-        ]);
+        .insert({
+          user_id: userId,
+          total_xp: amount,
+          weekly_xp: amount,
+          last_updated: new Date().toISOString()
+        });
       
       if (insertError) {
         console.error("Error inserting XP:", insertError);
