@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -62,27 +61,46 @@ const UserHeader = ({ userName, totalXP }: UserHeaderProps) => {
     
     fetchCurrentXP();
     
-    // Set up subscription for XP updates
-    const userId = supabase.auth.getSession().then(({ data }) => data.session?.user.id);
-    
-    const channel = supabase
-      .channel('table-db-changes')
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'user_experience',
-          filter: `user_id=eq.${userId}`
-        }, 
-        (payload) => {
-          console.log("XP update received:", payload);
-          fetchCurrentXP();
-        }
-      )
-      .subscribe();
+    // Enable real-time subscription for XP updates
+    const setupRealtimeSubscription = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
       
+      // First make sure the table is set up for realtime
+      await supabase.rpc('supabase_realtime.enable_subscription', {
+        table_name: 'user_experience'
+      }).catch(err => {
+        console.log("Note: Realtime setup error (may be normal):", err);
+      });
+      
+      // Set up subscription for XP updates
+      const userId = session.user.id;
+      const channel = supabase
+        .channel('user-xp-changes')
+        .on('postgres_changes', 
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'user_experience',
+            filter: `user_id=eq.${userId}`
+          }, 
+          (payload) => {
+            console.log("XP update received:", payload);
+            if (payload.new && 'total_xp' in payload.new) {
+              setCurrentXP(payload.new.total_xp as number);
+            }
+          }
+        )
+        .subscribe();
+        
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    };
+    
+    const cleanup = setupRealtimeSubscription();
     return () => {
-      supabase.removeChannel(channel);
+      if (cleanup) cleanup.then(fn => fn && fn());
     };
   }, []);
   

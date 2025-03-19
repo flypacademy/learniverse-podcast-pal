@@ -13,7 +13,6 @@ const PodcastPlayer = () => {
   const { podcastId } = useParams<{ podcastId: string }>();
   const audioStore = useAudioStore();
   const componentMountedRef = useRef(true);
-  const [xpEarned, setXpEarned] = useState(XP_AMOUNTS.PODCAST_COMPLETION);
   
   const {
     podcastData,
@@ -32,6 +31,7 @@ const PodcastPlayer = () => {
     isQuizAvailable,
     showXPModal,
     setShowXPModal,
+    xpEarned,
     audioRef,
     play,
     pause,
@@ -85,57 +85,15 @@ const PodcastPlayer = () => {
     initializationAttemptedRef
   });
   
-  useEffect(() => {
-    console.log("PodcastPlayer component mounted or updated");
-    console.log("Loading state:", loading);
-    console.log("Error state:", error);
-    console.log("Podcast data:", podcastData);
-    console.log("Podcast ID from params:", podcastId);
-    
-    return () => {
-      console.log("PodcastPlayer component unmounting");
-    };
-  }, [loading, error, podcastData, audioRef, podcastId]);
-  
   const handlePodcastEnded = async () => {
     console.log("Podcast ended - handling completion");
-    const success = await handleCompletion();
-    if (success && componentMountedRef.current) {
-      console.log("Setting XP modal to show with completion XP:", XP_AMOUNTS.PODCAST_COMPLETION);
-      setXpEarned(XP_AMOUNTS.PODCAST_COMPLETION);
-      setShowXPModal(true);
-      
-      // Auto-hide XP modal after 5 seconds
-      setTimeout(() => {
-        if (componentMountedRef.current) {
-          setShowXPModal(false);
-        }
-      }, 5000);
-    }
+    await handleCompletion();
   };
   
   const combinedHandleRetry = () => {
     handleRetry();
     refetchPodcastData();
   };
-  
-  // Handle audio ended events to show XP modal
-  useEffect(() => {
-    const handleEnded = () => {
-      console.log("Audio ended event detected");
-      handlePodcastEnded();
-    };
-    
-    if (audioRef.current) {
-      audioRef.current.addEventListener('ended', handleEnded);
-    }
-    
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.removeEventListener('ended', handleEnded);
-      }
-    };
-  }, [audioRef.current]);
   
   return (
     <>
@@ -158,7 +116,7 @@ const PodcastPlayer = () => {
         skipBackward={skipBackward}
         handleAudioLoadedMetadata={handleAudioLoadedMetadata}
         handleAudioTimeUpdate={handleAudioTimeUpdate}
-        handleAudioEnded={handlePodcastEnded} // Use our new handler
+        handleAudioEnded={handlePodcastEnded}
         handleAudioPlay={handleAudioPlay}
         handleAudioPause={handleAudioPause}
         handleAudioError={handleAudioError}
