@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { User } from "@/types/user";
 import { loadUsers } from "@/utils/loadUsers";
 
-export { User };
+export type { User };
 
 export function useUsers() {
   const [users, setUsers] = useState<User[]>([]);
