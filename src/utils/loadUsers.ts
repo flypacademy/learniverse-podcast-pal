@@ -1,6 +1,6 @@
 
 import { User } from "@/types/user";
-import { fetchRealUsers, fetchUserProfiles, fetchUserXp } from "./userDataUtils";
+import { fetchRealUsers, fetchAllUsers, fetchUserProfiles, fetchUserXp } from "./userDataUtils";
 import { combineUserData, combineProfileData } from "./userDataTransformers";
 import { createSampleUser } from "./sampleUserUtils";
 
@@ -11,10 +11,16 @@ export async function loadUsers() {
   try {
     console.log("Starting to load users...");
     
-    // Step 1: Try to fetch real users from auth.users
-    const authUsers = await fetchRealUsers();
+    // Step 1: Try to fetch real users from auth.users via admin API
+    let authUsers = await fetchRealUsers();
     
-    // If we have real users from auth, use those
+    // If admin API fails, try the direct approach
+    if (!authUsers || authUsers.length === 0) {
+      console.log("Admin API failed, trying direct approach");
+      authUsers = await fetchAllUsers();
+    }
+    
+    // If we have real users from either method, use those
     if (authUsers && authUsers.length > 0) {
       console.log(`Found ${authUsers.length} users from auth`);
       
@@ -37,25 +43,28 @@ export async function loadUsers() {
     console.log("No auth users available, falling back to profiles");
     const profilesData = await fetchUserProfiles();
     
-    if (!profilesData || profilesData.length === 0) {
-      console.log("No user profiles found, trying to create a sample user...");
-      const sampleUser = await createSampleUser();
+    if (profilesData && profilesData.length > 0) {
+      console.log(`Found ${profilesData.length} user profiles`);
+      
+      // Extract user IDs and fetch XP data
+      const userIds = profilesData.map(profile => profile.id);
+      const xpData = await fetchUserXp(userIds);
+      
+      // Combine the profile data
+      const combinedUsers = combineProfileData(profilesData, xpData);
+      console.log(`Combined ${combinedUsers.length} users from profiles and XP data`);
+      
       return {
-        users: [sampleUser],
+        users: combinedUsers,
         error: null
       };
     }
     
-    // Extract user IDs and fetch XP data
-    const userIds = profilesData.map(profile => profile.id);
-    const xpData = await fetchUserXp(userIds);
-    
-    // Combine the profile data
-    const combinedUsers = combineProfileData(profilesData, xpData);
-    console.log(`Combined ${combinedUsers.length} users from profiles and XP data`);
-    
+    // Last resort: create sample user if no real data is found
+    console.log("No user profiles found, creating a sample user as last resort...");
+    const sampleUser = await createSampleUser();
     return {
-      users: combinedUsers,
+      users: [sampleUser],
       error: null
     };
   } catch (err: any) {

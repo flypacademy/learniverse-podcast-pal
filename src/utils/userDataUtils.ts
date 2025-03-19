@@ -22,17 +22,43 @@ export const fetchRealUsers = async () => {
     }
     
     // Fetch users from the auth.users table
-    const { data: users, error } = await supabase.auth.admin.listUsers();
+    const { data, error } = await supabase.auth.admin.listUsers();
     
     if (error) {
       console.error("Error fetching users:", error);
       throw error;
     }
     
-    console.log("Auth users data:", users);
-    return users.users || [];
+    console.log("Auth users data:", data);
+    return data.users || [];
   } catch (err) {
     console.error("Error in fetchRealUsers:", err);
+    return null;
+  }
+};
+
+/**
+ * Direct approach to fetch all users when auth API fails
+ * This acts as a fallback to get at least basic user data
+ */
+export const fetchAllUsers = async () => {
+  try {
+    console.log("Attempting to fetch all users directly from auth.users");
+    
+    // Try to query auth.users directly (requires proper permissions)
+    const { data, error } = await supabase
+      .from('auth.users')
+      .select('id, email, created_at, last_sign_in_at');
+    
+    if (error) {
+      console.error("Error directly fetching auth users:", error);
+      return null;
+    }
+    
+    console.log("Direct auth query data:", data);
+    return data || [];
+  } catch (err) {
+    console.error("Error in fetchAllUsers:", err);
     return null;
   }
 };
