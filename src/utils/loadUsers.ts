@@ -11,27 +11,26 @@ export async function loadUsers() {
   try {
     console.log("Starting to load users...");
     
-    // Step 1: Try to fetch real users from auth.users via admin API
-    let authUsers: any[] | null = await fetchRealUsers();
+    // Step 1: Try to fetch real users using our primary method
+    let users: User[] | null = await fetchRealUsers();
     
-    // If admin API fails, try the direct approach
-    if (!authUsers || authUsers.length === 0) {
-      console.log("Admin API failed, trying direct approach");
-      const directUsers = await fetchAllUsers();
-      authUsers = directUsers || []; // Ensure we have an array
+    // If primary method fails, try the fallback approach
+    if (!users || users.length === 0) {
+      console.log("Primary fetch method failed, trying fallback approach");
+      users = await fetchAllUsers();
     }
     
-    // If we have real users from either method, use those
-    if (authUsers && authUsers.length > 0) {
-      console.log(`Found ${authUsers.length} users from auth`);
+    // If we have real users from either method, enhance them with additional data
+    if (users && users.length > 0) {
+      console.log(`Found ${users.length} users from database`);
       
-      // Step 2: Fetch user profiles and XP data to combine with auth users
+      // Step 2: Fetch user profiles and XP data to combine with users
       const profilesData = await fetchUserProfiles();
-      const userIds = authUsers.map((user: any) => user.id);
+      const userIds = users.map(user => user.id);
       const xpData = await fetchUserXp(userIds);
       
       // Step 3: Combine all the data
-      const combinedUsers = combineUserData(authUsers, profilesData, xpData);
+      const combinedUsers = combineUserData(users, profilesData, xpData);
       console.log(`Combined ${combinedUsers.length} users with profiles and XP data`);
       
       return {
@@ -40,8 +39,8 @@ export async function loadUsers() {
       };
     }
     
-    // If we don't have auth users, fall back to profiles
-    console.log("No auth users available, falling back to profiles");
+    // If we don't have users, fall back to profiles
+    console.log("No users available from main sources, falling back to profiles");
     const profilesData = await fetchUserProfiles();
     
     if (profilesData && profilesData.length > 0) {
@@ -62,7 +61,7 @@ export async function loadUsers() {
     }
     
     // Last resort: create sample user if no real data is found
-    console.log("No user profiles found, creating a sample user as last resort...");
+    console.log("No user data found at all, creating a sample user as last resort...");
     const sampleUser = await createSampleUser();
     return {
       users: [sampleUser],

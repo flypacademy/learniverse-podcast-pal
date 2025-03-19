@@ -14,7 +14,7 @@ export const combineUserData = (authUsers: any[], profiles: any[], xpData: any[]
       email: user.email || `user-${user.id.substring(0, 8)}@example.com`,
       created_at: user.created_at || new Date().toISOString(),
       last_sign_in_at: user.last_sign_in_at,
-      display_name: profile?.display_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Unknown User',
+      display_name: profile?.display_name || user.email?.split('@')[0] || 'Unknown User',
       total_xp: xp?.total_xp || 0
     };
   });
@@ -30,10 +30,10 @@ export const combineProfileData = (profiles: any[], xpData: any[]): User[] => {
     
     return {
       id: profile.id,
-      email: `user-${profile.id.substring(0, 8)}@example.com`, // Placeholder email
-      created_at: profile.created_at,
+      email: profile.email || `user-${profile.id.substring(0, 8)}@example.com`, // Placeholder email
+      created_at: profile.created_at || new Date().toISOString(),
       last_sign_in_at: null, // We don't have this info without admin access
-      display_name: profile.display_name,
+      display_name: profile.display_name || `User ${profile.id.substring(0, 6)}`,
       total_xp: xp?.total_xp || 0
     };
   });

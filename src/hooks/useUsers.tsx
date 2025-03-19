@@ -23,7 +23,7 @@ export function useUsers() {
           console.error("Error from loadUsers:", result.error);
         } else {
           setUsers(result.users);
-          console.log(`Successfully loaded ${result.users.length} users`);
+          console.log(`Successfully loaded ${result.users.length} users:`, result.users);
           setError(null);
         }
       } catch (err: any) {
