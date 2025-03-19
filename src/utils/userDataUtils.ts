@@ -41,7 +41,7 @@ export const fetchRealUsers = async () => {
  * Direct approach to fetch all users when auth API fails
  * This acts as a fallback to get at least basic user data
  */
-export const fetchAllUsers = async () => {
+export const fetchAllUsers = async (): Promise<User[] | null> => {
   try {
     console.log("Attempting to fetch all users directly from auth.users");
     
@@ -56,8 +56,16 @@ export const fetchAllUsers = async () => {
     }
     
     console.log("Direct auth query data:", data);
-    // Ensure the returned data matches our User type
-    return data || [];
+    
+    // Transform the data to match the User type
+    const users: User[] = (data || []).map(user => ({
+      id: user.id,
+      email: user.email,
+      created_at: user.created_at,
+      last_sign_in_at: user.last_sign_in_at
+    }));
+    
+    return users;
   } catch (err) {
     console.error("Error in fetchAllUsers:", err);
     return null;

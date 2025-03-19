@@ -12,13 +12,13 @@ export async function loadUsers() {
     console.log("Starting to load users...");
     
     // Step 1: Try to fetch real users from auth.users via admin API
-    let authUsers = await fetchRealUsers();
+    let authUsers: any[] | null = await fetchRealUsers();
     
     // If admin API fails, try the direct approach
     if (!authUsers || authUsers.length === 0) {
       console.log("Admin API failed, trying direct approach");
       const directUsers = await fetchAllUsers();
-      authUsers = directUsers; // Now properly typed
+      authUsers = directUsers || []; // Ensure we have an array
     }
     
     // If we have real users from either method, use those
