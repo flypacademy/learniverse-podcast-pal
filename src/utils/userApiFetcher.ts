@@ -55,22 +55,31 @@ export async function fetchUsers() {
       console.log(`No auth users available, using ${profiles.length} profiles as primary source`);
       
       // Try to get actual emails from metadata store if possible
-      const { data: metaUsers } = await supabase.auth.admin.listUsers();
-      const emailMap = metaUsers?.users 
-        ? new Map(metaUsers.users.map(user => [user.id, user.email || ""]))
-        : new Map();
+      const { data: metaUsersResult } = await supabase.auth.admin.listUsers();
+      
+      // Create a properly typed email map
+      const emailMap = new Map<string, string>();
+      
+      // Only populate map if we have valid users data
+      if (metaUsersResult?.users) {
+        metaUsersResult.users.forEach(user => {
+          if (user.id && typeof user.email === 'string') {
+            emailMap.set(user.id, user.email);
+          }
+        });
+      }
       
       combinedUsers = profiles.map(profile => {
         const xp = xpData.find(x => x.user_id === profile.id);
         // Try to get email from multiple sources, prioritizing actual data
-        const email = emailMap.get(profile.id!) || profile.email || "";
+        const email = profile.id ? (emailMap.get(profile.id) || profile.email || "") : "";
         
         return {
-          id: profile.id!,
+          id: profile.id || "",
           email: email,
           created_at: profile.created_at || new Date().toISOString(),
           last_sign_in_at: profile.last_sign_in_at || null,
-          display_name: profile.display_name || (email ? email.split('@')[0] : `User ${profile.id!.substring(0, 6)}`),
+          display_name: profile.display_name || (typeof email === 'string' && email ? email.split('@')[0] : `User ${(profile.id || "").substring(0, 6)}`),
           total_xp: xp?.total_xp || 0
         };
       });
@@ -88,7 +97,8 @@ export async function fetchUsers() {
         email: currentUser.email || "",
         created_at: currentUser.created_at || new Date().toISOString(),
         last_sign_in_at: currentUser.last_sign_in_at || null,
-        display_name: currentUser.user_metadata?.display_name || (currentUser.email ? currentUser.email.split('@')[0] : "Current User"),
+        display_name: currentUser.user_metadata?.display_name || 
+          (typeof currentUser.email === 'string' && currentUser.email ? currentUser.email.split('@')[0] : "Current User"),
         total_xp: xp?.total_xp || 0
       }];
     }
