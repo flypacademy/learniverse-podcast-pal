@@ -31,10 +31,12 @@ export async function loadUsers() {
     }
     
     // If we don't have auth users, fall back to profiles
+    console.log("No auth users available, falling back to profiles");
     const profilesData = await fetchUserProfiles();
     
     // If no profiles exist, create a sample user
-    if (profilesData.length === 0) {
+    if (!profilesData || profilesData.length === 0) {
+      console.log("No user profiles found, trying to create a sample user...");
       const sampleUser = await createSampleUser();
       return {
         users: [sampleUser],

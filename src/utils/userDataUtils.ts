@@ -9,7 +9,12 @@ import { v4 as uuidv4 } from 'uuid';
 export const fetchRealUsers = async () => {
   try {
     // First check if we have admin access
-    const { data: hasAdminAccess } = await supabase.rpc('is_admin');
+    const { data: hasAdminAccess, error: adminCheckError } = await supabase.rpc('is_admin');
+    
+    if (adminCheckError) {
+      console.error("Error checking admin status:", adminCheckError);
+      return null;
+    }
     
     if (!hasAdminAccess) {
       console.log("No admin access, can't fetch real users");

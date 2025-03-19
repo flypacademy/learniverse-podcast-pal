@@ -24,7 +24,7 @@ export function useUsers() {
           setError(null);
         }
       } catch (err: any) {
-        setError(err.message);
+        setError(err.message || "Failed to load users");
         console.error("Error in useUsers hook:", err);
       } finally {
         setLoading(false);
