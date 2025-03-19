@@ -33,10 +33,10 @@ export async function fetchAuthUsers(): Promise<User[] | null> {
     
     console.log(`Successfully retrieved ${data.users.length} auth users`);
     
-    // Transform to our User type
+    // Transform to our User type, ensuring we use the actual email if available
     return data.users.map(user => ({
       id: user.id,
-      email: user.email || `user-${user.id.substring(0, 8)}@unknown.com`,
+      email: user.email || "", // Use the actual email without fallback
       created_at: user.created_at,
       last_sign_in_at: user.last_sign_in_at,
       display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || "Unknown",
