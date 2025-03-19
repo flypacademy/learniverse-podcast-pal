@@ -24,7 +24,8 @@ export const handleSignUp = async (
       options: {
         data: {
           full_name: name
-        }
+        },
+        emailRedirectTo: window.location.origin,
       }
     });
 

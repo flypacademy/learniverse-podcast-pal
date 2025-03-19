@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -32,6 +31,20 @@ const Onboarding = () => {
     
     checkAuth();
   }, [navigate]);
+
+  // Add auth state change listener
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && step !== 3) {
+        // If user signed in but not on success step (e.g. from another tab/device)
+        navigate("/", { replace: true });
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate, step]);
 
   // Onboarding steps configuration
   const steps = [
@@ -78,7 +91,7 @@ const Onboarding = () => {
     {
       title: "Welcome to Learniverse",
       description: "Let's start your learning journey",
-      component: <SuccessStep onComplete={() => navigate("/")} />,
+      component: <SuccessStep onComplete={() => navigate("/", { replace: true })} />,
       showHeader: true
     }
   ];
