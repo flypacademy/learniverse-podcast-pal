@@ -5,7 +5,7 @@ import StatCard from "./StatCard";
 
 interface ProfileStatsProps {
   totalPodcastsCompleted: number;
-  totalHoursListened: number;
+  totalHoursListened: number | string;
   totalXP?: number;
 }
 
@@ -18,7 +18,7 @@ const ProfileStats = ({ totalPodcastsCompleted, totalHoursListened, totalXP = 0 
         icon={<BookOpen className="h-4 w-4 text-primary" />} 
       />
       <StatCard 
-        label="Hours" 
+        label="Listened" 
         value={totalHoursListened} 
         icon={<Clock className="h-4 w-4 text-primary" />} 
       />

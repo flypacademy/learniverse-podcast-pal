@@ -98,8 +98,11 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ userData }) => {
   
   // Get listening stats (either from real data or fallback to defaults)
   const totalMinutes = stats?.totalMinutes ?? 0;
-  const totalHours = totalMinutes / 60;
-  const formattedHours = totalHours.toFixed(1);
+  
+  // Format listening time to hours and minutes
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  const formattedTime = `${hours}h ${minutes}m`;
   
   // Use real data or fallback to default for podcasts completed
   const podcastsCompleted = defaultUserData.totalPodcastsCompleted; // We don't have a way to count this yet
@@ -125,7 +128,7 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ userData }) => {
       
       <ProfileStats 
         totalPodcastsCompleted={podcastsCompleted}
-        totalHoursListened={parseFloat(formattedHours)}
+        totalHoursListened={formattedTime}
         totalXP={totalXP}
       />
       
