@@ -34,14 +34,14 @@ export function usePodcastPlayer() {
     skipBackward,
   } = useAudioPlayer(podcastId || "");
   
-  // Use the podcast data hook
+  // Use the podcast data hook - call without arguments
   const {
     podcastData,
     courseData,
     loading,
     error,
     refetchPodcastData
-  } = usePodcastData(podcastId);
+  } = usePodcastData();
   
   // Use the progress tracking hook
   const {

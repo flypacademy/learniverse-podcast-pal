@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -67,11 +68,13 @@ const UserHeader = ({ userName, totalXP }: UserHeaderProps) => {
       if (!session?.user) return;
       
       // First make sure the table is set up for realtime
-      await supabase.rpc('supabase_realtime.enable_subscription', {
-        table_name: 'user_experience'
-      }).catch(err => {
+      try {
+        await supabase.rpc('supabase_realtime.enable_subscription', {
+          table_name: 'user_experience'
+        });
+      } catch (err) {
         console.log("Note: Realtime setup error (may be normal):", err);
-      });
+      }
       
       // Set up subscription for XP updates
       const userId = session.user.id;
