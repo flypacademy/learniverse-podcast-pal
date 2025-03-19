@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 /**
  * Creates a sample user profile for demonstration
  */
-export const createSampleUser = async () => {
+export const createSampleUser = async (): Promise<User> => {
   try {
     console.log("No user profiles found, trying to create a sample user...");
     
