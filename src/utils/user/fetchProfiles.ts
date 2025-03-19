@@ -22,11 +22,15 @@ export async function fetchProfiles(): Promise<Partial<User>[]> {
         const emailMap = new Map<string, string>();
         
         // Safely add items to the map with proper typing
-        authUsers.forEach((u: any) => {
-          if (u && u.id && typeof u.email === 'string') {
-            emailMap.set(u.id, u.email);
+        for (const u of authUsers) {
+          if (u && typeof u === 'object' && 'id' in u && 'email' in u) {
+            const id = u.id as string;
+            const email = u.email as string;
+            if (id && typeof email === 'string') {
+              emailMap.set(id, email);
+            }
           }
-        });
+        }
         
         // Get profile data to merge with auth data
         const { data: profiles } = await supabase
@@ -90,11 +94,15 @@ export async function fetchProfiles(): Promise<Partial<User>[]> {
         
         // Only add to map if we have valid email data
         if (!emailsError && emailsData && Array.isArray(emailsData)) {
-          emailsData.forEach((item: any) => {
-            if (item && item.id && typeof item.email === 'string') {
-              emailMap.set(item.id, item.email);
+          for (const item of emailsData) {
+            if (item && typeof item === 'object' && 'id' in item && 'email' in item) {
+              const id = item.id as string;
+              const email = item.email as string;
+              if (id && typeof email === 'string') {
+                emailMap.set(id, email);
+              }
             }
-          });
+          }
         }
       }
     } catch (err) {

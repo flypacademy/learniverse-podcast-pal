@@ -76,11 +76,17 @@ export async function fetchUsers() {
         
         if (!emailsError && emailsData && Array.isArray(emailsData)) {
           console.log(`Got ${emailsData.length} emails from get_user_emails RPC`);
-          emailsData.forEach((item: any) => {
-            if (item && typeof item.id === 'string' && typeof item.email === 'string') {
-              emailMap.set(item.id, item.email);
+          
+          // Make sure we properly check types before accessing properties
+          for (const item of emailsData) {
+            if (item && typeof item === 'object' && 'id' in item && 'email' in item) {
+              const id = item.id as string;
+              const email = item.email as string;
+              if (id && typeof email === 'string') {
+                emailMap.set(id, email);
+              }
             }
-          });
+          }
         }
       } catch (err) {
         console.log("RPC get_user_emails not available or failed:", err);
