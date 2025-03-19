@@ -1,7 +1,6 @@
 
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
-import { type Toast, type ToasterToast } from "@/components/ui/use-toast";
 
 /**
  * Awards XP to a user and updates their experience
