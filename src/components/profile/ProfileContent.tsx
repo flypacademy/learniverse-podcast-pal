@@ -104,16 +104,25 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ userData }) => {
   // Format listening time to hours and minutes
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
-  const formattedTime = totalMinutes > 0 ? `${hours}h ${minutes}m` : '0h 0m';
+  const formattedTime = `${hours}h ${minutes}m`;
   
   // Log stats data for debugging
   React.useEffect(() => {
     if (stats) {
       console.log("Listening stats retrieved:", stats);
+      
+      if (stats.totalMinutes === 0 && !statsLoading) {
+        // Show a toast if there are no stats after loading
+        toast({
+          title: "Listening data syncing",
+          description: "It may take a moment for your latest listening activity to appear.",
+          duration: 5000,
+        });
+      }
     } else if (!statsLoading) {
       console.log("No listening stats available");
     }
-  }, [stats, statsLoading]);
+  }, [stats, statsLoading, toast]);
   
   // Use real data or fallback to default for podcasts completed
   const podcastsCompleted = defaultUserData.totalPodcastsCompleted; // We don't have a way to count this yet

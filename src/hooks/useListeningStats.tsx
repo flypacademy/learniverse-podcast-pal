@@ -49,23 +49,28 @@ export function useListeningStats(userEmail?: string) {
           userId = session.user.id;
         }
         
+        console.log("Fetching listening stats for user ID:", userId);
+        
         // Query the user_progress table to get listening data
         const { data, error: progressError } = await supabase
           .from('user_progress')
-          .select('last_position, updated_at, podcasts(duration)')
+          .select('last_position, updated_at, podcast_id')
           .eq('user_id', userId);
         
         if (progressError) {
           throw progressError;
         }
         
-        // Calculate total minutes listened
+        // Calculate total seconds listened
         let totalSeconds = 0;
         let lastListenedDate: string | null = null;
         
         if (data && data.length > 0) {
+          console.log("Found listening progress entries:", data.length);
+          
           data.forEach(entry => {
-            if (entry.last_position) {
+            if (entry.last_position && typeof entry.last_position === 'number') {
+              console.log(`Adding time from podcast ${entry.podcast_id}: ${entry.last_position} seconds`);
               totalSeconds += entry.last_position;
             }
             
@@ -74,32 +79,38 @@ export function useListeningStats(userEmail?: string) {
               lastListenedDate = entry.updated_at;
             }
           });
+        } else {
+          console.log("No listening progress entries found");
         }
+        
+        console.log("Total seconds calculated:", totalSeconds);
         
         // Convert seconds to minutes (rounded)
         const totalMinutes = Math.round(totalSeconds / 60);
         
         // Get user email if needed
-        let email;
-        if (!userEmail) {
-          const { data: userData, error: userError } = await supabase
-            .from('auth.users')
-            .select('email')
-            .eq('id', userId)
-            .maybeSingle();
-            
-          if (!userError && userData) {
-            email = userData.email;
+        let email = userEmail;
+        if (!email) {
+          try {
+            const { data: userData, error: userError } = await supabase
+              .from('auth.users')
+              .select('email')
+              .eq('id', userId)
+              .maybeSingle();
+              
+            if (!userError && userData) {
+              email = userData.email;
+            }
+          } catch (emailErr) {
+            console.log("Could not fetch user email:", emailErr);
           }
-        } else {
-          email = userEmail;
         }
         
         setStats({
           totalMinutes,
           lastListened: lastListenedDate,
           userId,
-          email: email || userEmail
+          email: email || ""
         });
         setLoading(false);
       } catch (err: any) {
