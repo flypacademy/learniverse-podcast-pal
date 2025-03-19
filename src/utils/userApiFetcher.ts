@@ -1,7 +1,9 @@
 
-import { supabase } from "@/lib/supabase";
 import { User } from "@/types/user";
-import { v4 as uuidv4 } from 'uuid';
+import { fetchAuthUsers } from "./user/fetchAuthUsers";
+import { fetchProfiles } from "./user/fetchProfiles";
+import { fetchUserXp } from "./user/fetchUserXp";
+import { createSampleUser } from "./user/createSampleUser";
 
 /**
  * Fetches users from Supabase
@@ -70,88 +72,4 @@ export async function fetchUsers() {
       error: err.message || "Failed to fetch users"
     };
   }
-}
-
-/**
- * Attempts to fetch users directly from Supabase Auth
- */
-async function fetchAuthUsers() {
-  try {
-    // Try getting the list of users (requires service role key)
-    console.log("Attempting to fetch auth users...");
-    
-    const { data: { users }, error } = await supabase.auth.admin.listUsers();
-    
-    if (error) {
-      console.error("Error fetching auth users:", error);
-      return null;
-    }
-    
-    return users;
-  } catch (err) {
-    console.error("Exception in fetchAuthUsers:", err);
-    return null;
-  }
-}
-
-/**
- * Fetches user profiles from the database
- */
-async function fetchProfiles() {
-  try {
-    console.log("Fetching user profiles...");
-    
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .select('*');
-    
-    if (error) {
-      console.error("Error fetching profiles:", error);
-      return [];
-    }
-    
-    console.log(`Found ${data?.length || 0} profiles`);
-    return data || [];
-  } catch (err) {
-    console.error("Exception in fetchProfiles:", err);
-    return [];
-  }
-}
-
-/**
- * Fetches user XP data
- */
-async function fetchUserXp() {
-  try {
-    console.log("Fetching user XP data...");
-    
-    const { data, error } = await supabase
-      .from('user_experience')
-      .select('user_id, total_xp');
-    
-    if (error) {
-      console.error("Error fetching user XP:", error);
-      return [];
-    }
-    
-    console.log(`Found ${data?.length || 0} XP records`);
-    return data || [];
-  } catch (err) {
-    console.error("Exception in fetchUserXp:", err);
-    return [];
-  }
-}
-
-/**
- * Creates a sample user as fallback
- */
-function createSampleUser(): User {
-  return {
-    id: uuidv4(),
-    email: "sample@example.com (mock)",
-    created_at: new Date().toISOString(),
-    last_sign_in_at: null,
-    display_name: "Sample User (mock)",
-    total_xp: 150
-  };
 }
