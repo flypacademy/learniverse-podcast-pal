@@ -1,9 +1,10 @@
 
-import React, { useState } from "react";
+import React from "react";
 import Layout from "@/components/Layout";
 import { useToast } from "@/components/ui/use-toast";
 import { useRecentCourses } from "@/hooks/useRecentCourses";
 import { useUserXP } from "@/hooks/useUserXP";
+import { useXP } from "@/hooks/useXP";
 
 // Import our components
 import UserHeader from "@/components/home/UserHeader";
@@ -26,7 +27,12 @@ const streakData = [
 const Index = () => {
   const { toast } = useToast();
   const { recentCourses, loading: coursesLoading } = useRecentCourses();
-  const { data: userData, loading: userLoading } = useUserXP();
+  const { data: legacyUserData, loading: legacyUserLoading } = useUserXP();
+  const { xpData, loading: xpLoading } = useXP();
+  
+  // Use the new XP system data if available, otherwise fall back to legacy data
+  const userName = legacyUserData?.userName || "Student";
+  const totalXP = xpData?.totalXP ?? legacyUserData?.totalXP ?? 0;
   
   const handleLinkClick = () => {
     if (navigator.vibrate) {
@@ -39,8 +45,8 @@ const Index = () => {
       <div className="space-y-5 animate-slide-up pt-3">
         {/* User Header with real XP data */}
         <UserHeader 
-          userName={userData.userName} 
-          totalXP={userData.totalXP} 
+          userName={userName} 
+          totalXP={totalXP} 
         />
         
         {/* Continue Learning with Carousel */}

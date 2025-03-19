@@ -2,9 +2,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useProgressSaving } from "./useProgressSaving";
 import { useProgressFetching } from "./useProgressFetching";
-import { awardXP, calculateListeningXP, XP_AMOUNTS } from "@/utils/xpUtils";
-import { useToast } from "@/hooks/use-toast";
+import { calculateListeningXP, XP_AMOUNTS } from "@/utils/xpUtils";
+import { useXP } from "@/hooks/useXP";
 import { supabase } from "@/lib/supabase";
+import { XPReason } from "@/types/xp";
 
 export function useProgressTracking(
   podcastId: string | undefined, 
@@ -12,9 +13,9 @@ export function useProgressTracking(
   isPlaying: boolean,
   podcastCourseId?: string
 ) {
-  const { toast } = useToast();
   const { saveProgress } = useProgressSaving(podcastId, podcastCourseId);
   const { fetchUserProgress } = useProgressFetching(podcastId);
+  const { awardXP } = useXP();
   
   // Track listening time for XP awards
   const [lastXpAwardTime, setLastXpAwardTime] = useState<number>(0);
@@ -83,39 +84,18 @@ export function useProgressTracking(
   
   // Award XP for listening time
   const awardListeningXP = async (seconds: number = accumulatedTime) => {
-    try {
-      if (seconds < 30) return; // Minimum threshold
+    if (seconds < 30) return; // Minimum threshold
+    
+    const xpAmount = calculateListeningXP(seconds);
+    console.log(`Awarding XP for ${seconds} seconds of listening: ${xpAmount} XP`);
+    
+    if (xpAmount > 0) {
+      const success = await awardXP(xpAmount, XPReason.LISTENING_TIME);
       
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        console.error("No user session found, cannot award XP");
-        return;
+      if (success) {
+        // Reset accumulated time after awarding XP
+        setAccumulatedTime(0);
       }
-      
-      const xpAmount = calculateListeningXP(seconds);
-      console.log(`Awarding XP for ${seconds} seconds of listening: ${xpAmount} XP`);
-      
-      if (xpAmount > 0) {
-        const showToastFn = (props: { title: string; description: string }) => {
-          toast(props);
-        };
-        
-        const success = await awardXP(
-          session.user.id, 
-          xpAmount, 
-          "listening time", 
-          showToastFn
-        );
-        
-        console.log("XP award success:", success);
-        
-        if (success) {
-          // Reset accumulated time after awarding XP
-          setAccumulatedTime(0);
-        }
-      }
-    } catch (error) {
-      console.error("Error awarding listening XP:", error);
     }
   };
   
@@ -128,28 +108,13 @@ export function useProgressTracking(
       await saveProgress(audioRef.current, true);
       
       // Award XP for completing the podcast
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          const showToastFn = (props: { title: string; description: string }) => {
-            toast(props);
-          };
-          
-          const completionSuccess = await awardXP(
-            session.user.id,
-            XP_AMOUNTS.PODCAST_COMPLETION,
-            "completing a podcast",
-            showToastFn
-          );
-          
-          console.log("Podcast completion XP award success:", completionSuccess);
-          return completionSuccess;
-        }
-      } catch (error) {
-        console.error("Error awarding completion XP:", error);
-      }
+      const completionSuccess = await awardXP(
+        XP_AMOUNTS.PODCAST_COMPLETION,
+        XPReason.PODCAST_COMPLETION
+      );
       
-      return true; // Signal completion was successful
+      console.log("Podcast completion XP award success:", completionSuccess);
+      return completionSuccess;
     }
     return false;
   };

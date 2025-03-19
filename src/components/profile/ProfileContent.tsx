@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useListeningAnalytics } from "@/hooks/useListeningAnalytics";
 import ProfileHeader from "./ProfileHeader";
@@ -8,17 +9,18 @@ import StreakCalendar from "@/components/StreakCalendar";
 import AchievementsSection from "./AchievementsSection";
 import { Award, BookOpen, Calendar, Clock, Headphones } from "lucide-react";
 import { UserXPData } from "@/hooks/useUserXP";
+import { useXP } from "@/hooks/useXP";
 
 const defaultUserData = {
   name: "Student",
   email: "student@example.com",
-  xp: 1250,
-  level: 5,
+  xp: 0,
+  level: 1,
   streak: 4,
   totalPodcastsCompleted: 15,
   totalHoursListened: 8.5,
-  nextLevelXP: 1500,
-  progress: (1250 / 1500) * 100
+  nextLevelXP: 500,
+  progress: 0
 };
 
 const achievements = [
@@ -81,9 +83,13 @@ interface ProfileContentProps {
 }
 
 const ProfileContent: React.FC<ProfileContentProps> = ({ userData }) => {
-  const { analytics, loading } = useListeningAnalytics(7);
+  const { analytics, loading: analyticsLoading } = useListeningAnalytics(7);
+  const { xpData, loading: xpLoading } = useXP();
   
-  const totalXP = userData?.totalXP || defaultUserData.xp;
+  // Use the XP data from the hook or fall back to the props data or finally to default
+  const totalXP = xpData?.totalXP ?? userData?.totalXP ?? defaultUserData.xp;
+  
+  // Calculate level based on XP (500 XP per level)
   const level = Math.floor(totalXP / 500) + 1;
   const nextLevelXP = level * 500;
   const progress = ((totalXP % 500) / 500) * 100;
@@ -110,13 +116,14 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ userData }) => {
       <ProfileStats 
         totalPodcastsCompleted={defaultUserData.totalPodcastsCompleted}
         totalHoursListened={defaultUserData.totalHoursListened}
+        totalXP={totalXP}
       />
       
       <div className="glass-card p-4 rounded-xl">
         <StreakCalendar streak={defaultUserData.streak} days={activityDays} />
       </div>
       
-      <WeeklyAnalytics analytics={analytics} loading={loading} />
+      <WeeklyAnalytics analytics={analytics} loading={analyticsLoading} />
       
       <AchievementsSection achievements={achievements} />
     </div>

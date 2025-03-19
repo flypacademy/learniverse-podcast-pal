@@ -83,6 +83,7 @@ export function usePodcastPlayer() {
     if (success) {
       setShowXPModal(true);
     }
+    return success;
   };
   
   return {
