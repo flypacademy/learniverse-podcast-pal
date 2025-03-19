@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { v4 as uuidv4 } from 'uuid';
 
 export interface User {
   id: string;
@@ -34,7 +35,8 @@ const fetchUserProfiles = async () => {
 const createSampleUser = async () => {
   console.log("No user profiles found, creating a sample user...");
   
-  const sampleUserId = "sample-user-id";
+  // Generate a proper UUID instead of using a string
+  const sampleUserId = uuidv4();
   
   // Create a sample user profile
   const { data: sampleProfile, error: sampleProfileError } = await supabase
