@@ -22,7 +22,14 @@ const ErrorState = ({ error, onRetry }: ErrorStateProps) => {
       {error.includes("row-level security policy") && (
         <div className="text-sm text-gray-700 bg-gray-100 p-3 rounded-md">
           <p className="font-medium">This might be a permissions issue</p>
-          <p>The error suggests you don't have permission to create sample users. This is normal if you're not logged in as an admin.</p>
+          <p>The error suggests you don't have permission to access or modify the user data. This is normal if you're not logged in as an admin.</p>
+        </div>
+      )}
+      
+      {error.includes("permission denied") && (
+        <div className="text-sm text-gray-700 bg-gray-100 p-3 rounded-md">
+          <p className="font-medium">Admin access required</p>
+          <p>Only admins can view the complete list of users. Make sure you're logged in with an admin account.</p>
         </div>
       )}
       

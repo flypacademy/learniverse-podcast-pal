@@ -13,6 +13,35 @@ export interface User {
 }
 
 /**
+ * Fetches actual users from the auth.users table via admin API
+ */
+const fetchRealUsers = async () => {
+  try {
+    // First check if we have admin access
+    const { data: hasAdminAccess } = await supabase.rpc('is_admin');
+    
+    if (!hasAdminAccess) {
+      console.log("No admin access, can't fetch real users");
+      return null;
+    }
+    
+    // Fetch users from the auth.users table
+    const { data: users, error } = await supabase.auth.admin.listUsers();
+    
+    if (error) {
+      console.error("Error fetching users:", error);
+      throw error;
+    }
+    
+    console.log("Auth users data:", users);
+    return users.users || [];
+  } catch (err) {
+    console.error("Error in fetchRealUsers:", err);
+    return null;
+  }
+};
+
+/**
  * Fetches user profiles from the database
  */
 const fetchUserProfiles = async () => {
@@ -135,9 +164,29 @@ const fetchUserXp = async (userIds: string[]) => {
 };
 
 /**
- * Combines user profile and XP data
+ * Combines user data with profile and XP information
  */
-const combineUserData = (profiles: any[], xpData: any[]): User[] => {
+const combineUserData = (authUsers: any[], profiles: any[], xpData: any[]): User[] => {
+  return authUsers.map(user => {
+    const profile = profiles.find(p => p.id === user.id);
+    const xp = xpData.find(x => x.user_id === user.id);
+    
+    return {
+      id: user.id,
+      email: user.email || `user-${user.id.substring(0, 8)}@example.com`,
+      created_at: user.created_at || new Date().toISOString(),
+      last_sign_in_at: user.last_sign_in_at,
+      display_name: profile?.display_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Unknown User',
+      total_xp: xp?.total_xp || 0
+    };
+  });
+};
+
+/**
+ * Combines profile data with XP information
+ * Used as fallback when auth users cannot be fetched
+ */
+const combineProfileData = (profiles: any[], xpData: any[]): User[] => {
   return profiles.map(profile => {
     const xp = xpData.find(x => x.user_id === profile.id);
     
@@ -154,10 +203,31 @@ const combineUserData = (profiles: any[], xpData: any[]): User[] => {
 
 async function loadUsers() {
   try {
-    // Step 1: Fetch user profiles
+    // Step 1: Try to fetch real users from auth.users
+    const authUsers = await fetchRealUsers();
+    
+    // If we have real users from auth, use those
+    if (authUsers && authUsers.length > 0) {
+      console.log("Using real users from auth");
+      
+      // Step 2: Fetch user profiles and XP data to combine with auth users
+      const profilesData = await fetchUserProfiles();
+      const userIds = authUsers.map((user: any) => user.id);
+      const xpData = await fetchUserXp(userIds);
+      
+      // Step 3: Combine all the data
+      const combinedUsers = combineUserData(authUsers, profilesData, xpData);
+      
+      return {
+        users: combinedUsers,
+        error: null
+      };
+    }
+    
+    // If we don't have auth users, fall back to profiles
     const profilesData = await fetchUserProfiles();
     
-    // Step 2: If no profiles exist, create a sample user
+    // If no profiles exist, create a sample user
     if (profilesData.length === 0) {
       const sampleUser = await createSampleUser();
       return {
@@ -166,12 +236,12 @@ async function loadUsers() {
       };
     }
     
-    // Step 3: Extract user IDs and fetch XP data
+    // Extract user IDs and fetch XP data
     const userIds = profilesData.map(profile => profile.id);
     const xpData = await fetchUserXp(userIds);
     
-    // Step 4: Combine the data
-    const combinedUsers = combineUserData(profilesData, xpData);
+    // Combine the profile data
+    const combinedUsers = combineProfileData(profilesData, xpData);
     
     return {
       users: combinedUsers,
