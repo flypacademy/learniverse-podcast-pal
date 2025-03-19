@@ -26,7 +26,6 @@ export async function fetchUsers() {
     
     // Try getting current user's email to use for specific user
     const currentUser = session.session.user;
-    const currentEmail = currentUser?.email || '';
     
     // Try each data source in order of completeness
     let authUsers = await fetchAuthUsers();
@@ -55,20 +54,20 @@ export async function fetchUsers() {
     else if (profiles && profiles.length > 0) {
       console.log(`No auth users available, using ${profiles.length} profiles as primary source`);
       
-      // Try to fetch emails via direct RPC function to get actual emails
-      const { data: emails } = await supabase.rpc('get_user_emails_for_ids', {
-        user_ids: profiles.map(p => p.id!)
-      });
-      
-      const emailMap = emails ? new Map(emails.map(item => [item.id, item.email])) : new Map();
+      // Try to get actual emails from metadata store if possible
+      const { data: metaUsers } = await supabase.auth.admin.listUsers();
+      const emailMap = metaUsers?.users 
+        ? new Map(metaUsers.users.map(user => [user.id, user.email || ""]))
+        : new Map();
       
       combinedUsers = profiles.map(profile => {
         const xp = xpData.find(x => x.user_id === profile.id);
+        // Try to get email from multiple sources, prioritizing actual data
         const email = emailMap.get(profile.id!) || profile.email || "";
         
         return {
           id: profile.id!,
-          email: email, // Use email from the map
+          email: email,
           created_at: profile.created_at || new Date().toISOString(),
           last_sign_in_at: profile.last_sign_in_at || null,
           display_name: profile.display_name || (email ? email.split('@')[0] : `User ${profile.id!.substring(0, 6)}`),

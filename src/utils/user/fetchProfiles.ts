@@ -17,7 +17,7 @@ export async function fetchProfiles(): Promise<Partial<User>[]> {
     // If we have auth user data via RPC, use it
     if (!authError && authUsers && authUsers.length > 0) {
       console.log(`Found ${authUsers.length} users from get_user_emails RPC`);
-      const emailMap = new Map(authUsers.map(u => [u.id, u.email]));
+      const emailMap = new Map(authUsers.map(u => [u.id, u.email as string]));
       
       // Get profile data to merge with auth data
       const { data: profiles } = await supabase
@@ -26,10 +26,10 @@ export async function fetchProfiles(): Promise<Partial<User>[]> {
       
       // Merge data from both sources
       return (profiles || []).map(profile => {
-        const email = emailMap.get(profile.id);
+        const email = emailMap.get(profile.id) || "";
         return {
           id: profile.id,
-          email: email || "", // Use the actual email from auth RPC
+          email: email, // Now properly typed as string
           created_at: profile.created_at,
           display_name: profile.display_name || (email ? email.split('@')[0] : `User ${profile.id.substring(0, 6)}`),
           total_xp: 0
@@ -47,7 +47,7 @@ export async function fetchProfiles(): Promise<Partial<User>[]> {
       console.log(`Found ${profileData.length} profiles from profiles table`);
       return profileData.map(profile => ({
         id: profile.id,
-        email: profile.email || "", // Don't create fake emails
+        email: typeof profile.email === 'string' ? profile.email : "", // Ensure email is a string
         created_at: profile.created_at,
         display_name: profile.full_name || profile.display_name || `User ${profile.id.substring(0, 6)}`,
         total_xp: 0
@@ -64,12 +64,26 @@ export async function fetchProfiles(): Promise<Partial<User>[]> {
       return [];
     }
     
+    // Try to fetch emails via direct RPC function
+    const { data: emailsData, error: emailsError } = await supabase
+      .rpc('get_user_emails_for_ids', {
+        user_ids: data?.map(profile => profile.id) || []
+      });
+    
+    const emailMap = !emailsError && emailsData 
+      ? new Map(emailsData.map((item: any) => [item.id, item.email as string]))
+      : new Map();
+    
     console.log(`Found ${data?.length || 0} profiles from user_profiles table`);
-    return data?.map(profile => ({
-      id: profile.id,
-      display_name: profile.display_name || `User ${profile.id.substring(0, 6)}`,
-      created_at: profile.created_at || new Date().toISOString(),
-    })) || [];
+    return data?.map(profile => {
+      const email = emailMap.get(profile.id) || "";
+      return {
+        id: profile.id,
+        email: email,
+        display_name: profile.display_name || (email && email.includes('@') ? email.split('@')[0] : `User ${profile.id.substring(0, 6)}`),
+        created_at: profile.created_at || new Date().toISOString(),
+      };
+    }) || [];
   } catch (err) {
     console.error("Exception in fetchProfiles:", err);
     return [];

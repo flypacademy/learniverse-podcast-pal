@@ -30,7 +30,7 @@ const UserTable = ({ users }: UserTableProps) => {
       <TableBody>
         {users.map((user) => (
           <TableRow key={user.id}>
-            <TableCell className="font-medium">{user.email}</TableCell>
+            <TableCell className="font-medium">{user.email || "—"}</TableCell>
             <TableCell>{user.display_name || "—"}</TableCell>
             <TableCell>{user.total_xp || 0}</TableCell>
             <TableCell>
