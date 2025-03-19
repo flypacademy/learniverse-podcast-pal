@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useListeningAnalytics } from "@/hooks/useListeningAnalytics";
 import { useListeningStats } from "@/hooks/useListeningStats";
@@ -129,7 +128,6 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ userData }) => {
       <ProfileStats 
         totalPodcastsCompleted={podcastsCompleted}
         totalHoursListened={formattedTime}
-        totalXP={totalXP}
       />
       
       <div className="glass-card p-4 rounded-xl">
