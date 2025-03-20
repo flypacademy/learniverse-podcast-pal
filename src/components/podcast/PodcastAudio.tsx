@@ -21,7 +21,6 @@ const PodcastAudio = ({
 }: PodcastAudioProps) => {
   const prevSrcRef = useRef<string | undefined>(undefined);
   const audioStore = useAudioStore();
-  const srcChangedRef = useRef(false);
   const initializedRef = useRef(false);
   
   // Set up the audio element and register it with the store
@@ -33,13 +32,14 @@ const PodcastAudio = ({
       console.log("PodcastAudio: Source changed, loading new audio", src);
       audioRef.current.src = src;
       audioRef.current.load();
-      srcChangedRef.current = true;
       prevSrcRef.current = src;
     }
     
-    // Register with the audio store (do this every time to ensure we're registered)
-    if (podcastMeta) {
+    // Register with the audio store
+    if (podcastMeta && !initializedRef.current) {
       console.log("PodcastAudio: Registering with audio store", podcastId);
+      initializedRef.current = true;
+      
       audioStore.setAudio(audioRef.current, podcastId, {
         id: podcastId,
         title: podcastMeta.title,
@@ -47,30 +47,17 @@ const PodcastAudio = ({
         image: podcastMeta.image
       });
 
-      // Mark as initialized
-      initializedRef.current = true;
-
-      // Add a log to confirm the podcast is registered
+      // Add a log to confirm registration
       console.log("PodcastAudio: Audio registered successfully", {
         id: podcastId,
         title: podcastMeta.title,
-        image: podcastMeta.image,
         currentPodcastId: audioStore.currentPodcastId
       });
-    } else {
-      audioStore.setAudio(audioRef.current, podcastId);
-      console.log("PodcastAudio: Audio registered without metadata", podcastId);
     }
     
-    // Add data attribute to help with debugging
-    if (audioRef.current) {
-      audioRef.current.dataset.podcastId = podcastId;
-    }
-    
-    // IMPORTANT: Do NOT clean up audio on unmount - this is what was causing playback to stop
+    // IMPORTANT: Do NOT clean up audio on unmount
     return () => {
-      console.log("PodcastAudio: Component unmounting, but KEEPING audio in store");
-      // We explicitly DO NOT reset the audio store here to maintain playback
+      console.log("PodcastAudio: Component unmounting, KEEPING audio in store");
     };
   }, [src, audioRef, audioStore, podcastId, podcastMeta]);
 

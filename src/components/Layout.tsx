@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Home, BookOpen, User, Target } from "lucide-react";
@@ -10,18 +11,27 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
-  const { currentPodcastId, podcastMeta, isPlaying, audioElement, isAudioReady } = useAudioStore();
+  const { 
+    currentPodcastId, 
+    podcastMeta, 
+    isPlaying, 
+    audioElement, 
+    isAudioReady,
+    play
+  } = useAudioStore();
+  
   const previousPathRef = useRef<string>(location.pathname);
   const playAttemptedRef = useRef<boolean>(false);
   
   // Show mini player except on the podcast page
   const isPodcastPage = location.pathname.includes('/podcast/') && 
-                       !location.pathname.includes('/podcast-sample');
-  const showMiniPlayer = !!currentPodcastId && !!podcastMeta && !isPodcastPage;
+                      !location.pathname.includes('/podcast-sample');
+  
+  const showMiniPlayer = Boolean(currentPodcastId && podcastMeta && !isPodcastPage);
   
   console.log("Layout: Checking mini player visibility", { 
     currentPodcastId, 
-    hasMeta: !!podcastMeta, 
+    hasMeta: Boolean(podcastMeta), 
     isPodcastPage, 
     showMiniPlayer,
     isPlaying,
@@ -47,33 +57,13 @@ const Layout = ({ children }: LayoutProps) => {
       console.log("Layout: Ensuring audio playback continues during navigation");
       playAttemptedRef.current = true;
       
-      // Attempt to resume playback with increasing delays
-      const attemptPlay = (delay: number, attempt: number = 1) => {
-        setTimeout(() => {
-          if (!audioElement || !isPlaying) return;
-          
-          if (audioElement.paused) {
-            console.log(`Layout: Attempting to resume playback (attempt ${attempt})`);
-            const playPromise = audioElement.play();
-            
-            if (playPromise) {
-              playPromise.catch(error => {
-                console.warn(`Layout: Could not auto-play during navigation (attempt ${attempt}):`, error);
-                
-                // Try again with a longer delay if we haven't exceeded max attempts
-                if (attempt < 5) {
-                  attemptPlay(delay * 1.5, attempt + 1);
-                }
-              });
-            }
-          }
-        }, delay);
-      };
-      
-      // Try multiple times with increasing delays
-      attemptPlay(100);
+      // Attempt to resume playback with a delay
+      setTimeout(() => {
+        console.log("Layout: Attempting to resume playback after navigation");
+        play();
+      }, 200);
     }
-  }, [location.pathname, isPlaying, audioElement, isPodcastPage, isAudioReady]);
+  }, [location.pathname, isPlaying, audioElement, isPodcastPage, play]);
   
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-white to-gray-50 relative">

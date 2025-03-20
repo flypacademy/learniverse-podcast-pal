@@ -15,6 +15,8 @@ export interface AudioState {
   duration: number;
   volume: number;
   podcastMeta: PodcastMeta | null;
+  
+  // Methods
   setAudio: (audioElement: HTMLAudioElement, podcastId: string, meta?: PodcastMeta) => void;
   setPodcastMeta: (meta: PodcastMeta) => void;
   play: () => void;

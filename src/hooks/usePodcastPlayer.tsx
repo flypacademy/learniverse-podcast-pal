@@ -57,7 +57,7 @@ export function usePodcastPlayer() {
   const {
     saveProgress,
     handleCompletion,
-    fetchUserProgress
+    loadProgress
   } = useProgressTracking(
     podcastId,
     audioRef.current,
@@ -71,7 +71,7 @@ export function usePodcastPlayer() {
   useEffect(() => {
     async function loadUserProgress() {
       if (podcastData && audioRef.current) {
-        const progressData = await fetchUserProgress();
+        const progressData = await loadProgress();
         if (progressData && progressData.last_position > 0) {
           console.log("Restoring saved position:", progressData.last_position);
           audioRef.current.currentTime = progressData.last_position;
@@ -80,13 +80,39 @@ export function usePodcastPlayer() {
       }
     }
     
-    loadUserProgress();
-  }, [podcastData, fetchUserProgress, setCurrentTime]);
+    if (podcastData) {
+      loadUserProgress();
+    }
+  }, [podcastData, loadProgress, setCurrentTime]);
+  
+  // Set up audio element when podcast data loads
+  useEffect(() => {
+    if (!audioRef.current && podcastData) {
+      console.log("Creating new audio element with URL:", podcastData.audio_url);
+      audioRef.current = new Audio(podcastData.audio_url);
+      
+      // Register the audio element with the store
+      if (podcastId) {
+        // Set podcast metadata in the store
+        const meta = {
+          id: podcastData.id,
+          title: podcastData.title,
+          courseName: courseData?.title || "Course",
+          image: podcastData.image_url || courseData?.image
+        };
+        
+        // This is crucial - register with the store
+        console.log("Registering audio element with store", meta);
+        useAudioStore.getState().setAudio(audioRef.current, podcastId, meta);
+      }
+    }
+  }, [podcastData, courseData, podcastId]);
   
   // Event handlers for audio element
   const handleAudioLoadedMetadata = () => {
     if (audioRef.current) {
       const audioDuration = audioRef.current.duration;
+      console.log("Audio metadata loaded, duration:", audioDuration);
       setDuration(audioDuration);
       setReady(true);
     }
@@ -108,7 +134,7 @@ export function usePodcastPlayer() {
   };
   
   const handleAudioPlay = () => {
-    // This is handled by the audio store play() method
+    console.log("Play called");
   };
   
   const handleAudioPause = () => {
