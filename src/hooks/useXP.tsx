@@ -3,12 +3,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { awardXP, getUserXP } from '@/utils/xpUtils';
 import { useToast } from '@/components/ui/use-toast';
-import { useIconToast } from '@/components/ui/custom-toast';
 import { UserXP } from '@/types/xp';
 
 export function useXP() {
   const { toast } = useToast();
-  const { toast: iconToast } = useIconToast();
   const [xpData, setXpData] = useState<UserXP | null>(null);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
@@ -83,26 +81,7 @@ export function useXP() {
     }
     
     const showToastFn = (props: { title: string; description: string }) => {
-      // Use the icon toast by default for XP awards
-      let icon: "award" | "star" | "trophy" | "zap" | "sparkles" = "award";
-      
-      // Choose different icons based on XP amount or reason
-      if (reason.includes("completing a podcast")) {
-        icon = "trophy";
-      } else if (amount >= 100) {
-        icon = "star";
-      } else if (reason.includes("quiz")) {
-        icon = "sparkles";
-      } else if (reason.includes("streak")) {
-        icon = "zap";
-      }
-      
-      iconToast({
-        title: props.title,
-        description: props.description,
-        icon,
-        duration: 3000,
-      });
+      toast(props);
     };
     
     const success = await awardXP(userId, amount, reason, showToastFn);
@@ -113,7 +92,7 @@ export function useXP() {
     }
     
     return success;
-  }, [userId, iconToast]);
+  }, [userId, toast]);
   
   return {
     xpData,

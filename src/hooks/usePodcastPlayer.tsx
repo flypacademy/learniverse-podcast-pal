@@ -56,12 +56,7 @@ export function usePodcastPlayer() {
     handleProgressData
   } = useAudioPlayer(podcastId);
   
-  const { 
-    saveProgress, 
-    handleCompletion, 
-    fetchUserProgress,
-    completionPercentage 
-  } = useProgressTracking(
+  const { saveProgress, handleCompletion, fetchUserProgress } = useProgressTracking(
     podcastId,
     audioRef,
     isPlaying,
@@ -117,7 +112,6 @@ export function usePodcastPlayer() {
     skipForward,
     skipBackward,
     refetchPodcastData,
-    handleCompletion: handlePodcastCompletion,
-    completionPercentage
+    handleCompletion: handlePodcastCompletion
   };
 }

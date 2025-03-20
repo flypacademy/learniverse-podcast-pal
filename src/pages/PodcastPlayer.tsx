@@ -103,9 +103,6 @@ const PodcastPlayer = () => {
     if (success && componentMountedRef.current) {
       console.log("Setting XP modal to show with completion XP:", XP_AMOUNTS.PODCAST_COMPLETION);
       setXpEarned(XP_AMOUNTS.PODCAST_COMPLETION);
-      
-      // For podcast completion, we can show both the toast and the XP modal
-      // Toast will appear immediately, XP modal shows a bit bigger reward display
       setShowXPModal(true);
       
       // Auto-hide XP modal after 5 seconds
