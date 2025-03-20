@@ -1,10 +1,11 @@
 
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAudioStore } from "@/lib/audioContext";
 import { ChevronUp, X } from "lucide-react";
 import PlayerControls from "./PlayerControls";
 import { Card } from "@/components/ui/card";
+import { useMiniPlayerTracking } from "@/hooks/podcast/useMiniPlayerTracking";
 
 interface MiniPlayerProps {
   podcastId: string;
@@ -15,19 +16,43 @@ interface MiniPlayerProps {
 
 const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerProps) => {
   const navigate = useNavigate();
-  const { isPlaying, currentTime, duration, play, pause } = useAudioStore();
+  const { isPlaying, currentTime, duration, play, pause, currentPodcastId } = useAudioStore();
+  const mountedRef = useRef(false);
+  
+  // Start tracking playback progress
+  useMiniPlayerTracking(podcastId);
+  
+  // Log mini player mount/unmount for debugging
+  useEffect(() => {
+    console.log("MiniPlayer: Mounted for podcast", podcastId);
+    mountedRef.current = true;
+    
+    return () => {
+      console.log("MiniPlayer: Unmounted");
+      mountedRef.current = false;
+    };
+  }, [podcastId]);
   
   // Calculate progress percentage
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
   
+  // Use actual podcast ID (either from props or from store)
+  const actualPodcastId = podcastId || currentPodcastId;
+  
   // Handle expand click to navigate to full player
   const handleExpandClick = () => {
-    navigate(`/podcast/${podcastId}`);
+    if (actualPodcastId) {
+      console.log("MiniPlayer: Navigating to full player for", actualPodcastId);
+      navigate(`/podcast/${actualPodcastId}`);
+    } else {
+      console.error("MiniPlayer: Cannot navigate - no podcast ID available");
+    }
   };
   
   // Handle close click to stop playback and reset
   const handleCloseClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    console.log("MiniPlayer: Close clicked");
     pause();
     // We don't cleanup the audio store here to allow resuming later
   };
@@ -47,7 +72,7 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
       onClick={handleExpandClick}
     >
       {/* Progress bar at the top */}
-      <div className="h-1 bg-gray-200 w-full absolute top-0 left-0">
+      <div className="h-1.5 bg-gray-200 w-full absolute top-0 left-0">
         <div 
           className="h-full bg-primary transition-all duration-200 ease-out"
           style={{ width: `${progressPercent}%` }}

@@ -56,6 +56,7 @@ export function useMiniPlayerTracking(podcastId?: string, courseId?: string) {
   }, [actualPodcastId, currentTime, saveProgress, isPlaying]);
   
   return {
-    isTracking: progressTrackingRef.current
+    isTracking: progressTrackingRef.current,
+    podcastId: actualPodcastId
   };
 }

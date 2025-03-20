@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Home, BookOpen, User, Target } from "lucide-react";
 import { useAudioStore } from "@/lib/audioContext";
@@ -11,7 +11,9 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
-  const { currentPodcastId, podcastMeta, isPlaying, audioElement } = useAudioStore();
+  const { currentPodcastId, podcastMeta, isPlaying, audioElement, isAudioReady } = useAudioStore();
+  const previousPathRef = useRef<string>(location.pathname);
+  const playAttemptedRef = useRef<boolean>(false);
   
   // Show mini player except on the podcast page
   const isPodcastPage = location.pathname.includes('/podcast/') && 
@@ -23,35 +25,56 @@ const Layout = ({ children }: LayoutProps) => {
     hasMeta: !!podcastMeta, 
     isPodcastPage, 
     showMiniPlayer,
-    isPlaying
+    isPlaying,
+    audioReady: isAudioReady()
   });
   
   // Critical: Ensure audio continues playing during navigation
   useEffect(() => {
-    if (audioElement && isPlaying && audioElement.paused) {
-      console.log("Layout: Ensuring audio playback continues during navigation");
+    // Only run this effect when the path changes, not on first render
+    if (previousPathRef.current !== location.pathname) {
+      console.log("Layout: Path changed from", previousPathRef.current, "to", location.pathname);
+      previousPathRef.current = location.pathname;
+      playAttemptedRef.current = false;
       
-      // Attempt to resume playback immediately
-      const playNow = () => {
-        if (!audioElement) return;
-        
-        console.log("Layout: Attempting to resume playback");
-        const playPromise = audioElement.play();
-        
-        if (playPromise) {
-          playPromise.catch(error => {
-            console.warn("Layout: Could not auto-play during navigation:", error);
-          });
-        }
+      // Reset the play attempted flag when navigating to a podcast page
+      if (isPodcastPage) {
+        playAttemptedRef.current = true; // Skip attempts on podcast pages
+      }
+    }
+    
+    // If we have audio, it should be playing, but it's paused, try to resume it
+    if (audioElement && isPlaying && audioElement.paused && !playAttemptedRef.current) {
+      console.log("Layout: Ensuring audio playback continues during navigation");
+      playAttemptedRef.current = true;
+      
+      // Attempt to resume playback with increasing delays
+      const attemptPlay = (delay: number, attempt: number = 1) => {
+        setTimeout(() => {
+          if (!audioElement || !isPlaying) return;
+          
+          if (audioElement.paused) {
+            console.log(`Layout: Attempting to resume playback (attempt ${attempt})`);
+            const playPromise = audioElement.play();
+            
+            if (playPromise) {
+              playPromise.catch(error => {
+                console.warn(`Layout: Could not auto-play during navigation (attempt ${attempt}):`, error);
+                
+                // Try again with a longer delay if we haven't exceeded max attempts
+                if (attempt < 5) {
+                  attemptPlay(delay * 1.5, attempt + 1);
+                }
+              });
+            }
+          }
+        }, delay);
       };
       
       // Try multiple times with increasing delays
-      playNow();
-      setTimeout(playNow, 100);
-      setTimeout(playNow, 300);
-      setTimeout(playNow, 500);
+      attemptPlay(100);
     }
-  }, [location.pathname, isPlaying, audioElement]);
+  }, [location.pathname, isPlaying, audioElement, isPodcastPage, isAudioReady]);
   
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-white to-gray-50 relative">

@@ -44,6 +44,11 @@ export const useAudioStore = create<AudioState>((set, get) => {
     },
     setCurrentTime: audioControls.setCurrentTime,
     setDuration: audioControls.setDuration,
-    setVolume: audioControls.setVolume
+    setVolume: audioControls.setVolume,
+    
+    // New method to check if audio is ready
+    isAudioReady: () => {
+      return get().audioElement !== null && get().currentPodcastId !== null;
+    }
   };
 });

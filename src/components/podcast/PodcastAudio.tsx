@@ -62,6 +62,11 @@ const PodcastAudio = ({
       console.log("PodcastAudio: Audio registered without metadata", podcastId);
     }
     
+    // Add data attribute to help with debugging
+    if (audioRef.current) {
+      audioRef.current.dataset.podcastId = podcastId;
+    }
+    
     // IMPORTANT: Do NOT clean up audio on unmount - this is what was causing playback to stop
     return () => {
       console.log("PodcastAudio: Component unmounting, but KEEPING audio in store");
