@@ -57,7 +57,7 @@ export function usePodcastPlayer() {
   const {
     saveProgress,
     handleCompletion,
-    loadProgress
+    fetchUserProgress
   } = useProgressTracking(
     podcastId,
     audioRef.current,
@@ -71,7 +71,7 @@ export function usePodcastPlayer() {
   useEffect(() => {
     async function loadUserProgress() {
       if (podcastData && audioRef.current) {
-        const progressData = await loadProgress();
+        const progressData = await fetchUserProgress();
         if (progressData && progressData.last_position > 0) {
           console.log("Restoring saved position:", progressData.last_position);
           audioRef.current.currentTime = progressData.last_position;
@@ -83,7 +83,7 @@ export function usePodcastPlayer() {
     if (podcastData) {
       loadUserProgress();
     }
-  }, [podcastData, loadProgress, setCurrentTime]);
+  }, [podcastData, fetchUserProgress, setCurrentTime]);
   
   // Set up audio element when podcast data loads
   useEffect(() => {
