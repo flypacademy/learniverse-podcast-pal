@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { BarChart, RefreshCw } from "lucide-react";
+import { BarChart, RefreshCw, Headphones } from "lucide-react";
 import { useUsers } from "@/hooks/useUsers";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -68,6 +68,12 @@ const AdminUsers = () => {
               <Button variant="outline" className="flex items-center gap-2">
                 <BarChart className="h-4 w-4" />
                 User Statistics
+              </Button>
+            </Link>
+            <Link to="/admin/users/listening-stats">
+              <Button variant="outline" className="flex items-center gap-2">
+                <Headphones className="h-4 w-4" />
+                Listening Stats
               </Button>
             </Link>
           </div>
