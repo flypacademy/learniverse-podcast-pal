@@ -23,4 +23,5 @@ export interface AudioState {
   setDuration: (duration: number) => void;
   setVolume: (volume: number) => void;
   cleanup: () => void;
+  isAudioReady: () => boolean;
 }

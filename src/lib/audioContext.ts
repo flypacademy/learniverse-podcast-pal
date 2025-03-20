@@ -46,7 +46,7 @@ export const useAudioStore = create<AudioState>((set, get) => {
     setDuration: audioControls.setDuration,
     setVolume: audioControls.setVolume,
     
-    // New method to check if audio is ready
+    // Method to check if audio is ready
     isAudioReady: () => {
       return get().audioElement !== null && get().currentPodcastId !== null;
     }
