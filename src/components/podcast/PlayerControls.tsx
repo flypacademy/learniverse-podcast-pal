@@ -26,7 +26,7 @@ const PlayerControls = ({
         onClick={onSkipBack}
         aria-label="Skip back 10 seconds"
       >
-        <SkipBack className="h-7 w-7" />
+        <SkipBack className={`${isSmall ? 'h-5 w-5' : 'h-7 w-7'}`} />
       </button>
       
       <button 
@@ -49,7 +49,7 @@ const PlayerControls = ({
         onClick={onSkipForward}
         aria-label="Skip forward 10 seconds"
       >
-        <SkipForward className="h-7 w-7" />
+        <SkipForward className={`${isSmall ? 'h-5 w-5' : 'h-7 w-7'}`} />
       </button>
     </div>
   );
