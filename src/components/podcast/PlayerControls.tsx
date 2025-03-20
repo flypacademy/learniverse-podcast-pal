@@ -5,16 +5,18 @@ import { Play, Pause, SkipBack, SkipForward } from "lucide-react";
 interface PlayerControlsProps {
   isPlaying: boolean;
   onPlayPause: () => void;
-  onSkipBack?: () => void;
-  onSkipForward?: () => void;
+  onSkipBack: () => void;
+  onSkipForward: () => void;
+  disabled?: boolean;
   size?: "normal" | "small";
 }
 
 const PlayerControls = ({ 
   isPlaying, 
   onPlayPause, 
-  onSkipBack = () => {}, 
-  onSkipForward = () => {},
+  onSkipBack, 
+  onSkipForward,
+  disabled = false,
   size = "normal"
 }: PlayerControlsProps) => {
   const isSmall = size === "small";
@@ -24,7 +26,7 @@ const PlayerControls = ({
       <button 
         className="text-gray-500 hover:text-gray-700 transition-colors"
         onClick={onSkipBack}
-        aria-label="Skip back 10 seconds"
+        aria-label="Skip back 15 seconds"
       >
         <SkipBack className="h-7 w-7" />
       </button>
@@ -37,6 +39,7 @@ const PlayerControls = ({
             : 'h-16 w-16'
         } rounded-full bg-primary text-white flex items-center justify-center shadow-lg hover:bg-primary/90 transition-all duration-300 transform hover:scale-105`}
         aria-label={isPlaying ? "Pause" : "Play"}
+        disabled={disabled}
       >
         {isPlaying ? 
           <Pause className={`${isSmall ? 'h-5 w-5' : 'h-7 w-7'}`} /> : 
@@ -47,7 +50,7 @@ const PlayerControls = ({
       <button 
         className="text-gray-500 hover:text-gray-700 transition-colors"
         onClick={onSkipForward}
-        aria-label="Skip forward 10 seconds"
+        aria-label="Skip forward 15 seconds"
       >
         <SkipForward className="h-7 w-7" />
       </button>
