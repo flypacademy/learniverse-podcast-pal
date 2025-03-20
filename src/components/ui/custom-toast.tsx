@@ -1,7 +1,7 @@
 
 import { ReactNode } from "react";
 import { Award, Star, Trophy, Zap, Sparkles } from "lucide-react";
-import { toast as sonnerToast, Toast } from "sonner";
+import { toast as sonnerToast } from "sonner";
 import { useToast } from "@/components/ui/use-toast";
 
 type IconName = "award" | "star" | "trophy" | "zap" | "sparkles";
