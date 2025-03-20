@@ -1,84 +1,123 @@
 
-import { useEffect, useRef } from "react";
-import { useProgressTracking } from "./useProgressTracking";
-import { XPReason } from "@/types/xp";
-import { useXP } from "@/hooks/useXP";
+import { useEffect } from 'react';
+import { useAudioStore } from '@/lib/audioContext';
+import { supabase } from '@/lib/supabase';
+import { useXP } from '@/hooks/useXP';
+import { XPReason } from '@/types/xp';
 
-interface UseMiniPlayerTrackingProps {
-  podcastId: string;
-  isPlaying: boolean;
-  audioElement: HTMLAudioElement | null;
-}
-
-export function useMiniPlayerTracking({
-  podcastId,
-  isPlaying,
-  audioElement
-}: UseMiniPlayerTrackingProps) {
-  const { saveProgress } = useProgressTracking(
-    podcastId,
-    { current: audioElement },
-    isPlaying,
-    undefined
-  );
+export function useMiniPlayerTracking(podcastId: string) {
+  const { 
+    isPlaying, 
+    currentTime, 
+    audioElement
+  } = useAudioStore();
   
   const { awardXP } = useXP();
   
-  // Track listening time for XP
-  const lastTimestampRef = useRef(Date.now());
-  const accumulatedTimeRef = useRef(0);
-  
+  // Track progress for saving
   useEffect(() => {
-    let trackingInterval: NodeJS.Timeout | null = null;
+    if (!podcastId || !isPlaying || !audioElement) return;
     
-    if (isPlaying && audioElement && podcastId) {
-      console.log("MiniPlayer: Starting XP tracking interval");
-      lastTimestampRef.current = Date.now();
-      
-      // Track time and save progress while playing
-      trackingInterval = setInterval(() => {
-        if (audioElement) {
-          // Calculate time elapsed since last check (in seconds)
-          const now = Date.now();
-          const elapsed = (now - lastTimestampRef.current) / 1000;
-          lastTimestampRef.current = now;
-          
-          // Only count time if actually playing
-          if (isPlaying && !audioElement.paused) {
-            accumulatedTimeRef.current += elapsed;
-            
-            // Award XP every full minute (60 seconds)
-            if (accumulatedTimeRef.current >= 60) {
-              console.log(`MiniPlayer: Awarding XP for ${Math.floor(accumulatedTimeRef.current)} seconds of listening`);
-              const minutes = Math.floor(accumulatedTimeRef.current / 60);
-              awardXP(minutes * 10, XPReason.LISTENING_TIME);
-              accumulatedTimeRef.current = accumulatedTimeRef.current % 60;
-            }
-          }
-          
-          // Save current progress
-          saveProgress();
+    let lastSaveTime = Date.now();
+    let lastTrackingTime = Date.now();
+    let listeningSeconds = 0;
+    
+    const trackingInterval = setInterval(() => {
+      // Only count if actually playing
+      if (isPlaying && audioElement && !audioElement.paused) {
+        const now = Date.now();
+        
+        // Calculate elapsed listening time
+        const elapsed = (now - lastTrackingTime) / 1000;
+        lastTrackingTime = now;
+        listeningSeconds += elapsed;
+        
+        // Award XP every full minute (60 seconds)
+        if (listeningSeconds >= 60) {
+          const minutes = Math.floor(listeningSeconds / 60);
+          awardXP(minutes * 10, XPReason.LISTENING_TIME);
+          listeningSeconds = listeningSeconds % 60;
         }
-      }, 5000); // Check every 5 seconds
-    }
+        
+        // Save progress every 5 seconds
+        if (now - lastSaveTime > 5000) {
+          saveProgress(podcastId, currentTime);
+          lastSaveTime = now;
+        }
+      }
+    }, 1000);
     
     return () => {
-      if (trackingInterval) {
-        clearInterval(trackingInterval);
-        
-        // Award XP for any accumulated listening time when unmounting
-        if (audioElement && podcastId && accumulatedTimeRef.current > 10) { // Only award if meaningful time spent
-          console.log(`MiniPlayer: Unmounting - awarding XP for ${accumulatedTimeRef.current} seconds`);
-          const minutes = Math.floor(accumulatedTimeRef.current / 60);
-          if (minutes > 0) {
-            awardXP(minutes * 10, XPReason.LISTENING_TIME);
-          }
+      clearInterval(trackingInterval);
+      
+      // Final save on unmount
+      saveProgress(podcastId, currentTime);
+      
+      // Award XP for remaining time
+      if (listeningSeconds >= 10) {
+        const minutes = Math.floor(listeningSeconds / 60);
+        if (minutes > 0) {
+          awardXP(minutes * 10, XPReason.LISTENING_TIME);
         }
       }
     };
-  }, [isPlaying, audioElement, podcastId, saveProgress, awardXP]);
+  }, [podcastId, isPlaying, audioElement, currentTime, awardXP]);
+  
+  return { saveProgress };
+}
 
-  return {
-    saveProgress
-  };
+// Save progress to database
+async function saveProgress(podcastId: string, currentTime: number) {
+  if (!podcastId) return;
+  
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return;
+    
+    const userId = session.user.id;
+    const last_position = Math.floor(currentTime);
+    
+    console.log("MiniPlayer: Saving progress:", {
+      podcastId,
+      position: last_position
+    });
+    
+    // Check if record exists
+    const { data: existingRecord } = await supabase
+      .from('user_progress')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('podcast_id', podcastId)
+      .maybeSingle();
+    
+    const timestamp = new Date().toISOString();
+    
+    if (existingRecord) {
+      // Update existing record
+      await supabase
+        .from('user_progress')
+        .update({
+          last_position,
+          updated_at: timestamp
+        })
+        .eq('user_id', userId)
+        .eq('podcast_id', podcastId);
+    } else {
+      // Insert new record
+      await supabase
+        .from('user_progress')
+        .insert([
+          {
+            user_id: userId,
+            podcast_id: podcastId,
+            last_position,
+            completed: false,
+            updated_at: timestamp,
+            created_at: timestamp
+          }
+        ]);
+    }
+  } catch (error) {
+    console.error("Error saving progress:", error);
+  }
 }

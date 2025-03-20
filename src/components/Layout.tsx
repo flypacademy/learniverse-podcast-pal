@@ -18,6 +18,14 @@ const Layout = ({ children }: LayoutProps) => {
                        !location.pathname.includes('/podcast-sample');
   const showMiniPlayer = !!currentPodcastId && !!podcastMeta && !isPodcastPage;
   
+  console.log("Layout: Checking mini player visibility", { 
+    currentPodcastId, 
+    hasMeta: !!podcastMeta, 
+    isPodcastPage, 
+    showMiniPlayer,
+    isPlaying
+  });
+  
   // Critical: Ensure audio continues playing during navigation
   useEffect(() => {
     if (isPlaying && audioElement && audioElement.paused) {

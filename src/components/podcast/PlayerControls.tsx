@@ -1,59 +1,90 @@
 
 import React from "react";
+import { Button } from "@/components/ui/button";
 import { Play, Pause, SkipBack, SkipForward } from "lucide-react";
 
 interface PlayerControlsProps {
   isPlaying: boolean;
   onPlayPause: () => void;
-  onSkipBack?: () => void;
-  onSkipForward?: () => void;
-  size?: "normal" | "small";
+  onSkipBack: () => void;
+  onSkipForward: () => void;
+  size?: "small" | "medium" | "large";
 }
 
-const PlayerControls = ({ 
-  isPlaying, 
-  onPlayPause, 
-  onSkipBack = () => {}, 
-  onSkipForward = () => {},
-  size = "normal"
+const PlayerControls = ({
+  isPlaying,
+  onPlayPause,
+  onSkipBack,
+  onSkipForward,
+  size = "medium"
 }: PlayerControlsProps) => {
-  const isSmall = size === "small";
+  // Size-based styles
+  const getButtonStyles = () => {
+    switch(size) {
+      case "small":
+        return {
+          skipButton: "h-8 w-8",
+          playButton: "h-10 w-10",
+          iconSize: "h-4 w-4",
+          playIconSize: "h-5 w-5"
+        };
+      case "large":
+        return {
+          skipButton: "h-12 w-12",
+          playButton: "h-16 w-16",
+          iconSize: "h-6 w-6",
+          playIconSize: "h-8 w-8"
+        };
+      default: // medium
+        return {
+          skipButton: "h-10 w-10",
+          playButton: "h-14 w-14",
+          iconSize: "h-5 w-5",
+          playIconSize: "h-7 w-7"
+        };
+    }
+  };
+  
+  const styles = getButtonStyles();
   
   return (
-    <div className={`flex items-center justify-center ${isSmall ? 'gap-2' : 'gap-8'}`}>
-      <button 
-        className="text-gray-500 hover:text-gray-700 transition-colors"
+    <div className="flex items-center gap-2">
+      <Button
+        type="button"
+        size="icon"
+        variant="ghost"
         onClick={onSkipBack}
-        aria-label="Skip back 10 seconds"
-        type="button"
+        className={styles.skipButton}
+        aria-label="Skip backward"
       >
-        <SkipBack className={`${isSmall ? 'h-5 w-5' : 'h-7 w-7'}`} />
-      </button>
+        <SkipBack className={styles.iconSize} />
+      </Button>
       
-      <button 
+      <Button
+        type="button"
+        size="icon"
+        variant={size === "small" ? "ghost" : "default"}
         onClick={onPlayPause}
-        className={`${
-          isSmall 
-            ? 'h-10 w-10' 
-            : 'h-16 w-16'
-        } rounded-full bg-primary text-white flex items-center justify-center shadow-lg hover:bg-primary/90 transition-all duration-300 transform hover:scale-105`}
+        className={`${styles.playButton} ${size !== "small" ? "bg-primary hover:bg-primary/90" : ""} rounded-full`}
         aria-label={isPlaying ? "Pause" : "Play"}
-        type="button"
       >
-        {isPlaying ? 
-          <Pause className={`${isSmall ? 'h-5 w-5' : 'h-7 w-7'}`} /> : 
-          <Play className={`${isSmall ? 'h-5 w-5 ml-0.5' : 'h-7 w-7 ml-1'}`} />
-        }
-      </button>
+        {isPlaying ? (
+          <Pause className={styles.playIconSize} />
+        ) : (
+          <Play className={styles.playIconSize} style={{ marginLeft: "2px" }} />
+        )}
+      </Button>
       
-      <button 
-        className="text-gray-500 hover:text-gray-700 transition-colors"
-        onClick={onSkipForward}
-        aria-label="Skip forward 10 seconds"
+      <Button
         type="button"
+        size="icon"
+        variant="ghost"
+        onClick={onSkipForward}
+        className={styles.skipButton}
+        aria-label="Skip forward"
       >
-        <SkipForward className={`${isSmall ? 'h-5 w-5' : 'h-7 w-7'}`} />
-      </button>
+        <SkipForward className={styles.iconSize} />
+      </Button>
     </div>
   );
 };

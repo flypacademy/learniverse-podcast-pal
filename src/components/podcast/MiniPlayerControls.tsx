@@ -32,7 +32,7 @@ const MiniPlayerControls = ({
       
       {/* Full-screen button */}
       <Link to={`/podcast/${podcastId}`}>
-        <Button size="icon" variant="ghost" className="h-8 w-8">
+        <Button type="button" size="icon" variant="ghost" className="h-8 w-8">
           <ChevronUp className="h-5 w-5" />
         </Button>
       </Link>

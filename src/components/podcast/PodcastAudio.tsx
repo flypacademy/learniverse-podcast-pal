@@ -22,6 +22,7 @@ const PodcastAudio = ({
   const prevSrcRef = useRef<string | undefined>(undefined);
   const audioStore = useAudioStore();
   const srcChangedRef = useRef(false);
+  const initializedRef = useRef(false);
   
   // Set up the audio element and register it with the store
   useEffect(() => {
@@ -36,7 +37,7 @@ const PodcastAudio = ({
       prevSrcRef.current = src;
     }
     
-    // Register with the audio store
+    // Register with the audio store (do this every time to ensure we're registered)
     if (podcastMeta) {
       console.log("PodcastAudio: Registering with audio store", podcastId);
       audioStore.setAudio(audioRef.current, podcastId, {
@@ -46,10 +47,15 @@ const PodcastAudio = ({
         image: podcastMeta.image
       });
 
+      // Mark as initialized
+      initializedRef.current = true;
+
       // Add a log to confirm the podcast is registered
       console.log("PodcastAudio: Audio registered successfully", {
         id: podcastId,
-        title: podcastMeta.title
+        title: podcastMeta.title,
+        image: podcastMeta.image,
+        currentPodcastId: audioStore.currentPodcastId
       });
     } else {
       audioStore.setAudio(audioRef.current, podcastId);
@@ -63,6 +69,31 @@ const PodcastAudio = ({
       // playing in the mini player when navigating away
     };
   }, [src, audioRef, audioStore, podcastId, podcastMeta]);
+
+  // Double-check initialization
+  useEffect(() => {
+    // If we've been mounted for a second and still don't see ourselves in the store,
+    // try to register again
+    const checkTimer = setTimeout(() => {
+      if (audioRef.current && podcastId && podcastMeta && initializedRef.current) {
+        const storeState = audioStore.currentPodcastId;
+        if (storeState !== podcastId) {
+          console.log("PodcastAudio: Re-registering with audio store after timeout", {
+            currentInStore: storeState,
+            ourId: podcastId
+          });
+          audioStore.setAudio(audioRef.current, podcastId, {
+            id: podcastId,
+            title: podcastMeta.title,
+            courseName: podcastMeta.courseName,
+            image: podcastMeta.image
+          });
+        }
+      }
+    }, 1000);
+    
+    return () => clearTimeout(checkTimer);
+  }, [audioRef, audioStore, podcastId, podcastMeta]);
 
   return null; // This is just a wrapper, it doesn't render anything
 };
