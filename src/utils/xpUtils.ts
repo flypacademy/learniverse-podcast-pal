@@ -1,4 +1,3 @@
-
 import { supabase } from "@/lib/supabase";
 import { XPReason } from "@/types/xp";
 
@@ -91,34 +90,34 @@ export const awardXP = async (
       }
     }
     
-    // Log XP transaction (optional - could be used for history/audit)
-    try {
-      // Record the XP transaction (this is optional, you can add this table to track all XP gains)
-      /*
-      const { error: transactionError } = await supabase
-        .from('xp_transactions')
-        .insert({
-          user_id: userId,
-          amount: amount,
-          reason: reason,
-          created_at: timestamp
-        });
-      
-      if (transactionError) {
-        console.error("Error logging XP transaction:", transactionError);
-        // Continue anyway - this is non-critical
-      }
-      */
-    } catch (transactionErr) {
-      console.error("Error in XP transaction logging:", transactionErr);
-      // Continue anyway - the main XP update was successful
-    }
-    
     // Show toast notification if toast function is provided
     if (showToast) {
+      // Create user-friendly reason text
+      let reasonText = reason;
+      switch (reason) {
+        case XPReason.LISTENING_TIME:
+          reasonText = "listening time";
+          break;
+        case XPReason.PODCAST_COMPLETION:
+          reasonText = "completing this podcast";
+          break;
+        case XPReason.STREAK_DAY:
+          reasonText = "daily streak";
+          break;
+        case XPReason.WEEKLY_STREAK:
+          reasonText = "weekly streak";
+          break;
+        case XPReason.QUIZ_COMPLETION:
+          reasonText = "completing a quiz";
+          break;
+        case XPReason.QUIZ_PERFECT:
+          reasonText = "perfect quiz score";
+          break;
+      }
+      
       showToast({
-        title: "XP Earned!",
-        description: `You earned ${amount} XP for ${reason}`
+        title: `+${amount} XP`,
+        description: `Earned for ${reasonText}`
       });
     }
     

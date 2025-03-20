@@ -6,6 +6,8 @@ import { calculateListeningXP, XP_AMOUNTS } from "@/utils/xpUtils";
 import { useXP } from "@/hooks/useXP";
 import { supabase } from "@/lib/supabase";
 import { XPReason } from "@/types/xp";
+import { useToast } from "@/components/ui/use-toast";
+import { Award } from "lucide-react";
 
 export function useProgressTracking(
   podcastId: string | undefined, 
@@ -16,6 +18,7 @@ export function useProgressTracking(
   const { saveProgress } = useProgressSaving(podcastId, podcastCourseId);
   const { fetchUserProgress } = useProgressFetching(podcastId);
   const { awardXP } = useXP();
+  const { toast } = useToast();
   
   // Track listening time for XP awards
   const [lastXpAwardTime, setLastXpAwardTime] = useState<number>(0);
@@ -107,7 +110,15 @@ export function useProgressTracking(
     if (xpAmount > 0) {
       const success = await awardXP(xpAmount, XPReason.LISTENING_TIME);
       
+      // Show toast notification for XP gain
       if (success) {
+        toast({
+          title: `+${xpAmount} XP`,
+          description: `Earned for ${Math.round(seconds / 60)} minutes of listening`,
+          icon: "award",
+          duration: 3000,
+        });
+        
         // Reset accumulated time after awarding XP
         setAccumulatedTime(0);
       }
@@ -127,6 +138,16 @@ export function useProgressTracking(
         XP_AMOUNTS.PODCAST_COMPLETION,
         XPReason.PODCAST_COMPLETION
       );
+      
+      // Show toast notification for podcast completion XP
+      if (completionSuccess) {
+        toast({
+          title: `+${XP_AMOUNTS.PODCAST_COMPLETION} XP`,
+          description: "Earned for completing this podcast",
+          icon: "trophy",
+          duration: 4000,
+        });
+      }
       
       console.log("Podcast completion XP award success:", completionSuccess);
       return completionSuccess;
