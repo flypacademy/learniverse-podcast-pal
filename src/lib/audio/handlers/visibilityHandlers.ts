@@ -17,9 +17,21 @@ export const createVisibilityHandlers = (
       const isCurrentlyPlaying = get().isPlaying;
       if (isCurrentlyPlaying && audioElement.paused) {
         console.log("Visibility change detected, resuming playback");
-        audioElement.play().catch(err => {
-          console.warn("Could not auto-resume audio after visibility change:", err);
-        });
+        const playPromise = audioElement.play();
+        if (playPromise) {
+          playPromise.catch(err => {
+            console.warn("Could not auto-resume audio after visibility change:", err);
+            
+            // Try again with a small delay - this helps with mobile browsers
+            setTimeout(() => {
+              if (isCurrentlyPlaying && audioElement.paused) {
+                audioElement.play().catch(e => {
+                  console.warn("Second attempt to auto-resume failed:", e);
+                });
+              }
+            }, 300);
+          });
+        }
       }
     }
   };

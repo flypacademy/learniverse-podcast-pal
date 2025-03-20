@@ -22,17 +22,26 @@ const Layout = ({ children }: LayoutProps) => {
   useEffect(() => {
     if (showMiniPlayer && isPlaying && audioElement && audioElement.paused) {
       console.log("Layout: Ensuring audio playback continues during navigation");
-      // Using a synchronous approach for immediate playback
-      try {
-        const playPromise = audioElement.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(error => {
-            console.warn("Layout: Could not auto-play during navigation:", error);
-          });
+      // Using a timeout to ensure DOM updates complete first
+      setTimeout(() => {
+        if (audioElement.paused && isPlaying) {
+          const playPromise = audioElement.play();
+          if (playPromise) {
+            playPromise.catch(error => {
+              console.warn("Layout: Could not auto-play during navigation:", error);
+              
+              // Try one more time with a delay
+              setTimeout(() => {
+                if (audioElement.paused && isPlaying) {
+                  audioElement.play().catch(e => {
+                    console.warn("Layout: Second attempt to auto-play failed:", e);
+                  });
+                }
+              }, 300);
+            });
+          }
         }
-      } catch (error) {
-        console.warn("Layout: Error auto-playing audio during navigation:", error);
-      }
+      }, 100); // Short delay to let DOM update
     }
   }, [showMiniPlayer, isPlaying, audioElement, location.pathname]);
   
@@ -42,7 +51,7 @@ const Layout = ({ children }: LayoutProps) => {
         {children}
       </main>
       
-      {/* Mini Player - Pass the current podcast ID to ensure proper XP tracking */}
+      {/* Mini Player - Fixed positioning to ensure it stays visible */}
       {showMiniPlayer && podcastMeta && (
         <div className="fixed bottom-20 left-0 right-0 z-20">
           <div className="max-w-md mx-auto px-4">
