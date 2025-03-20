@@ -14,6 +14,7 @@ const UserListeningStats = () => {
   const [userStats, setUserStats] = useState<(ListeningStats & { id: string })[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
   const fetchAllUserListeningStats = async () => {
     try {
@@ -96,13 +97,9 @@ const UserListeningStats = () => {
           
           // Add to total time if last_position is valid
           if (entry.last_position && typeof entry.last_position === 'number' && !isNaN(entry.last_position)) {
-            // Convert seconds to minutes
-            const minutes = Math.floor(entry.last_position / 60);
-            userStatsMap[userId].totalMinutes += minutes;
-            
-            // Also add the remaining seconds (convert to fraction of minute)
-            const remainingSeconds = entry.last_position % 60;
-            userStatsMap[userId].totalMinutes += (remainingSeconds / 60);
+            // Use floating point arithmetic for more accurate time tracking
+            // Convert seconds to minutes with precision
+            userStatsMap[userId].totalMinutes += (entry.last_position / 60);
           }
           
           // Update last listened date if more recent
@@ -120,16 +117,38 @@ const UserListeningStats = () => {
       );
       
       setUserStats(statsArray);
+      setLastRefresh(new Date());
       setLoading(false);
+      
+      // Show success toast
+      toast({
+        title: "Stats refreshed",
+        description: `Found ${progressData?.length || 0} listening entries across ${users?.length || 0} users.`
+      });
     } catch (err: any) {
       console.error("Error fetching all user stats:", err);
       setError(err.message || "Failed to fetch user statistics");
       setLoading(false);
+      
+      // Show error toast
+      toast({
+        title: "Error refreshing stats",
+        description: err.message || "Failed to fetch user statistics",
+        variant: "destructive"
+      });
     }
   };
   
+  // Fetch initially
   useEffect(() => {
     fetchAllUserListeningStats();
+    
+    // Set up automatic refresh every 30 seconds
+    const refreshInterval = setInterval(() => {
+      fetchAllUserListeningStats();
+    }, 30000);
+    
+    return () => clearInterval(refreshInterval);
   }, []);
 
   // Format time function
@@ -154,10 +173,15 @@ const UserListeningStats = () => {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold tracking-tight">User Listening Statistics</h1>
-          <Button onClick={handleRefresh} variant="outline" className="flex items-center gap-2">
-            <RefreshCw className="h-4 w-4" />
-            Refresh Stats
-          </Button>
+          <div className="flex items-center gap-2">
+            <p className="text-sm text-gray-500">
+              Last updated: {format(lastRefresh, 'PPp')}
+            </p>
+            <Button onClick={handleRefresh} variant="outline" className="flex items-center gap-2">
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              Refresh Stats
+            </Button>
+          </div>
         </div>
         
         {loading ? (

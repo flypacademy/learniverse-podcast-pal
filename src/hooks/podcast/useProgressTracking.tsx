@@ -34,7 +34,7 @@ export function useProgressTracking(
     if (isPlaying && audioRef.current) {
       console.log("Starting XP tracking timer for podcast playback");
       
-      // Create a new timer to track XP
+      // Create a new timer to track XP with increased frequency
       xpTimerRef.current = setInterval(() => {
         if (!audioRef.current) return;
         
@@ -44,9 +44,9 @@ export function useProgressTracking(
           const newAccumulatedTime = accumulatedTime + newTime;
           setAccumulatedTime(newAccumulatedTime);
           
-          // Save progress more frequently (every 5 seconds of real time)
+          // Save progress more frequently (every 3 seconds of real time)
           const now = Date.now();
-          if (now - lastProgressSaveRef.current >= 5000) {
+          if (now - lastProgressSaveRef.current >= 3000) {
             saveProgress(audioRef.current);
             lastProgressSaveRef.current = now;
           }
@@ -59,7 +59,7 @@ export function useProgressTracking(
           }
         }
         setLastXpAwardTime(currentTime);
-      }, 2000); // Check every 2 seconds for more accurate tracking
+      }, 1000); // Check every second for more accurate tracking
     }
     
     return () => {
@@ -77,7 +77,7 @@ export function useProgressTracking(
         saveProgress(audioRef.current);
         lastProgressSaveRef.current = Date.now();
       }
-    }, 10000); // Save every 10 seconds while playing
+    }, 5000); // Save every 5 seconds while playing
     
     return () => clearInterval(progressInterval);
   }, [isPlaying, audioRef, saveProgress]);
@@ -85,12 +85,12 @@ export function useProgressTracking(
   // Award XP for accumulated listening time when component unmounts
   useEffect(() => {
     return () => {
-      if (audioRef.current && accumulatedTime > 10) { // Lower threshold to ensure we capture most time
+      if (audioRef.current && accumulatedTime > 0) { // Lower threshold to ensure we capture all time
         console.log(`Unmounting: saving final progress with ${audioRef.current.currentTime} seconds`);
         saveProgress(audioRef.current);
         
-        // Only award XP if we have enough accumulated time
-        if (accumulatedTime > 10) {
+        // Award XP for any accumulated time
+        if (accumulatedTime > 0) {
           awardListeningXP(accumulatedTime);
         }
       }
@@ -99,7 +99,7 @@ export function useProgressTracking(
   
   // Award XP for listening time
   const awardListeningXP = async (seconds: number = accumulatedTime) => {
-    if (seconds < 10) return; // Minimum threshold
+    if (seconds <= 0) return; // Only skip if zero or negative
     
     const xpAmount = calculateListeningXP(seconds);
     console.log(`Awarding XP for ${seconds} seconds of listening: ${xpAmount} XP`);

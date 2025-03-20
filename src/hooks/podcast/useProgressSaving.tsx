@@ -15,10 +15,10 @@ export function useProgressSaving(podcastId: string | undefined, podcastCourseId
       const userId = session.user.id;
       const last_position = Math.floor(audioElement.currentTime);
       
-      // Only save progress if we have a meaningful position (greater than 1 second)
-      // or if it's explicitly marked as completed
-      if (last_position <= 1 && !completed) {
-        console.log("Position too small to save progress:", last_position);
+      // Reduced threshold to capture even small amounts of listening time
+      // Only avoid saving if position is 0 and not completed
+      if (last_position === 0 && !completed) {
+        console.log("Position is zero, not saving progress");
         return;
       }
       
