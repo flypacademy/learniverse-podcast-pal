@@ -11,10 +11,10 @@ interface UserHeaderProps {
 
 const UserHeader = ({ userName, totalXP: propTotalXP }: UserHeaderProps) => {
   const { toast } = useToast();
-  const { xpData, loading, refreshXPData } = useXP();
+  const { totalXP, isLoading, refreshXPData } = useXP();
   
-  // Use prop totalXP if provided, otherwise use the xpData from the hook
-  const displayXP = propTotalXP !== undefined ? propTotalXP : (xpData?.totalXP || 0);
+  // Use prop totalXP if provided, otherwise use the totalXP from the hook
+  const displayXP = propTotalXP !== undefined ? propTotalXP : totalXP;
   
   // Refresh XP data when component mounts
   useEffect(() => {
@@ -46,7 +46,7 @@ const UserHeader = ({ userName, totalXP: propTotalXP }: UserHeaderProps) => {
         onClick={xpInfo}
       >
         <Sparkles className="h-4 w-4 mr-1" />
-        {loading ? "Loading..." : `${displayXP} XP`}
+        {isLoading ? "Loading..." : `${displayXP} XP`}
       </div>
     </div>
   );

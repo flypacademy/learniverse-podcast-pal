@@ -28,11 +28,11 @@ const Index = () => {
   const { toast } = useToast();
   const { recentCourses, loading: coursesLoading } = useRecentCourses();
   const { data: legacyUserData, loading: legacyUserLoading } = useUserXP();
-  const { xpData, loading: xpLoading, refreshXPData } = useXP();
+  const { totalXP, isLoading, refreshXPData } = useXP();
   
   // Use the new XP system data if available, otherwise fall back to legacy data
   const userName = legacyUserData?.userName || "Student";
-  const totalXP = xpData?.totalXP ?? legacyUserData?.totalXP ?? 0;
+  const displayXP = totalXP ?? legacyUserData?.totalXP ?? 0;
   
   // Refresh XP data when component mounts
   useEffect(() => {
@@ -51,7 +51,7 @@ const Index = () => {
         {/* User Header with real XP data */}
         <UserHeader 
           userName={userName} 
-          totalXP={totalXP} 
+          totalXP={displayXP} 
         />
         
         {/* Continue Learning with Carousel */}

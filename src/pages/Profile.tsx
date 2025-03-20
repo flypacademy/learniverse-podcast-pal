@@ -7,13 +7,13 @@ import { useXP } from "@/hooks/useXP";
 
 const Profile = () => {
   const { data: legacyUserData } = useUserXP();
-  const { xpData } = useXP();
+  const { totalXP } = useXP();
   
   // Merge data from both hooks
   const userData = {
     userName: legacyUserData?.userName || "Student",
-    totalXP: xpData?.totalXP ?? legacyUserData?.totalXP ?? 0,
-    weeklyXP: xpData?.weeklyXP ?? legacyUserData?.weeklyXP ?? 0,
+    totalXP: totalXP ?? legacyUserData?.totalXP ?? 0,
+    weeklyXP: legacyUserData?.weeklyXP ?? 0,
   };
   
   return (

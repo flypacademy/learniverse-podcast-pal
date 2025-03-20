@@ -87,16 +87,16 @@ interface ProfileContentProps {
 const ProfileContent: React.FC<ProfileContentProps> = ({ userData }) => {
   const { analytics, loading: analyticsLoading } = useListeningAnalytics(7);
   const { stats, loading: statsLoading, error: statsError } = useListeningStats();
-  const { xpData, loading: xpLoading } = useXP();
+  const { totalXP, isLoading } = useXP();
   const { toast } = useToast();
   
   // Use the XP data from the hook or fall back to the props data or finally to default
-  const totalXP = xpData?.totalXP ?? userData?.totalXP ?? defaultUserData.xp;
+  const displayXP = totalXP ?? userData?.totalXP ?? defaultUserData.xp;
   
   // Calculate level based on XP (500 XP per level)
-  const level = Math.floor(totalXP / 500) + 1;
+  const level = Math.floor(displayXP / 500) + 1;
   const nextLevelXP = level * 500;
-  const progress = ((totalXP % 500) / 500) * 100;
+  const progress = ((displayXP % 500) / 500) * 100;
   
   // Format listening time
   const formatListeningTime = () => {
@@ -143,7 +143,7 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ userData }) => {
   const userCardData = {
     name: userData?.userName || defaultUserData.name,
     email: defaultUserData.email,
-    xp: totalXP,
+    xp: displayXP,
     level,
     streak: defaultUserData.streak,
     nextLevelXP,

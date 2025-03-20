@@ -2,6 +2,7 @@
 import { useEffect, useRef } from "react";
 import { useProgressTracking } from "./useProgressTracking";
 import { XPReason } from "@/types/xp";
+import { useXP } from "@/hooks/useXP";
 
 interface UseMiniPlayerTrackingProps {
   podcastId: string;
@@ -14,12 +15,14 @@ export function useMiniPlayerTracking({
   isPlaying,
   audioElement
 }: UseMiniPlayerTrackingProps) {
-  const { saveProgress, awardXP } = useProgressTracking(
+  const { saveProgress } = useProgressTracking(
     podcastId,
     { current: audioElement },
     isPlaying,
     undefined
   );
+  
+  const { awardXP } = useXP();
   
   // Track listening time for XP
   const lastTimestampRef = useRef(Date.now());
