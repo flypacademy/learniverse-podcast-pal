@@ -13,21 +13,21 @@ const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
   const { currentPodcastId, podcastMeta, isPlaying, audioElement } = useAudioStore();
   
-  // Don't show mini player on the podcast page but ensure it's displayed on other pages
+  // Show mini player except on the podcast page
   const isPodcastPage = location.pathname.includes('/podcast/') && 
                        !location.pathname.includes('/podcast-sample');
   const showMiniPlayer = !!currentPodcastId && !!podcastMeta && !isPodcastPage;
   
   // Critical: Ensure audio continues playing during navigation
   useEffect(() => {
-    if (showMiniPlayer && isPlaying && audioElement && audioElement.paused) {
+    if (isPlaying && audioElement && audioElement.paused) {
       console.log("Layout: Ensuring audio playback continues during navigation");
       
       // Use a timeout to ensure DOM is ready
-      setTimeout(() => {
-        const { isPlaying: stillPlaying, audioElement: audio } = useAudioStore.getState();
+      const resumePlayback = () => {
+        const { isPlaying: currentlyPlaying, audioElement: audio } = useAudioStore.getState();
         
-        if (audio && stillPlaying && audio.paused) {
+        if (audio && currentlyPlaying && audio.paused) {
           console.log("Layout: Attempting to resume playback");
           const playPromise = audio.play();
           
@@ -35,10 +35,10 @@ const Layout = ({ children }: LayoutProps) => {
             playPromise.catch(error => {
               console.warn("Layout: Could not auto-play during navigation:", error);
               
-              // Try again with a delay
+              // Try again after a short delay
               setTimeout(() => {
-                const { isPlaying: nowPlaying, audioElement: currentAudio } = useAudioStore.getState();
-                if (currentAudio && nowPlaying && currentAudio.paused) {
+                const { isPlaying: stillPlaying, audioElement: currentAudio } = useAudioStore.getState();
+                if (currentAudio && stillPlaying && currentAudio.paused) {
                   currentAudio.play().catch(e => {
                     console.warn("Layout: Second attempt failed:", e);
                   });
@@ -47,9 +47,15 @@ const Layout = ({ children }: LayoutProps) => {
             });
           }
         }
-      }, 150);
+      };
+      
+      // Try immediately
+      resumePlayback();
+      
+      // And again after a delay to ensure DOM is ready
+      setTimeout(resumePlayback, 150);
     }
-  }, [location.pathname, showMiniPlayer, isPlaying, audioElement]);
+  }, [location.pathname, isPlaying, audioElement]);
   
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-white to-gray-50 relative">

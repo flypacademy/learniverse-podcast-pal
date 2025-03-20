@@ -1,7 +1,6 @@
 
 import React, { useEffect, useState } from "react";
 import { useAudioStore } from "@/lib/audioContext";
-import { formatTime } from "@/lib/utils";
 import MiniPlayerThumbnail from "./MiniPlayerThumbnail";
 import MiniPlayerInfo from "./MiniPlayerInfo";
 import MiniPlayerControls from "./MiniPlayerControls";
@@ -32,32 +31,45 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
   // Use local state to prevent rendering issues during transitions
   const [localProgress, setLocalProgress] = useState(0);
   
-  // Update progress calculation
+  // Update progress calculation whenever time or duration changes
   useEffect(() => {
     if (isFinite(currentTime) && isFinite(duration) && duration > 0) {
-      setLocalProgress(Math.min(100, Math.max(0, (currentTime / duration) * 100)));
+      const calculatedProgress = (currentTime / duration) * 100;
+      setLocalProgress(Math.min(100, Math.max(0, calculatedProgress)));
     }
   }, [currentTime, duration]);
   
   // Critical: Ensure audio continues playing when mini player appears
   useEffect(() => {
-    const ensurePlayback = () => {
-      if (isPlaying && audioElement && audioElement.paused) {
-        console.log("MiniPlayer: Audio should be playing but isn't, restarting");
-        play();
-      }
-    };
-    
-    // Check immediately
-    ensurePlayback();
-    
-    // And again after a short delay
-    const timer = setTimeout(ensurePlayback, 100);
-    
-    return () => clearTimeout(timer);
+    if (isPlaying && audioElement && audioElement.paused) {
+      console.log("MiniPlayer: Audio should be playing but isn't, resuming playback");
+      
+      // Try to play with a small delay to ensure DOM is ready
+      setTimeout(() => {
+        if (isPlaying && audioElement && audioElement.paused) {
+          console.log("MiniPlayer: Attempting to resume playback");
+          const playPromise = audioElement.play();
+          
+          if (playPromise) {
+            playPromise.catch(error => {
+              console.warn("MiniPlayer: Could not resume playback:", error);
+              
+              // Try again with a longer delay
+              setTimeout(() => {
+                if (isPlaying && audioElement && audioElement.paused) {
+                  audioElement.play().catch(e => {
+                    console.warn("MiniPlayer: Second attempt failed:", e);
+                  });
+                }
+              }, 500);
+            });
+          }
+        }
+      }, 200);
+    }
   }, [isPlaying, audioElement, play]);
   
-  // Track progress for saving and XP
+  // Track progress for saving
   useEffect(() => {
     if (!podcastId || !isPlaying || !audioElement) return;
     
@@ -116,6 +128,11 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
       
       const userId = session.user.id;
       const last_position = Math.floor(currentTime);
+      
+      console.log("MiniPlayer: Saving progress:", {
+        podcastId,
+        position: last_position
+      });
       
       // Check if record exists
       const { data: existingRecord } = await supabase

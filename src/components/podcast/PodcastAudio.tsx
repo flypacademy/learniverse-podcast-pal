@@ -45,8 +45,15 @@ const PodcastAudio = ({
         courseName: podcastMeta.courseName,
         image: podcastMeta.image
       });
+
+      // Add a log to confirm the podcast is registered
+      console.log("PodcastAudio: Audio registered successfully", {
+        id: podcastId,
+        title: podcastMeta.title
+      });
     } else {
       audioStore.setAudio(audioRef.current, podcastId);
+      console.log("PodcastAudio: Audio registered without metadata", podcastId);
     }
     
     // Clean up

@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { AudioState } from './audio/types';
 import { createAudioControls } from './audio/audioControls';
@@ -22,13 +23,25 @@ export const useAudioStore = create<AudioState>((set, get) => {
     podcastMeta: null,
     
     // Setup and cleanup methods
-    setAudio: audioSetup.setAudio,
-    setPodcastMeta: audioSetup.setPodcastMeta,
+    setAudio: (audioElement, podcastId, meta) => {
+      console.log("audioContext: setAudio called", { podcastId, meta });
+      audioSetup.setAudio(audioElement, podcastId, meta);
+    },
+    setPodcastMeta: (meta) => {
+      console.log("audioContext: setPodcastMeta called", meta);
+      audioSetup.setPodcastMeta(meta);
+    },
     cleanup: audioSetup.cleanup,
     
     // Playback control methods
-    play: audioControls.play,
-    pause: audioControls.pause,
+    play: () => {
+      console.log("audioContext: play called");
+      audioControls.play();
+    },
+    pause: () => {
+      console.log("audioContext: pause called");
+      audioControls.pause();
+    },
     setCurrentTime: audioControls.setCurrentTime,
     setDuration: audioControls.setDuration,
     setVolume: audioControls.setVolume

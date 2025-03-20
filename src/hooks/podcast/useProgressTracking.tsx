@@ -1,147 +1,209 @@
 
 import { useState, useEffect, useRef } from "react";
-import { useProgressSaving } from "./useProgressSaving";
-import { useProgressFetching } from "./useProgressFetching";
-import { calculateListeningXP, XP_AMOUNTS } from "@/utils/xpUtils";
-import { useXP } from "@/hooks/useXP";
 import { supabase } from "@/lib/supabase";
+import { useXP } from "@/hooks/useXP";
 import { XPReason } from "@/types/xp";
+import { PodcastProgressData } from "@/types/podcast";
+
+const LISTENING_XP_PER_MINUTE = 10;
+const PODCAST_COMPLETION_XP = 50;
 
 export function useProgressTracking(
-  podcastId: string | undefined, 
-  audioRef: React.RefObject<HTMLAudioElement>,
+  podcastId: string | undefined,
+  audioElement: HTMLAudioElement | null,
   isPlaying: boolean,
-  podcastCourseId?: string
+  duration: number,
+  currentTime: number,
+  courseId?: string
 ) {
-  const { saveProgress } = useProgressSaving(podcastId, podcastCourseId);
-  const { fetchUserProgress } = useProgressFetching(podcastId);
-  const { awardXP, refreshXPData } = useXP();
+  const { awardXP } = useXP();
+  const [lastSavedTime, setLastSavedTime] = useState(0);
+  const [listenedSeconds, setListenedSeconds] = useState(0);
+  const lastTimestampRef = useRef(Date.now());
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Track listening time for XP awards
-  const [lastXpAwardTime, setLastXpAwardTime] = useState<number>(0);
-  const [accumulatedTime, setAccumulatedTime] = useState<number>(0);
-  const xpTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const lastProgressSaveRef = useRef<number>(0);
-  const sourceRef = useRef<string>('main-player'); // Track where tracking was initiated
-  
-  // Set up dedicated XP award timer that runs when podcast is playing
+  // Set up tracking timers
   useEffect(() => {
-    // Clear any existing timer when component mounts or dependencies change
-    if (xpTimerRef.current) {
-      clearInterval(xpTimerRef.current);
-      xpTimerRef.current = null;
+    // Clear existing timer
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
     }
     
-    if (isPlaying && audioRef.current) {
-      console.log(`useProgressTracking (${sourceRef.current}): Starting XP tracking timer for podcast ${podcastId}`);
+    if (isPlaying && audioElement && podcastId) {
+      console.log("Starting progress tracking for podcast:", podcastId);
       
-      // Create a new timer to track XP with increased frequency
-      xpTimerRef.current = setInterval(() => {
-        if (!audioRef.current) return;
+      // Reset timestamp when playback starts
+      lastTimestampRef.current = Date.now();
+      
+      // Set up new timer
+      timerRef.current = setInterval(() => {
+        const now = Date.now();
+        const elapsedSeconds = (now - lastTimestampRef.current) / 1000;
+        lastTimestampRef.current = now;
         
-        const currentTime = audioRef.current.currentTime;
-        if (lastXpAwardTime > 0) {
-          const newTime = Math.max(0, currentTime - lastXpAwardTime);
-          const newAccumulatedTime = accumulatedTime + newTime;
-          setAccumulatedTime(newAccumulatedTime);
+        if (isPlaying && audioElement && !audioElement.paused) {
+          // Track actual listened time
+          setListenedSeconds(prev => prev + elapsedSeconds);
           
-          // Save progress more frequently (every 3 seconds of real time)
-          const now = Date.now();
-          if (now - lastProgressSaveRef.current >= 3000) {
-            saveProgress(audioRef.current);
-            lastProgressSaveRef.current = now;
-          }
-          
-          // Award XP every 60 seconds of listening
-          if (newAccumulatedTime >= 60) {
-            console.log(`XP timer (${sourceRef.current}): accumulated ${newAccumulatedTime} seconds of listening time`);
-            awardListeningXP(newAccumulatedTime);
-            setAccumulatedTime(0); // Reset accumulated time after awarding XP
+          // Save progress every 5 seconds
+          if (now - lastSavedTime > 5000) {
+            saveProgress();
+            setLastSavedTime(now);
+            
+            // Award XP every minute (60 seconds)
+            if (listenedSeconds >= 60) {
+              const minutesListened = Math.floor(listenedSeconds / 60);
+              if (minutesListened > 0) {
+                console.log(`Awarding XP for ${minutesListened} minutes of listening`);
+                awardXP(minutesListened * LISTENING_XP_PER_MINUTE, XPReason.LISTENING_TIME);
+                setListenedSeconds(listenedSeconds % 60); // Keep remainder seconds
+              }
+            }
           }
         }
-        setLastXpAwardTime(currentTime);
-      }, 1000); // Check every second for more accurate tracking
+      }, 1000);
     }
     
     return () => {
-      if (xpTimerRef.current) {
-        clearInterval(xpTimerRef.current);
-        xpTimerRef.current = null;
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
       }
-    };
-  }, [isPlaying, audioRef, lastXpAwardTime, accumulatedTime, podcastId]);
-  
-  // Save progress periodically while playing
-  useEffect(() => {
-    const progressInterval = setInterval(() => {
-      if (isPlaying && audioRef.current) {
-        saveProgress(audioRef.current);
-        lastProgressSaveRef.current = Date.now();
-      }
-    }, 5000); // Save every 5 seconds while playing
-    
-    return () => clearInterval(progressInterval);
-  }, [isPlaying, audioRef, saveProgress]);
-  
-  // Award XP for accumulated listening time when component unmounts
-  useEffect(() => {
-    return () => {
-      if (audioRef.current && accumulatedTime > 0) { // Lower threshold to ensure we capture all time
-        console.log(`Unmounting (${sourceRef.current}): saving final progress with ${audioRef.current.currentTime} seconds`);
-        saveProgress(audioRef.current);
+      
+      // Final save on unmount
+      if (audioElement && podcastId) {
+        saveProgress();
         
-        // Award XP for any accumulated time
-        if (accumulatedTime > 0) {
-          awardListeningXP(accumulatedTime);
+        // Award XP for any remaining time
+        if (listenedSeconds >= 10) { // Only award if at least 10 seconds listened
+          const minutesListened = Math.floor(listenedSeconds / 60);
+          if (minutesListened > 0) {
+            awardXP(minutesListened * LISTENING_XP_PER_MINUTE, XPReason.LISTENING_TIME);
+          }
         }
       }
     };
-  }, [audioRef, accumulatedTime]);
+  }, [isPlaying, audioElement, podcastId, listenedSeconds]);
   
-  // Award XP for listening time
-  const awardListeningXP = async (seconds: number = accumulatedTime) => {
-    if (seconds <= 0) return; // Only skip if zero or negative
+  // Save current progress to database
+  const saveProgress = async (completed = false) => {
+    if (!audioElement || !podcastId) return;
     
-    const xpAmount = calculateListeningXP(seconds);
-    console.log(`Awarding XP for ${seconds} seconds of listening: ${xpAmount} XP (from ${sourceRef.current})`);
-    
-    if (xpAmount > 0) {
-      const success = await awardXP(xpAmount, XPReason.LISTENING_TIME);
-      
-      if (success) {
-        // Refresh XP data after awarding to update UI
-        refreshXPData();
-        // Reset accumulated time after awarding XP
-        setAccumulatedTime(0);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        console.log("No active session, can't save progress");
+        return;
       }
+      
+      const userId = session.user.id;
+      const last_position = Math.floor(currentTime);
+      
+      console.log("Saving progress:", {
+        podcastId,
+        position: last_position,
+        completed,
+        courseId
+      });
+      
+      // Check if record exists
+      const { data: existingRecord } = await supabase
+        .from('user_progress')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('podcast_id', podcastId)
+        .maybeSingle();
+      
+      const timestamp = new Date().toISOString();
+      
+      if (existingRecord) {
+        // Update existing record
+        await supabase
+          .from('user_progress')
+          .update({
+            last_position,
+            completed: completed || existingRecord.completed,
+            course_id: courseId,
+            updated_at: timestamp
+          })
+          .eq('user_id', userId)
+          .eq('podcast_id', podcastId);
+      } else {
+        // Insert new record
+        await supabase
+          .from('user_progress')
+          .insert([
+            {
+              user_id: userId,
+              podcast_id: podcastId,
+              last_position,
+              completed,
+              course_id: courseId,
+              updated_at: timestamp,
+              created_at: timestamp
+            }
+          ]);
+      }
+    } catch (error) {
+      console.error("Error saving progress:", error);
     }
   };
   
+  // Handle podcast completion
   const handleCompletion = async () => {
-    if (audioRef.current) {
-      // First award XP for any accumulated listening time
-      await awardListeningXP();
-      
-      // Then save progress and mark as completed
-      await saveProgress(audioRef.current, true);
-      
-      // Award XP for completing the podcast
-      const completionSuccess = await awardXP(
-        XP_AMOUNTS.PODCAST_COMPLETION,
-        XPReason.PODCAST_COMPLETION
-      );
-      
-      // Refresh XP data after awarding completion XP
-      await refreshXPData();
-      
-      console.log(`Podcast completion XP award success (${sourceRef.current}):`, completionSuccess);
-      return completionSuccess;
+    if (!podcastId) return false;
+    
+    try {
+      await saveProgress(true);
+      const success = await awardXP(PODCAST_COMPLETION_XP, XPReason.PODCAST_COMPLETION);
+      return success;
+    } catch (error) {
+      console.error("Error handling completion:", error);
+      return false;
     }
-    return false;
+  };
+  
+  // Fetch user progress
+  const fetchUserProgress = async (): Promise<PodcastProgressData | null> => {
+    if (!podcastId) return null;
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return null;
+      
+      const { data } = await supabase
+        .from('user_progress')
+        .select('last_position, completed')
+        .eq('podcast_id', podcastId)
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+      
+      return data;
+    } catch (error) {
+      console.error("Error fetching progress:", error);
+      return null;
+    }
+  };
+  
+  // Award XP for listening time
+  const awardListeningXP = async (seconds = 0) => {
+    if (seconds < 10) return false;
+    
+    try {
+      const minutes = Math.floor(seconds / 60);
+      if (minutes > 0) {
+        return await awardXP(minutes * LISTENING_XP_PER_MINUTE, XPReason.LISTENING_TIME);
+      }
+      return false;
+    } catch (error) {
+      console.error("Error awarding listening XP:", error);
+      return false;
+    }
   };
   
   return {
-    saveProgress: (completed = false) => audioRef.current && saveProgress(audioRef.current, completed),
+    saveProgress,
     handleCompletion,
     fetchUserProgress,
     awardListeningXP
