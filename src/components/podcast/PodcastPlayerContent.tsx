@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import PodcastCover from "./PodcastCover";
@@ -10,11 +10,9 @@ import VolumeControl from "./VolumeControl";
 import PodcastDescription from "./PodcastDescription";
 import QuizButton from "./QuizButton";
 import PodcastAudio from "./PodcastAudio";
-import PodcastAudioEvents from "./PodcastAudioEvents";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PodcastData, CourseData } from "@/types/podcast";
-import { useAudioStore } from "@/lib/audioContext";
 
 interface PodcastPlayerContentProps {
   podcastData: PodcastData;
@@ -63,25 +61,6 @@ const PodcastPlayerContent = ({
 }: PodcastPlayerContentProps) => {
   // Determine the image to use for the podcast cover
   const coverImage = podcastData.image_url || (courseData?.image || "");
-  
-  // Register podcast with global audio store to enable mini player
-  const audioStore = useAudioStore();
-  const metaSetRef = useRef(false);
-  
-  // Set podcast metadata only once to prevent infinite loops
-  useEffect(() => {
-    if (!metaSetRef.current && audioRef.current && podcastData) {
-      console.log("PodcastPlayerContent: Setting podcast metadata once");
-      metaSetRef.current = true;
-      
-      audioStore.setPodcastMeta({
-        id: podcastData.id,
-        title: podcastData.title,
-        courseName: courseData?.title || "Course",
-        image: coverImage
-      });
-    }
-  }, [podcastData, courseData, audioRef, audioStore, coverImage]);
   
   return (
     <div className="flex flex-col space-y-6 max-w-md mx-auto pb-6">
@@ -139,22 +118,30 @@ const PodcastPlayerContent = ({
         <PodcastDescription description={podcastData.description || "Learn more about this topic."} />
       </Card>
       
-      {/* Audio element with event handlers */}
+      {/* Audio element with PodcastAudio component */}
       <div className="hidden">
-        <PodcastAudioEvents
-          handleAudioLoadedMetadata={handleAudioLoadedMetadata}
-          handleAudioTimeUpdate={handleAudioTimeUpdate}
-          handleAudioEnded={handleAudioEnded}
-          handleAudioPlay={handleAudioPlay}
-          handleAudioPause={handleAudioPause}
-          handleAudioError={handleAudioError}
+        <audio
+          ref={audioRef}
+          preload="metadata"
+          onLoadedMetadata={handleAudioLoadedMetadata}
+          onTimeUpdate={handleAudioTimeUpdate}
+          onEnded={handleAudioEnded}
+          onPlay={handleAudioPlay}
+          onPause={handleAudioPause}
+          onError={handleAudioError}
+          className="hidden"
+        />
+        
+        <PodcastAudio 
           audioRef={audioRef}
-        >
-          <PodcastAudio 
-            audioRef={audioRef}
-            src={podcastData.audio_url}
-          />
-        </PodcastAudioEvents>
+          src={podcastData.audio_url}
+          podcastId={podcastData.id}
+          podcastMeta={{
+            title: podcastData.title,
+            courseName: courseData?.title || "Course",
+            image: coverImage
+          }}
+        />
       </div>
       
       {/* Quiz button if available - Attractive floating button */}

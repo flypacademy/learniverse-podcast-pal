@@ -22,28 +22,34 @@ const Layout = ({ children }: LayoutProps) => {
   useEffect(() => {
     if (showMiniPlayer && isPlaying && audioElement && audioElement.paused) {
       console.log("Layout: Ensuring audio playback continues during navigation");
-      // Using a timeout to ensure DOM updates complete first
+      
+      // Use a timeout to ensure DOM is ready
       setTimeout(() => {
-        if (audioElement.paused && isPlaying) {
-          const playPromise = audioElement.play();
+        const { isPlaying: stillPlaying, audioElement: audio } = useAudioStore.getState();
+        
+        if (audio && stillPlaying && audio.paused) {
+          console.log("Layout: Attempting to resume playback");
+          const playPromise = audio.play();
+          
           if (playPromise) {
             playPromise.catch(error => {
               console.warn("Layout: Could not auto-play during navigation:", error);
               
-              // Try one more time with a delay
+              // Try again with a delay
               setTimeout(() => {
-                if (audioElement.paused && isPlaying) {
-                  audioElement.play().catch(e => {
-                    console.warn("Layout: Second attempt to auto-play failed:", e);
+                const { isPlaying: nowPlaying, audioElement: currentAudio } = useAudioStore.getState();
+                if (currentAudio && nowPlaying && currentAudio.paused) {
+                  currentAudio.play().catch(e => {
+                    console.warn("Layout: Second attempt failed:", e);
                   });
                 }
               }, 300);
             });
           }
         }
-      }, 100); // Short delay to let DOM update
+      }, 150);
     }
-  }, [showMiniPlayer, isPlaying, audioElement, location.pathname]);
+  }, [location.pathname, showMiniPlayer, isPlaying, audioElement]);
   
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-white to-gray-50 relative">
@@ -51,7 +57,7 @@ const Layout = ({ children }: LayoutProps) => {
         {children}
       </main>
       
-      {/* Mini Player - Fixed positioning to ensure it stays visible */}
+      {/* Mini Player */}
       {showMiniPlayer && podcastMeta && (
         <div className="fixed bottom-20 left-0 right-0 z-20">
           <div className="max-w-md mx-auto px-4">
@@ -65,8 +71,8 @@ const Layout = ({ children }: LayoutProps) => {
         </div>
       )}
       
-      {/* Navigation Bar - Updated with improved fixed positioning */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-10" style={{ position: 'fixed' }}>
+      {/* Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-10">
         <div className="flex justify-around items-center py-2 px-3 max-w-md mx-auto">
           <NavItem 
             to="/" 

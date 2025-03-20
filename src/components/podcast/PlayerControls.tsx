@@ -25,6 +25,7 @@ const PlayerControls = ({
         className="text-gray-500 hover:text-gray-700 transition-colors"
         onClick={onSkipBack}
         aria-label="Skip back 10 seconds"
+        type="button"
       >
         <SkipBack className={`${isSmall ? 'h-5 w-5' : 'h-7 w-7'}`} />
       </button>
@@ -37,6 +38,7 @@ const PlayerControls = ({
             : 'h-16 w-16'
         } rounded-full bg-primary text-white flex items-center justify-center shadow-lg hover:bg-primary/90 transition-all duration-300 transform hover:scale-105`}
         aria-label={isPlaying ? "Pause" : "Play"}
+        type="button"
       >
         {isPlaying ? 
           <Pause className={`${isSmall ? 'h-5 w-5' : 'h-7 w-7'}`} /> : 
@@ -48,6 +50,7 @@ const PlayerControls = ({
         className="text-gray-500 hover:text-gray-700 transition-colors"
         onClick={onSkipForward}
         aria-label="Skip forward 10 seconds"
+        type="button"
       >
         <SkipForward className={`${isSmall ? 'h-5 w-5' : 'h-7 w-7'}`} />
       </button>

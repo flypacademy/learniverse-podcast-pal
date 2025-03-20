@@ -1,9 +1,9 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { usePodcastData } from "./podcast/usePodcastData";
-import { useAudioPlayer } from "./podcast/useAudioPlayer";
 import { useProgressTracking } from "./podcast/useProgressTracking";
 import { useToast } from "@/components/ui/use-toast";
+import { useAudioStore } from "@/lib/audioContext";
 
 export interface PodcastData {
   id: string;
@@ -33,57 +33,126 @@ export function usePodcastPlayer() {
     refetchPodcastData
   } = usePodcastData();
   
+  // Local state for UI and initialization
+  const [ready, setReady] = useState(false);
+  const [showXPModal, setShowXPModal] = useState(false);
+  
+  // Audio element ref for player components
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  
+  // Use central audio store for state management
   const {
-    ready,
-    setReady,
     isPlaying,
-    setIsPlaying,
-    duration,
-    setDuration,
     currentTime,
-    setCurrentTime,
+    duration,
     volume,
-    showXPModal,
-    setShowXPModal,
-    audioRef,
     play,
     pause,
-    togglePlayPause,
-    seek,
-    changeVolume,
-    skipForward,
-    skipBackward,
-    handleProgressData
-  } = useAudioPlayer(podcastId);
+    setCurrentTime,
+    setDuration,
+    setVolume
+  } = useAudioStore();
   
-  const { saveProgress, handleCompletion, fetchUserProgress } = useProgressTracking(
+  // Initialize the progress tracking hooks
+  const {
+    saveProgress,
+    handleCompletion,
+    loadProgress
+  } = useProgressTracking(
     podcastId,
-    audioRef,
+    audioRef.current,
     isPlaying,
+    duration,
+    currentTime,
     podcastData?.course_id
   );
   
-  // Load user progress when podcast data is available
+  // Load saved progress when podcast data is available
   useEffect(() => {
     async function loadUserProgress() {
-      if (podcastData) {
-        const progressData = await fetchUserProgress();
-        if (progressData) {
-          handleProgressData(progressData);
+      if (podcastData && audioRef.current) {
+        const progressData = await loadProgress();
+        if (progressData && progressData.last_position > 0) {
+          console.log("Restoring saved position:", progressData.last_position);
+          audioRef.current.currentTime = progressData.last_position;
+          setCurrentTime(progressData.last_position);
         }
       }
     }
     
     loadUserProgress();
-  }, [podcastData, fetchUserProgress, handleProgressData]);
+  }, [podcastData, loadProgress, setCurrentTime]);
   
-  // Handle podcast completion
-  const handlePodcastCompletion = async () => {
-    const success = await handleCompletion();
-    if (success) {
-      setShowXPModal(true);
+  // Event handlers for audio element
+  const handleAudioLoadedMetadata = () => {
+    if (audioRef.current) {
+      const audioDuration = audioRef.current.duration;
+      setDuration(audioDuration);
+      setReady(true);
     }
-    return success;
+  };
+  
+  const handleAudioTimeUpdate = () => {
+    if (audioRef.current) {
+      setCurrentTime(audioRef.current.currentTime);
+    }
+  };
+  
+  const handleAudioEnded = () => {
+    handleCompletion().then(success => {
+      if (success) {
+        setShowXPModal(true);
+        setTimeout(() => setShowXPModal(false), 5000);
+      }
+    });
+  };
+  
+  const handleAudioPlay = () => {
+    // This is handled by the audio store play() method
+  };
+  
+  const handleAudioPause = () => {
+    // This is handled by the audio store pause() method
+  };
+  
+  const handleAudioError = (e: React.SyntheticEvent<HTMLAudioElement>) => {
+    console.error("Audio error:", e);
+    toast({
+      title: "Playback Error",
+      description: "There was an error playing this podcast. Please try again.",
+      variant: "destructive"
+    });
+  };
+  
+  // Player control methods
+  const togglePlayPause = () => {
+    if (isPlaying) {
+      pause();
+    } else {
+      play();
+    }
+  };
+  
+  const seek = (percent: number) => {
+    if (duration > 0) {
+      const newTime = (percent / 100) * duration;
+      setCurrentTime(newTime);
+    }
+  };
+  
+  const skipForward = () => {
+    const newTime = Math.min(currentTime + 15, duration);
+    setCurrentTime(newTime);
+  };
+  
+  const skipBackward = () => {
+    const newTime = Math.max(0, currentTime - 15);
+    setCurrentTime(newTime);
+  };
+  
+  const changeVolume = (newVolume: number) => {
+    const safeVolume = Math.max(0, Math.min(100, newVolume));
+    setVolume(safeVolume);
   };
   
   return {
@@ -94,11 +163,8 @@ export function usePodcastPlayer() {
     ready,
     setReady,
     isPlaying,
-    setIsPlaying,
     duration,
-    setDuration,
     currentTime,
-    setCurrentTime,
     volume,
     isQuizAvailable,
     showXPModal,
@@ -111,7 +177,13 @@ export function usePodcastPlayer() {
     changeVolume,
     skipForward,
     skipBackward,
+    handleAudioLoadedMetadata,
+    handleAudioTimeUpdate,
+    handleAudioEnded,
+    handleAudioPlay,
+    handleAudioPause,
+    handleAudioError,
     refetchPodcastData,
-    handleCompletion: handlePodcastCompletion
+    handleCompletion
   };
 }

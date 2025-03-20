@@ -5,7 +5,9 @@ import { formatTime } from "@/lib/utils";
 import MiniPlayerThumbnail from "./MiniPlayerThumbnail";
 import MiniPlayerInfo from "./MiniPlayerInfo";
 import MiniPlayerControls from "./MiniPlayerControls";
-import { useMiniPlayerTracking } from "@/hooks/podcast/useMiniPlayerTracking";
+import { useXP } from "@/hooks/useXP";
+import { XPReason } from "@/types/xp";
+import { supabase } from "@/lib/supabase";
 
 interface MiniPlayerProps {
   podcastId: string;
@@ -25,56 +27,138 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
     setCurrentTime
   } = useAudioStore();
   
+  const { awardXP } = useXP();
+  
   // Use local state to prevent rendering issues during transitions
-  const [localCurrentTime, setLocalCurrentTime] = useState(0);
-  const [localDuration, setLocalDuration] = useState(100);
-  const [localIsPlaying, setLocalIsPlaying] = useState(isPlaying);
+  const [localProgress, setLocalProgress] = useState(0);
   
-  // Initialize progress tracking for XP
-  const { saveProgress } = useMiniPlayerTracking({
-    podcastId,
-    isPlaying,
-    audioElement
-  });
-  
-  // Sync with audio store values once they're stable
+  // Update progress calculation
   useEffect(() => {
-    if (isFinite(currentTime) && currentTime >= 0) {
-      setLocalCurrentTime(currentTime);
+    if (isFinite(currentTime) && isFinite(duration) && duration > 0) {
+      setLocalProgress(Math.min(100, Math.max(0, (currentTime / duration) * 100)));
     }
-  }, [currentTime]);
-  
-  useEffect(() => {
-    if (isFinite(duration) && duration > 0) {
-      setLocalDuration(duration);
-    }
-  }, [duration]);
-  
-  useEffect(() => {
-    setLocalIsPlaying(isPlaying);
-  }, [isPlaying]);
+  }, [currentTime, duration]);
   
   // Critical: Ensure audio continues playing when mini player appears
   useEffect(() => {
-    const checkAudioContinuity = () => {
-      // If audio is supposed to be playing but actually isn't, restart it
-      if (localIsPlaying && audioElement && audioElement.paused) {
-        console.log("MiniPlayer: Detected audio should be playing but is paused, restarting playback");
+    const ensurePlayback = () => {
+      if (isPlaying && audioElement && audioElement.paused) {
+        console.log("MiniPlayer: Audio should be playing but isn't, restarting");
         play();
       }
     };
     
     // Check immediately
-    checkAudioContinuity();
+    ensurePlayback();
     
-    // And also check after a short delay to ensure the browser has processed events
-    const timer = setTimeout(checkAudioContinuity, 100);
+    // And again after a short delay
+    const timer = setTimeout(ensurePlayback, 100);
     
     return () => clearTimeout(timer);
-  }, [localIsPlaying, audioElement, play]);
+  }, [isPlaying, audioElement, play]);
+  
+  // Track progress for saving and XP
+  useEffect(() => {
+    if (!podcastId || !isPlaying || !audioElement) return;
+    
+    let lastSaveTime = Date.now();
+    let lastTrackingTime = Date.now();
+    let listeningSeconds = 0;
+    
+    const trackingInterval = setInterval(() => {
+      // Only count if actually playing
+      if (isPlaying && audioElement && !audioElement.paused) {
+        const now = Date.now();
+        
+        // Calculate elapsed listening time
+        const elapsed = (now - lastTrackingTime) / 1000;
+        lastTrackingTime = now;
+        listeningSeconds += elapsed;
+        
+        // Award XP every full minute (60 seconds)
+        if (listeningSeconds >= 60) {
+          const minutes = Math.floor(listeningSeconds / 60);
+          awardXP(minutes * 10, XPReason.LISTENING_TIME);
+          listeningSeconds = listeningSeconds % 60;
+        }
+        
+        // Save progress every 5 seconds
+        if (now - lastSaveTime > 5000) {
+          saveProgress();
+          lastSaveTime = now;
+        }
+      }
+    }, 1000);
+    
+    return () => {
+      clearInterval(trackingInterval);
+      
+      // Final save on unmount
+      saveProgress();
+      
+      // Award XP for remaining time
+      if (listeningSeconds >= 10) {
+        const minutes = Math.floor(listeningSeconds / 60);
+        if (minutes > 0) {
+          awardXP(minutes * 10, XPReason.LISTENING_TIME);
+        }
+      }
+    };
+  }, [podcastId, isPlaying, audioElement, awardXP]);
+  
+  // Save progress to database
+  const saveProgress = async () => {
+    if (!audioElement || !podcastId) return;
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+      
+      const userId = session.user.id;
+      const last_position = Math.floor(currentTime);
+      
+      // Check if record exists
+      const { data: existingRecord } = await supabase
+        .from('user_progress')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('podcast_id', podcastId)
+        .maybeSingle();
+      
+      const timestamp = new Date().toISOString();
+      
+      if (existingRecord) {
+        // Update existing record
+        await supabase
+          .from('user_progress')
+          .update({
+            last_position,
+            updated_at: timestamp
+          })
+          .eq('user_id', userId)
+          .eq('podcast_id', podcastId);
+      } else {
+        // Insert new record
+        await supabase
+          .from('user_progress')
+          .insert([
+            {
+              user_id: userId,
+              podcast_id: podcastId,
+              last_position,
+              completed: false,
+              updated_at: timestamp,
+              created_at: timestamp
+            }
+          ]);
+      }
+    } catch (error) {
+      console.error("Error saving progress:", error);
+    }
+  };
 
   const togglePlay = () => {
-    if (localIsPlaying) {
+    if (isPlaying) {
       pause();
     } else {
       play();
@@ -82,17 +166,14 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
   };
 
   const skipForward = () => {
-    const newTime = Math.min(localCurrentTime + 10, localDuration);
+    const newTime = Math.min(currentTime + 10, duration);
     setCurrentTime(newTime);
   };
 
   const skipBackward = () => {
-    const newTime = Math.max(localCurrentTime - 10, 0);
+    const newTime = Math.max(currentTime - 10, 0);
     setCurrentTime(newTime);
   };
-
-  // Calculate progress safely
-  const progress = localDuration > 0 ? (localCurrentTime / localDuration * 100) : 0;
 
   return (
     <div className="bg-white border border-gray-100 shadow-lg rounded-lg z-20 p-3 animate-fade-in">
@@ -106,12 +187,12 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
           podcastId={podcastId}
           title={title}
           courseName={courseName}
-          progress={progress}
+          progress={localProgress}
         />
         
         <MiniPlayerControls 
           podcastId={podcastId}
-          isPlaying={localIsPlaying}
+          isPlaying={isPlaying}
           onPlayPause={togglePlay}
           onSkipBack={skipBackward}
           onSkipForward={skipForward}
