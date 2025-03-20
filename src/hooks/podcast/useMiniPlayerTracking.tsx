@@ -25,14 +25,14 @@ export function useMiniPlayerTracking(podcastId?: string, courseId?: string) {
   
   // Save progress periodically when playing in mini player
   useEffect(() => {
-    if (!podcastId || !isPlaying || progressTrackingRef.current) return;
+    if (!podcastId || progressTrackingRef.current) return;
     
     // Set up regular progress saving
     progressTrackingRef.current = true;
     console.log("MiniPlayer tracking: Starting progress tracking");
     
     const saveInterval = setInterval(() => {
-      if (isPlaying && currentTime > 0) {
+      if (currentTime > 0) {
         saveProgress();
       }
     }, 5000); // Save every 5 seconds
@@ -47,7 +47,7 @@ export function useMiniPlayerTracking(podcastId?: string, courseId?: string) {
         saveProgress();
       }
     };
-  }, [podcastId, isPlaying, currentTime, saveProgress]);
+  }, [podcastId, currentTime, saveProgress]);
   
   return {
     isTracking: progressTrackingRef.current

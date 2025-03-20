@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAudioStore } from "@/lib/audioContext";
 import { ChevronUp, X } from "lucide-react";
 import PlayerControls from "./PlayerControls";
@@ -87,6 +87,7 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
           />
           
           <button 
+            type="button"
             onClick={handleCloseClick}
             className="p-1.5 text-gray-500 hover:text-gray-700"
             aria-label="Close player"
@@ -95,6 +96,7 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
           </button>
           
           <button
+            type="button"
             className="p-1.5 text-gray-500 hover:text-gray-700"
             aria-label="Expand player"
           >

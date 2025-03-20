@@ -28,40 +28,28 @@ const Layout = ({ children }: LayoutProps) => {
   
   // Critical: Ensure audio continues playing during navigation
   useEffect(() => {
-    if (isPlaying && audioElement && audioElement.paused) {
+    if (audioElement && isPlaying && audioElement.paused) {
       console.log("Layout: Ensuring audio playback continues during navigation");
       
-      // Use a timeout to ensure DOM is ready
-      const resumePlayback = () => {
-        const { isPlaying: currentlyPlaying, audioElement: audio } = useAudioStore.getState();
+      // Attempt to resume playback immediately
+      const playNow = () => {
+        if (!audioElement) return;
         
-        if (audio && currentlyPlaying && audio.paused) {
-          console.log("Layout: Attempting to resume playback");
-          const playPromise = audio.play();
-          
-          if (playPromise) {
-            playPromise.catch(error => {
-              console.warn("Layout: Could not auto-play during navigation:", error);
-              
-              // Try again after a short delay
-              setTimeout(() => {
-                const { isPlaying: stillPlaying, audioElement: currentAudio } = useAudioStore.getState();
-                if (currentAudio && stillPlaying && currentAudio.paused) {
-                  currentAudio.play().catch(e => {
-                    console.warn("Layout: Second attempt failed:", e);
-                  });
-                }
-              }, 300);
-            });
-          }
+        console.log("Layout: Attempting to resume playback");
+        const playPromise = audioElement.play();
+        
+        if (playPromise) {
+          playPromise.catch(error => {
+            console.warn("Layout: Could not auto-play during navigation:", error);
+          });
         }
       };
       
-      // Try immediately
-      resumePlayback();
-      
-      // And again after a delay to ensure DOM is ready
-      setTimeout(resumePlayback, 150);
+      // Try multiple times with increasing delays
+      playNow();
+      setTimeout(playNow, 100);
+      setTimeout(playNow, 300);
+      setTimeout(playNow, 500);
     }
   }, [location.pathname, isPlaying, audioElement]);
   
