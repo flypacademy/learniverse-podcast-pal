@@ -49,21 +49,24 @@ export const createAudioSetup = (
           // Add event listeners to the new audio element
           setupEventListeners(audioElement);
           
-          // If it was playing, resume playback on the new element immediately without any delays
+          // If it was playing, resume playback on the new element after ensuring DOM is ready
           if (shouldKeepPlaying) {
-            console.log("Audio setup: Immediate playback continuation");
-            try {
-              const playPromise = audioElement.play();
-              if (playPromise !== undefined) {
-                playPromise.catch(error => {
-                  console.warn("Could not resume after audio element change:", error);
-                  set({ isPlaying: false });
-                });
+            console.log("Audio setup: Scheduling playback continuation");
+            setTimeout(() => {
+              try {
+                console.log("Attempting to resume playback");
+                const playPromise = audioElement.play();
+                if (playPromise !== undefined) {
+                  playPromise.catch(error => {
+                    console.warn("Could not resume after audio element change:", error);
+                    set({ isPlaying: false });
+                  });
+                }
+              } catch (error) {
+                console.warn("Error during delayed playback continuation:", error);
+                set({ isPlaying: false });
               }
-            } catch (error) {
-              console.warn("Error during immediate playback continuation:", error);
-              set({ isPlaying: false });
-            }
+            }, 300); // Increased delay to ensure DOM is ready
           }
         }
         
@@ -96,7 +99,9 @@ export const createAudioSetup = (
       }
       
       // Set the volume based on store state
-      audioElement.volume = get().volume / 100;
+      const storeVolume = get().volume;
+      audioElement.volume = storeVolume / 100;
+      console.log("Setting initial volume to:", storeVolume);
       
       // Ensure we have valid duration and currentTime before setting state
       const initialDuration = isFinite(audioElement.duration) && audioElement.duration > 0 
@@ -128,43 +133,40 @@ export const createAudioSetup = (
       // Add event listeners
       setupEventListeners(audioElement);
       
-      // Resume playback if needed - do it immediately with robust error handling
+      // Resume playback if needed - with an increased delay
       if (shouldPlay) {
         try {
-          console.log("Audio setup: Immediately playing new audio source");
-          // Directly attempt playback without any delay
-          const playPromise = audioElement.play();
-          if (playPromise !== undefined) {
-            playPromise.catch(error => {
-              console.warn("Could not auto-play audio after setting new source:", error);
-              // Try one more time after a short delay as a fallback
-              setTimeout(() => {
-                try {
-                  audioElement.play().catch(e => {
-                    console.warn("Second attempt to auto-play failed:", e);
-                    set({ isPlaying: false });
-                  });
-                } catch (retryError) {
-                  console.warn("Error during retry playback:", retryError);
-                  set({ isPlaying: false });
-                }
-              }, 50);
-            });
-          }
-        } catch (error) {
-          console.warn("Error auto-playing audio:", error);
-          // Also try one more time after a short delay
+          console.log("Audio setup: Scheduling playback for new audio source");
           setTimeout(() => {
+            if (!audioElement) return;
+            console.log("Attempting playback of new audio");
             try {
-              audioElement.play().catch(e => {
-                console.warn("Second attempt after error failed:", e);
-                set({ isPlaying: false });
-              });
-            } catch (retryError) {
-              console.warn("Error during retry playback after error:", retryError);
+              const playPromise = audioElement.play();
+              if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                  console.warn("Could not auto-play audio after setting new source:", error);
+                  // Try one more time after a short delay as a fallback
+                  setTimeout(() => {
+                    try {
+                      audioElement.play().catch(e => {
+                        console.warn("Second attempt to auto-play failed:", e);
+                        set({ isPlaying: false });
+                      });
+                    } catch (retryError) {
+                      console.warn("Error during retry playback:", retryError);
+                      set({ isPlaying: false });
+                    }
+                  }, 300);
+                });
+              }
+            } catch (error) {
+              console.warn("Error auto-playing audio:", error);
               set({ isPlaying: false });
             }
-          }, 50);
+          }, 500); // Increased delay to ensure DOM is fully ready
+        } catch (error) {
+          console.warn("Error scheduling audio playback:", error);
+          set({ isPlaying: false });
         }
       }
     },

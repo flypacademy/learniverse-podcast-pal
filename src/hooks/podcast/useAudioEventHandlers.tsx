@@ -1,3 +1,4 @@
+
 import { useCallback } from "react";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -30,11 +31,8 @@ export function useAudioEventHandlers({
           setDuration(audioRef.current.duration);
           setReady(true);
           
-          // Reset current time to 0 when metadata loads to prevent starting at the end
-          setCurrentTime(0);
-          if (audioRef.current.currentTime > 0) {
-            audioRef.current.currentTime = 0;
-          }
+          // Don't reset current time when metadata loads, as we may be restoring a saved position
+          // This was causing the saved position to be overwritten
         } else {
           console.error("Invalid audio duration:", audioRef.current.duration);
           toast({
@@ -47,7 +45,7 @@ export function useAudioEventHandlers({
         console.error("Error in handleAudioLoadedMetadata:", error);
       }
     }
-  }, [audioRef, setDuration, setReady, toast, setCurrentTime]);
+  }, [audioRef, setDuration, setReady, toast]);
   
   const handleAudioTimeUpdate = useCallback(() => {
     if (audioRef.current) {

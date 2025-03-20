@@ -20,10 +20,12 @@ export function useAudioControls(
           storeAudioElement.pause();
         }
         
+        console.log("Play called, attempting to play audio");
         const playPromise = audioRef.current.play();
         if (playPromise !== undefined) {
           playPromise
             .then(() => {
+              console.log("Audio playback started successfully");
               // Only update the store if our local state changed
               if (!audioStore.isPlaying) {
                 syncInProgressRef.current = true;
@@ -33,6 +35,15 @@ export function useAudioControls(
             })
             .catch(error => {
               console.error("Error playing audio:", error);
+              // Try one more time with a small delay
+              setTimeout(() => {
+                if (audioRef.current) {
+                  console.log("Retrying playback after error");
+                  audioRef.current.play().catch(e => {
+                    console.error("Retry play attempt also failed:", e);
+                  });
+                }
+              }, 100);
             });
         }
       } catch (error: any) {
@@ -46,6 +57,7 @@ export function useAudioControls(
   const pause = () => {
     try {
       if (audioRef.current) {
+        console.log("Pause called, pausing audio");
         audioRef.current.pause();
         // Only update the store if our local state changed
         if (audioStore.isPlaying) {
@@ -60,6 +72,7 @@ export function useAudioControls(
   };
   
   const togglePlayPause = (isPlaying: boolean) => {
+    console.log("Toggle play/pause with isPlaying:", isPlaying);
     if (isPlaying) {
       pause();
     } else {
@@ -71,6 +84,7 @@ export function useAudioControls(
     if (audioRef.current && duration > 0) {
       try {
         const newTime = (percent / 100) * duration;
+        console.log("Seeking to position:", newTime, "seconds");
         audioRef.current.currentTime = newTime;
         setCurrentTime(newTime);
         

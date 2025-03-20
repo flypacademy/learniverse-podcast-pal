@@ -44,35 +44,58 @@ export function useXP() {
     fetchUserAndXP();
     
     // Set up real-time subscription for XP updates
-    const channel = supabase
-      .channel('user-xp-changes')
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'user_experience',
-          filter: userId ? `user_id=eq.${userId}` : undefined
-        }, 
-        async (payload) => {
-          try {
-            console.log('XP update received via realtime:', payload);
-            
-            // When we get an update, refresh the XP data
-            await refreshXPData();
-          } catch (err) {
-            console.error('Error handling XP realtime update:', err);
-          }
-        }
-      )
-      .subscribe();
-      
-    console.log('Subscribed to XP real-time updates');
-    
-    return () => {
-      supabase.removeChannel(channel);
-      console.log('Unsubscribed from XP real-time updates');
+    const setupRealTimeSubscription = async () => {
+      try {
+        // Get current user first
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return;
+        
+        const uid = session.user.id;
+        
+        // Now set up real-time subscription with the user ID
+        const channel = supabase
+          .channel('user-xp-changes')
+          .on('postgres_changes', 
+            { 
+              event: '*', 
+              schema: 'public', 
+              table: 'user_experience',
+              filter: `user_id=eq.${uid}`
+            }, 
+            async (payload) => {
+              try {
+                console.log('XP update received via realtime:', payload);
+                
+                // When we get an update, refresh the XP data
+                await refreshXPData();
+              } catch (err) {
+                console.error('Error handling XP realtime update:', err);
+              }
+            }
+          )
+          .subscribe();
+          
+        console.log('Subscribed to XP real-time updates for user:', uid);
+        
+        return () => {
+          supabase.removeChannel(channel);
+          console.log('Unsubscribed from XP real-time updates');
+        };
+      } catch (error) {
+        console.error('Error setting up XP real-time subscription:', error);
+      }
     };
-  }, [userId]);
+    
+    // Set up the subscription
+    const unsubscribe = setupRealTimeSubscription();
+    
+    // Clean up on unmount
+    return () => {
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    };
+  }, []);
   
   // Manual refresh function that can be called after XP awards
   const refreshXPData = useCallback(async () => {

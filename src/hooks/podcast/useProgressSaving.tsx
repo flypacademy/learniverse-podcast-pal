@@ -58,7 +58,7 @@ export function useProgressSaving(podcastId: string | undefined, podcastCourseId
         const { error: updateError } = await supabase
           .from('user_progress')
           .update({
-            last_position: last_position,
+            last_position: completed ? existingRecord.duration || last_position : last_position,
             completed: completed || existingRecord.completed, // Keep as completed if it was already completed
             course_id: podcastCourseId,
             updated_at: timestamp

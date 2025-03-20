@@ -100,21 +100,32 @@ export function useAudioInitialization({
         
         // Ensure playing state is preserved
         if (wasPlaying) {
-          // Small timeout to ensure DOM is ready
+          // Increase timeout to ensure DOM is fully ready
           setTimeout(() => {
             console.log("Resuming playback after navigation");
-            audioStore.play();
-          }, 50);
+            if (audioRef.current) {
+              const playPromise = audioRef.current.play();
+              if (playPromise) {
+                playPromise.catch(err => {
+                  console.warn("Failed to auto-resume playback:", err);
+                });
+              }
+            }
+          }, 300);
         }
         
         setAudioInitialized(true);
         return;
       }
       
-      // For a new podcast, reset time to 0
-      if (audioRef.current) {
-        audioRef.current.currentTime = 0;
+      // For a new podcast, make sure we have the audio URL set
+      if (audioRef.current && !audioRef.current.src) {
+        console.log("Setting initial audio src to:", podcastData.audio_url);
+        audioRef.current.src = podcastData.audio_url;
+        audioRef.current.load();
       }
+      
+      // Don't reset time to 0 immediately - we'll handle this in the progress loading logic
       
       // Register with audio store
       if (audioRef.current) {

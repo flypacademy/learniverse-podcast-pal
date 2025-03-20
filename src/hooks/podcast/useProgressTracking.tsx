@@ -69,7 +69,7 @@ export function useProgressTracking(
         xpTimerRef.current = null;
       }
     };
-  }, [isPlaying, audioRef, lastXpAwardTime, accumulatedTime]);
+  }, [isPlaying, audioRef, lastXpAwardTime, accumulatedTime, podcastId]);
   
   // Save progress periodically while playing
   useEffect(() => {
@@ -132,7 +132,7 @@ export function useProgressTracking(
       );
       
       // Refresh XP data after awarding completion XP
-      refreshXPData();
+      await refreshXPData();
       
       console.log(`Podcast completion XP award success (${sourceRef.current}):`, completionSuccess);
       return completionSuccess;
