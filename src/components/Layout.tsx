@@ -1,7 +1,9 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Home, BookOpen, User, Target } from "lucide-react";
+import { useAudioStore } from "@/lib/audioContext";
+import MiniPlayer from "./podcast/MiniPlayer";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -9,12 +11,79 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
+  const { currentPodcastId, podcastMeta, isPlaying, audioElement } = useAudioStore();
+  
+  // Show mini player except on the podcast page
+  const isPodcastPage = location.pathname.includes('/podcast/') && 
+                       !location.pathname.includes('/podcast-sample');
+  const showMiniPlayer = !!currentPodcastId && !!podcastMeta && !isPodcastPage;
+  
+  console.log("Layout: Checking mini player visibility", { 
+    currentPodcastId, 
+    hasMeta: !!podcastMeta, 
+    isPodcastPage, 
+    showMiniPlayer,
+    isPlaying
+  });
+  
+  // Critical: Ensure audio continues playing during navigation
+  useEffect(() => {
+    if (isPlaying && audioElement && audioElement.paused) {
+      console.log("Layout: Ensuring audio playback continues during navigation");
+      
+      // Use a timeout to ensure DOM is ready
+      const resumePlayback = () => {
+        const { isPlaying: currentlyPlaying, audioElement: audio } = useAudioStore.getState();
+        
+        if (audio && currentlyPlaying && audio.paused) {
+          console.log("Layout: Attempting to resume playback");
+          const playPromise = audio.play();
+          
+          if (playPromise) {
+            playPromise.catch(error => {
+              console.warn("Layout: Could not auto-play during navigation:", error);
+              
+              // Try again after a short delay
+              setTimeout(() => {
+                const { isPlaying: stillPlaying, audioElement: currentAudio } = useAudioStore.getState();
+                if (currentAudio && stillPlaying && currentAudio.paused) {
+                  currentAudio.play().catch(e => {
+                    console.warn("Layout: Second attempt failed:", e);
+                  });
+                }
+              }, 300);
+            });
+          }
+        }
+      };
+      
+      // Try immediately
+      resumePlayback();
+      
+      // And again after a delay to ensure DOM is ready
+      setTimeout(resumePlayback, 150);
+    }
+  }, [location.pathname, isPlaying, audioElement]);
   
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-white to-gray-50 relative">
-      <main className="flex-1 pt-6 px-4 max-w-md mx-auto w-full pb-20">
+      <main className={`flex-1 pt-6 px-4 max-w-md mx-auto w-full ${showMiniPlayer ? 'pb-36' : 'pb-20'}`}>
         {children}
       </main>
+      
+      {/* Mini Player */}
+      {showMiniPlayer && podcastMeta && (
+        <div className="fixed bottom-20 left-0 right-0 z-20">
+          <div className="max-w-md mx-auto px-4">
+            <MiniPlayer 
+              podcastId={currentPodcastId || podcastMeta.id}
+              title={podcastMeta.title}
+              courseName={podcastMeta.courseName}
+              thumbnailUrl={podcastMeta.image}
+            />
+          </div>
+        </div>
+      )}
       
       {/* Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-10">

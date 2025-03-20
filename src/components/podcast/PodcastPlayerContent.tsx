@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import PodcastCover from "./PodcastCover";
@@ -13,6 +13,7 @@ import PodcastAudio from "./PodcastAudio";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PodcastData, CourseData } from "@/types/podcast";
+import { useMiniPlayerTracking } from "@/hooks/podcast/useMiniPlayerTracking";
 
 interface PodcastPlayerContentProps {
   podcastData: PodcastData;
@@ -59,6 +60,9 @@ const PodcastPlayerContent = ({
   handleAudioPause,
   handleAudioError
 }: PodcastPlayerContentProps) => {
+  // Initialize mini player tracking for continuous playback
+  useMiniPlayerTracking(podcastData.id, podcastData.course_id);
+  
   // Determine the image to use for the podcast cover
   const coverImage = podcastData.image_url || (courseData?.image || "");
   
