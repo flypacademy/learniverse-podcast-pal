@@ -10,7 +10,7 @@ export function useAudioPlayer(audioUrl: string | undefined) {
   const [volume, setVolume] = useState(80);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Initialize audio element
+  // Improved event handling with better cleanup
   useEffect(() => {
     if (!audioUrl) return;
 
@@ -20,7 +20,6 @@ export function useAudioPlayer(audioUrl: string | undefined) {
       audioRef.current.preload = "metadata";
       audioRef.current.volume = volume / 100;
       
-      // Log for debugging
       console.log("Created new audio element with URL:", audioUrl);
     } else if (audioRef.current.src !== audioUrl) {
       // Update source if URL changes
@@ -60,6 +59,12 @@ export function useAudioPlayer(audioUrl: string | undefined) {
       setIsLoading(false);
     };
 
+    // Check for readyState before adding event listeners
+    if (audio.readyState >= 2) {
+      // Already loaded
+      handleLoadedMetadata();
+    }
+
     // Add event listeners
     audio.addEventListener("loadedmetadata", handleLoadedMetadata);
     audio.addEventListener("timeupdate", handleTimeUpdate);
@@ -67,25 +72,23 @@ export function useAudioPlayer(audioUrl: string | undefined) {
     audio.addEventListener("error", handleError as EventListener);
     audio.addEventListener("canplay", handleCanPlay);
 
-    // Initial load
-    if (audio.readyState >= 2) {
-      // Already loaded
-      handleLoadedMetadata();
-    } else {
-      audio.load();
-    }
+    // Ensure audio is properly loaded
+    audio.load();
 
-    // Cleanup
+    // Improved cleanup
     return () => {
-      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
-      audio.removeEventListener("timeupdate", handleTimeUpdate);
-      audio.removeEventListener("ended", handleEnded);
-      audio.removeEventListener("error", handleError as EventListener);
-      audio.removeEventListener("canplay", handleCanPlay);
+      if (audio) {
+        // Remove all event listeners
+        audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
+        audio.removeEventListener("timeupdate", handleTimeUpdate);
+        audio.removeEventListener("ended", handleEnded);
+        audio.removeEventListener("error", handleError as EventListener);
+        audio.removeEventListener("canplay", handleCanPlay);
+      }
     };
   }, [audioUrl, volume]);
 
-  // Controls
+  // Enhanced play function with improved error handling
   const play = () => {
     if (!audioRef.current) return;
     
@@ -100,12 +103,21 @@ export function useAudioPlayer(audioUrl: string | undefined) {
         })
         .catch(err => {
           console.error("Error playing audio:", err);
-          // Try again after a short delay
+          // Try again with a user interaction context - this helps with mobile browsers
           setTimeout(() => {
             if (audioRef.current) {
+              // Use a more resilient approach for mobile browsers
+              audioRef.current.muted = true; // Temporarily mute to help with autoplay restrictions
               audioRef.current.play()
-                .then(() => setIsPlaying(true))
-                .catch(e => console.error("Retry play failed:", e));
+                .then(() => {
+                  // If successful, unmute and update state
+                  audioRef.current!.muted = false;
+                  setIsPlaying(true);
+                })
+                .catch(e => {
+                  console.error("Retry play failed, even with muting:", e);
+                  toast.error("Couldn't start playback. Try tapping play again.");
+                });
             }
           }, 300);
         });
@@ -162,13 +174,19 @@ export function useAudioPlayer(audioUrl: string | undefined) {
     setVolume(safeVolume);
   };
 
-  // Cleanup on unmount
+  // Enhanced cleanup on unmount
   useEffect(() => {
     return () => {
       if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = "";
-        audioRef.current = null;
+        // Properly cleanup audio element
+        try {
+          audioRef.current.pause();
+          audioRef.current.src = "";
+          audioRef.current.load();
+          audioRef.current = null;
+        } catch (e) {
+          console.error("Error during audio cleanup:", e);
+        }
       }
     };
   }, []);
