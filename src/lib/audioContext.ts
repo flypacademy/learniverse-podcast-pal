@@ -29,7 +29,7 @@ export const useAudioStore = create<AudioState>((set, get) => {
     },
     setPodcastMeta: (meta) => {
       console.log("audioContext: setPodcastMeta called", meta);
-      audioSetup.setPodcastMeta(meta);
+      set({ podcastMeta: meta });
     },
     cleanup: audioSetup.cleanup,
     

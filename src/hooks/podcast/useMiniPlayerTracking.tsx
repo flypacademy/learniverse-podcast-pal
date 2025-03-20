@@ -8,14 +8,16 @@ export function useMiniPlayerTracking(podcastId?: string, courseId?: string) {
     isPlaying,
     currentTime,
     duration,
-    audioElement
+    audioElement,
+    currentPodcastId
   } = useAudioStore();
   
   const progressTrackingRef = useRef(false);
+  const actualPodcastId = podcastId || currentPodcastId;
   
   // Use the progress tracking hook for saving progress during mini player usage
   const { saveProgress } = useProgressTracking(
-    podcastId,
+    actualPodcastId,
     audioElement,
     isPlaying,
     duration,
@@ -25,14 +27,18 @@ export function useMiniPlayerTracking(podcastId?: string, courseId?: string) {
   
   // Save progress periodically when playing in mini player
   useEffect(() => {
-    if (!podcastId || progressTrackingRef.current) return;
+    if (!actualPodcastId || progressTrackingRef.current) return;
     
     // Set up regular progress saving
     progressTrackingRef.current = true;
-    console.log("MiniPlayer tracking: Starting progress tracking");
+    console.log("MiniPlayer tracking: Starting progress tracking for", actualPodcastId);
     
     const saveInterval = setInterval(() => {
-      if (currentTime > 0) {
+      if (currentTime > 0 && isPlaying) {
+        console.log("MiniPlayer tracking: Saving progress", {
+          podcastId: actualPodcastId,
+          currentTime
+        });
         saveProgress();
       }
     }, 5000); // Save every 5 seconds
@@ -47,7 +53,7 @@ export function useMiniPlayerTracking(podcastId?: string, courseId?: string) {
         saveProgress();
       }
     };
-  }, [podcastId, currentTime, saveProgress]);
+  }, [actualPodcastId, currentTime, saveProgress, isPlaying]);
   
   return {
     isTracking: progressTrackingRef.current
