@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import Layout from "@/components/Layout";
 import { useToast } from "@/components/ui/use-toast";
 import { useRecentCourses } from "@/hooks/useRecentCourses";
@@ -28,11 +28,16 @@ const Index = () => {
   const { toast } = useToast();
   const { recentCourses, loading: coursesLoading } = useRecentCourses();
   const { data: legacyUserData, loading: legacyUserLoading } = useUserXP();
-  const { xpData, loading: xpLoading } = useXP();
+  const { xpData, loading: xpLoading, refreshXPData } = useXP();
   
   // Use the new XP system data if available, otherwise fall back to legacy data
   const userName = legacyUserData?.userName || "Student";
   const totalXP = xpData?.totalXP ?? legacyUserData?.totalXP ?? 0;
+  
+  // Refresh XP data when component mounts
+  useEffect(() => {
+    refreshXPData();
+  }, [refreshXPData]);
   
   const handleLinkClick = () => {
     if (navigator.vibrate) {

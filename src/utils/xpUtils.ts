@@ -91,29 +91,6 @@ export const awardXP = async (
       }
     }
     
-    // Log XP transaction (optional - could be used for history/audit)
-    try {
-      // Record the XP transaction (this is optional, you can add this table to track all XP gains)
-      /*
-      const { error: transactionError } = await supabase
-        .from('xp_transactions')
-        .insert({
-          user_id: userId,
-          amount: amount,
-          reason: reason,
-          created_at: timestamp
-        });
-      
-      if (transactionError) {
-        console.error("Error logging XP transaction:", transactionError);
-        // Continue anyway - this is non-critical
-      }
-      */
-    } catch (transactionErr) {
-      console.error("Error in XP transaction logging:", transactionErr);
-      // Continue anyway - the main XP update was successful
-    }
-    
     // Show toast notification if toast function is provided
     if (showToast) {
       showToast({
@@ -149,6 +126,8 @@ export const getUserXP = async (userId: string) => {
       console.error("Error fetching user XP:", error);
       return null;
     }
+    
+    console.log("getUserXP result:", data);
     
     return data ? {
       totalXP: data.total_xp,

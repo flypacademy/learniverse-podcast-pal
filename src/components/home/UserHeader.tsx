@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useXP } from "@/hooks/useXP";
@@ -9,12 +9,17 @@ interface UserHeaderProps {
   totalXP?: number;
 }
 
-const UserHeader = ({ userName, totalXP }: UserHeaderProps) => {
+const UserHeader = ({ userName, totalXP: propTotalXP }: UserHeaderProps) => {
   const { toast } = useToast();
-  const { xpData, loading } = useXP();
+  const { xpData, loading, refreshXPData } = useXP();
   
   // Use prop totalXP if provided, otherwise use the xpData from the hook
-  const displayXP = totalXP !== undefined ? totalXP : (xpData?.totalXP || 0);
+  const displayXP = propTotalXP !== undefined ? propTotalXP : (xpData?.totalXP || 0);
+  
+  // Refresh XP data when component mounts
+  useEffect(() => {
+    refreshXPData();
+  }, [refreshXPData]);
   
   // XP calculation information
   const xpInfo = () => {

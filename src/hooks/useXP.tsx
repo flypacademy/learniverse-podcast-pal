@@ -32,6 +32,7 @@ export function useXP() {
         
         // Get user XP data
         const data = await getUserXP(uid);
+        console.log('Fetched XP data:', data);
         setXpData(data);
         setLoading(false);
       } catch (error) {
@@ -53,13 +54,19 @@ export function useXP() {
         }, 
         async (payload) => {
           try {
-            // Only update if we have a userId and the change is for this user
-            if (userId && payload.new && (payload.new as any).user_id === userId) {
+            // Only update if we have a userId
+            if (userId) {
               console.log('XP update received via realtime:', payload);
               
-              // Fetch the latest data to ensure we have the most up-to-date values
-              const freshData = await getUserXP(userId);
-              setXpData(freshData);
+              // Check if the update is for our user
+              if (payload.new && (payload.new as any).user_id === userId) {
+                console.log('XP update is for current user, refreshing XP data');
+                
+                // Fetch the latest data to ensure we have the most up-to-date values
+                const freshData = await getUserXP(userId);
+                console.log('Fresh XP data after real-time update:', freshData);
+                setXpData(freshData);
+              }
             }
           } catch (err) {
             console.error('Error handling XP realtime update:', err);
@@ -68,10 +75,27 @@ export function useXP() {
       )
       .subscribe();
       
+    console.log('Subscribed to XP real-time updates');
+    
     return () => {
       supabase.removeChannel(channel);
+      console.log('Unsubscribed from XP real-time updates');
     };
-  }, []);
+  }, [userId]);
+  
+  // Manual refresh function that can be called after XP awards
+  const refreshXPData = useCallback(async () => {
+    if (!userId) return;
+    
+    try {
+      console.log('Manually refreshing XP data');
+      const data = await getUserXP(userId);
+      console.log('Refreshed XP data:', data);
+      setXpData(data);
+    } catch (error) {
+      console.error('Error refreshing XP data:', error);
+    }
+  }, [userId]);
   
   // Award XP function that uses the toast from this hook
   const awardUserXP = useCallback(async (amount: number, reason: string): Promise<boolean> => {
@@ -87,17 +111,20 @@ export function useXP() {
     const success = await awardXP(userId, amount, reason, showToastFn);
     
     if (success) {
-      // The real-time subscription should update the state
       console.log(`Successfully awarded ${amount} XP for ${reason}`);
+      
+      // Immediately refresh XP data after awarding
+      await refreshXPData();
     }
     
     return success;
-  }, [userId, toast]);
+  }, [userId, toast, refreshXPData]);
   
   return {
     xpData,
     loading,
     userId,
-    awardXP: awardUserXP
+    awardXP: awardUserXP,
+    refreshXPData
   };
 }
