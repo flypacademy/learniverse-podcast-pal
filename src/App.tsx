@@ -27,6 +27,7 @@ import NotFound from './pages/NotFound';
 import PodcastForm from './pages/admin/podcasts/PodcastForm';
 import Onboarding from './pages/Onboarding';
 import UserStats from './pages/admin/users/UserStats';
+import UserListeningStats from './pages/admin/users/UserListeningStats';
 
 function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -104,6 +105,7 @@ function App() {
         <Route path="/admin/podcasts/:podcastId/quiz" element={<NotFound />} /> {/* Add proper component later */}
         <Route path="/admin/users" element={<AdminUsers />} />
         <Route path="/admin/users/stats" element={<UserStats />} />
+        <Route path="/admin/users/listening-stats" element={<UserListeningStats />} />
         <Route path="/admin/settings" element={<AdminSettings />} />
         
         <Route path="*" element={<NotFound />} />
