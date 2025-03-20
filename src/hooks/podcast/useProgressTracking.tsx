@@ -22,6 +22,7 @@ export function useProgressTracking(
   const [accumulatedTime, setAccumulatedTime] = useState<number>(0);
   const xpTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastProgressSaveRef = useRef<number>(0);
+  const sourceRef = useRef<string>('main-player'); // Track where tracking was initiated
   
   // Set up dedicated XP award timer that runs when podcast is playing
   useEffect(() => {
@@ -32,7 +33,7 @@ export function useProgressTracking(
     }
     
     if (isPlaying && audioRef.current) {
-      console.log("Starting XP tracking timer for podcast playback");
+      console.log(`useProgressTracking (${sourceRef.current}): Starting XP tracking timer for podcast ${podcastId}`);
       
       // Create a new timer to track XP with increased frequency
       xpTimerRef.current = setInterval(() => {
@@ -53,7 +54,7 @@ export function useProgressTracking(
           
           // Award XP every 60 seconds of listening
           if (newAccumulatedTime >= 60) {
-            console.log(`XP timer: accumulated ${newAccumulatedTime} seconds of listening time`);
+            console.log(`XP timer (${sourceRef.current}): accumulated ${newAccumulatedTime} seconds of listening time`);
             awardListeningXP(newAccumulatedTime);
             setAccumulatedTime(0); // Reset accumulated time after awarding XP
           }
@@ -86,7 +87,7 @@ export function useProgressTracking(
   useEffect(() => {
     return () => {
       if (audioRef.current && accumulatedTime > 0) { // Lower threshold to ensure we capture all time
-        console.log(`Unmounting: saving final progress with ${audioRef.current.currentTime} seconds`);
+        console.log(`Unmounting (${sourceRef.current}): saving final progress with ${audioRef.current.currentTime} seconds`);
         saveProgress(audioRef.current);
         
         // Award XP for any accumulated time
@@ -102,7 +103,7 @@ export function useProgressTracking(
     if (seconds <= 0) return; // Only skip if zero or negative
     
     const xpAmount = calculateListeningXP(seconds);
-    console.log(`Awarding XP for ${seconds} seconds of listening: ${xpAmount} XP`);
+    console.log(`Awarding XP for ${seconds} seconds of listening: ${xpAmount} XP (from ${sourceRef.current})`);
     
     if (xpAmount > 0) {
       const success = await awardXP(xpAmount, XPReason.LISTENING_TIME);
@@ -128,7 +129,7 @@ export function useProgressTracking(
         XPReason.PODCAST_COMPLETION
       );
       
-      console.log("Podcast completion XP award success:", completionSuccess);
+      console.log(`Podcast completion XP award success (${sourceRef.current}):`, completionSuccess);
       return completionSuccess;
     }
     return false;

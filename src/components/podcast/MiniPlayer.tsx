@@ -6,6 +6,7 @@ import { formatTime } from "@/lib/utils";
 import PlayerControls from "./PlayerControls";
 import { Button } from "@/components/ui/button";
 import { ChevronUp } from "lucide-react";
+import { useProgressTracking } from "@/hooks/podcast/useProgressTracking";
 
 interface MiniPlayerProps {
   podcastId: string;
@@ -22,13 +23,50 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
     audioElement,
     play, 
     pause,
-    setCurrentTime
+    setCurrentTime,
+    currentPodcastId
   } = useAudioStore();
   
   // Use local state to prevent rendering issues during transitions
   const [localCurrentTime, setLocalCurrentTime] = useState(0);
   const [localDuration, setLocalDuration] = useState(100);
   const [localIsPlaying, setLocalIsPlaying] = useState(isPlaying);
+  
+  // Initialize progress tracking for XP - ensure it works in the mini player
+  const { saveProgress, awardListeningXP } = useProgressTracking(
+    podcastId,
+    { current: audioElement },
+    isPlaying,
+    undefined
+  );
+  
+  // Track listening time for XP in mini player
+  useEffect(() => {
+    let trackingInterval: NodeJS.Timeout | null = null;
+    
+    if (isPlaying && audioElement && podcastId) {
+      console.log("MiniPlayer: Starting XP tracking interval");
+      
+      // Track time and save progress while playing
+      trackingInterval = setInterval(() => {
+        if (audioElement) {
+          // Save current progress
+          saveProgress();
+        }
+      }, 5000); // Save every 5 seconds
+    }
+    
+    return () => {
+      if (trackingInterval) {
+        clearInterval(trackingInterval);
+        
+        // Award XP for any accumulated listening time when unmounting
+        if (audioElement && podcastId) {
+          awardListeningXP();
+        }
+      }
+    };
+  }, [isPlaying, audioElement, podcastId, saveProgress, awardListeningXP]);
   
   // Sync with audio store values once they're stable
   useEffect(() => {

@@ -42,12 +42,12 @@ const Layout = ({ children }: LayoutProps) => {
         {children}
       </main>
       
-      {/* Mini Player */}
+      {/* Mini Player - Pass the current podcast ID to ensure proper XP tracking */}
       {showMiniPlayer && podcastMeta && (
         <div className="fixed bottom-20 left-0 right-0 z-20">
           <div className="max-w-md mx-auto px-4">
             <MiniPlayer 
-              podcastId={podcastMeta.id}
+              podcastId={currentPodcastId || podcastMeta.id}
               title={podcastMeta.title}
               courseName={podcastMeta.courseName}
               thumbnailUrl={podcastMeta.image}
