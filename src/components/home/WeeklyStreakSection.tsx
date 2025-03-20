@@ -12,15 +12,21 @@ interface WeeklyStreakSectionProps {
 }
 
 const WeeklyStreakSection = ({ streak, days }: WeeklyStreakSectionProps) => {
+  // Check for full weekly streak (7 days)
+  const hasFullWeekStreak = days.filter(day => day.completed).length === 7;
+  
   return (
     <div className="space-y-2.5">
       <div className="flex justify-between items-center">
         <h2 className="font-display font-semibold text-xl text-gray-900">
           Weekly Streak
         </h2>
-        <span className="text-sm text-primary font-medium">
-          +200 XP per day
-        </span>
+        <div className="text-sm text-primary font-medium flex flex-col items-end">
+          <span>+200 XP per day</span>
+          {hasFullWeekStreak && (
+            <span className="text-xs text-green-600">+1000 XP for full week!</span>
+          )}
+        </div>
       </div>
       <StreakCalendar streak={streak} days={days} />
     </div>

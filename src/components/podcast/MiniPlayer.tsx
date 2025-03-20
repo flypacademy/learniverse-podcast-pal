@@ -7,6 +7,7 @@ import PlayerControls from "./PlayerControls";
 import { Button } from "@/components/ui/button";
 import { ChevronUp } from "lucide-react";
 import { useProgressTracking } from "@/hooks/podcast/useProgressTracking";
+import { XPReason } from "@/types/xp";
 
 interface MiniPlayerProps {
   podcastId: string;
@@ -43,6 +44,8 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
   // Track listening time for XP in mini player
   useEffect(() => {
     let trackingInterval: NodeJS.Timeout | null = null;
+    let accumulatedTime = 0;
+    let lastTimestamp = Date.now();
     
     if (isPlaying && audioElement && podcastId) {
       console.log("MiniPlayer: Starting XP tracking interval");
@@ -50,10 +53,27 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
       // Track time and save progress while playing
       trackingInterval = setInterval(() => {
         if (audioElement) {
+          // Calculate time elapsed since last check (in seconds)
+          const now = Date.now();
+          const elapsed = (now - lastTimestamp) / 1000;
+          lastTimestamp = now;
+          
+          // Only count time if actually playing
+          if (isPlaying && !audioElement.paused) {
+            accumulatedTime += elapsed;
+            
+            // Award XP every full minute (60 seconds)
+            if (accumulatedTime >= 60) {
+              console.log(`MiniPlayer: Awarding XP for ${Math.floor(accumulatedTime)} seconds of listening`);
+              awardListeningXP(accumulatedTime);
+              accumulatedTime = 0;
+            }
+          }
+          
           // Save current progress
           saveProgress();
         }
-      }, 5000); // Save every 5 seconds
+      }, 5000); // Check every 5 seconds
     }
     
     return () => {
@@ -61,8 +81,9 @@ const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerPr
         clearInterval(trackingInterval);
         
         // Award XP for any accumulated listening time when unmounting
-        if (audioElement && podcastId) {
-          awardListeningXP();
+        if (audioElement && podcastId && accumulatedTime > 10) { // Only award if meaningful time spent
+          console.log(`MiniPlayer: Unmounting - awarding XP for ${accumulatedTime} seconds`);
+          awardListeningXP(accumulatedTime);
         }
       }
     };

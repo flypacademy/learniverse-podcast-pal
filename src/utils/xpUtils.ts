@@ -6,9 +6,9 @@ import { XPReason } from "@/types/xp";
  * XP amounts for different actions
  */
 export const XP_AMOUNTS = {
-  PODCAST_COMPLETION: 50,
-  STREAK_DAY: 200,
-  WEEKLY_STREAK: 1000,
+  PODCAST_COMPLETION: 50,        // 50 XP for completing a podcast
+  STREAK_DAY: 200,               // 200 XP for maintaining a daily streak
+  WEEKLY_STREAK: 1000,           // 1000 XP for listening every day of the week
   QUIZ_COMPLETION: 100,
   QUIZ_PERFECT: 150
 };

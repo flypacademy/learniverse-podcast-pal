@@ -5,15 +5,16 @@ import { Award } from "lucide-react";
 interface XPModalProps {
   show: boolean;
   xpAmount?: number;
+  reason?: string;
 }
 
-const XPModal = ({ show, xpAmount = 50 }: XPModalProps) => {
+const XPModal = ({ show, xpAmount = 50, reason = "completing a podcast" }: XPModalProps) => {
   const [visible, setVisible] = useState(false);
   
   useEffect(() => {
     if (show) {
       setVisible(true);
-      console.log("XP Modal showing with amount:", xpAmount);
+      console.log("XP Modal showing with amount:", xpAmount, "for reason:", reason);
       
       // Auto-hide after 5 seconds
       const timer = setTimeout(() => {
@@ -24,7 +25,7 @@ const XPModal = ({ show, xpAmount = 50 }: XPModalProps) => {
     } else {
       setVisible(false);
     }
-  }, [show, xpAmount]);
+  }, [show, xpAmount, reason]);
   
   if (!visible) return null;
   
@@ -36,7 +37,7 @@ const XPModal = ({ show, xpAmount = 50 }: XPModalProps) => {
         </div>
         <div>
           <p className="font-medium text-gray-900">+{xpAmount} XP Earned!</p>
-          <p className="text-xs text-gray-500">Keep listening to earn more</p>
+          <p className="text-xs text-gray-500">For {reason}</p>
         </div>
       </div>
     </div>

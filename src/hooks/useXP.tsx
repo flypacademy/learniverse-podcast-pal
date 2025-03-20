@@ -45,29 +45,20 @@ export function useXP() {
     
     // Set up real-time subscription for XP updates
     const channel = supabase
-      .channel('table-db-changes')
+      .channel('user-xp-changes')
       .on('postgres_changes', 
         { 
           event: '*', 
           schema: 'public', 
-          table: 'user_experience'
+          table: 'user_experience',
+          filter: userId ? `user_id=eq.${userId}` : undefined
         }, 
         async (payload) => {
           try {
-            // Only update if we have a userId
-            if (userId) {
-              console.log('XP update received via realtime:', payload);
-              
-              // Check if the update is for our user
-              if (payload.new && (payload.new as any).user_id === userId) {
-                console.log('XP update is for current user, refreshing XP data');
-                
-                // Fetch the latest data to ensure we have the most up-to-date values
-                const freshData = await getUserXP(userId);
-                console.log('Fresh XP data after real-time update:', freshData);
-                setXpData(freshData);
-              }
-            }
+            console.log('XP update received via realtime:', payload);
+            
+            // When we get an update, refresh the XP data
+            await refreshXPData();
           } catch (err) {
             console.error('Error handling XP realtime update:', err);
           }

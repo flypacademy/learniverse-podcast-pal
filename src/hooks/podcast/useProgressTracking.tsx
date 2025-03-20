@@ -15,7 +15,7 @@ export function useProgressTracking(
 ) {
   const { saveProgress } = useProgressSaving(podcastId, podcastCourseId);
   const { fetchUserProgress } = useProgressFetching(podcastId);
-  const { awardXP } = useXP();
+  const { awardXP, refreshXPData } = useXP();
   
   // Track listening time for XP awards
   const [lastXpAwardTime, setLastXpAwardTime] = useState<number>(0);
@@ -109,6 +109,8 @@ export function useProgressTracking(
       const success = await awardXP(xpAmount, XPReason.LISTENING_TIME);
       
       if (success) {
+        // Refresh XP data after awarding to update UI
+        refreshXPData();
         // Reset accumulated time after awarding XP
         setAccumulatedTime(0);
       }
@@ -128,6 +130,9 @@ export function useProgressTracking(
         XP_AMOUNTS.PODCAST_COMPLETION,
         XPReason.PODCAST_COMPLETION
       );
+      
+      // Refresh XP data after awarding completion XP
+      refreshXPData();
       
       console.log(`Podcast completion XP award success (${sourceRef.current}):`, completionSuccess);
       return completionSuccess;

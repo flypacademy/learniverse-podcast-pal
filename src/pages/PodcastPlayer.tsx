@@ -8,6 +8,7 @@ import { useAudioInitialization } from "@/hooks/podcast/useAudioInitialization";
 import { useAudioEventHandlers } from "@/hooks/podcast/useAudioEventHandlers";
 import PodcastPlayerContainer from "@/components/podcast/PodcastPlayerContainer";
 import { XP_AMOUNTS } from "@/utils/xpUtils";
+import { XPReason } from "@/types/xp";
 
 const PodcastPlayer = () => {
   const { podcastId } = useParams<{ podcastId: string }>();
@@ -168,6 +169,7 @@ const PodcastPlayer = () => {
       <XPModal 
         show={showXPModal}
         xpAmount={xpEarned}
+        reason={XPReason.PODCAST_COMPLETION}
       />
     </>
   );
