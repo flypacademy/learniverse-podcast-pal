@@ -4,23 +4,15 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useIconToast } from '@/components/ui/custom-toast';
 import { useXP } from '@/hooks/useXP';
-import { calculateListeningXP, XP_AMOUNTS, XPReason } from '@/utils/xpUtils';
+import { calculateListeningXP, XP_AMOUNTS } from '@/utils/xpUtils';
+import { XPReason } from '@/types/xp';
 
-interface UseProgressTrackingProps {
-  podcastId: string;
-  duration: number;
-  currentTime: number;
-  isPlaying: boolean;
-  markCompleted?: (completed: boolean) => void;
-}
-
-export const useProgressTracking = ({
-  podcastId,
-  duration,
-  currentTime,
-  isPlaying,
-  markCompleted
-}: UseProgressTrackingProps) => {
+export const useProgressTracking = (
+  podcastId: string | undefined,
+  audioRef: React.RefObject<HTMLAudioElement>,
+  isPlaying: boolean,
+  courseId?: string
+) => {
   const [totalListened, setTotalListened] = useState(0);
   const [hasEarnedCompletionXP, setHasEarnedCompletionXP] = useState(false);
   const lastTimeRef = useRef(0);
@@ -29,11 +21,20 @@ export const useProgressTracking = ({
   const saveProgressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { awardXP } = useXP();
   const { toast: iconToast } = useIconToast();
+  const [completionPercentage, setCompletionPercentage] = useState(0);
 
-  // Calculate completion percentage
-  const completionPercentage = duration > 0 
-    ? Math.min(100, Math.floor((currentTime / duration) * 100))
-    : 0;
+  // Calculate completion percentage when time or duration changes
+  useEffect(() => {
+    if (!audioRef.current) return;
+    
+    const currentTime = audioRef.current.currentTime;
+    const duration = audioRef.current.duration;
+    
+    if (duration > 0) {
+      const percent = Math.min(100, Math.floor((currentTime / duration) * 100));
+      setCompletionPercentage(percent);
+    }
+  }, [audioRef.current?.currentTime, audioRef.current?.duration]);
 
   // Track total time listened
   useEffect(() => {
@@ -71,7 +72,7 @@ export const useProgressTracking = ({
     };
   }, [isPlaying]);
 
-  // Save progress more frequently (every 3 seconds during active listening)
+  // Save progress more frequently (every 5 seconds during active listening)
   useEffect(() => {
     const saveInterval = 5000; // 5 seconds
     
@@ -80,10 +81,9 @@ export const useProgressTracking = ({
     }
     
     saveProgressIntervalRef.current = setInterval(() => {
-      // Only save if current time has changed since last save
-      if (currentTime !== lastTimeRef.current && currentTime > 0) {
+      if (audioRef.current && audioRef.current.currentTime !== lastTimeRef.current && audioRef.current.currentTime > 0) {
         saveProgress();
-        lastTimeRef.current = currentTime;
+        lastTimeRef.current = audioRef.current.currentTime;
       }
     }, saveInterval);
     
@@ -92,7 +92,7 @@ export const useProgressTracking = ({
         clearInterval(saveProgressIntervalRef.current);
       }
     };
-  }, [currentTime]);
+  }, [audioRef.current?.currentTime]);
 
   // Award XP for listening time
   useEffect(() => {
@@ -112,20 +112,12 @@ export const useProgressTracking = ({
   }, [totalListened, awardXP]);
 
   // Check for podcast completion and award XP
-  useEffect(() => {
-    // Consider podcast completed at 90%
-    const completionThreshold = 90;
-    
-    if (completionPercentage >= completionThreshold && !hasEarnedCompletionXP) {
+  const handleCompletion = useCallback(async () => {
+    if (completionPercentage >= 90 && !hasEarnedCompletionXP) {
       setHasEarnedCompletionXP(true);
       
-      // Mark as completed in the parent component if callback provided
-      if (markCompleted) {
-        markCompleted(true);
-      }
-      
       // Award completion XP
-      awardXP(XP_AMOUNTS.PODCAST_COMPLETION, XPReason.PODCAST_COMPLETION);
+      const success = await awardXP(XP_AMOUNTS.PODCAST_COMPLETION, XPReason.PODCAST_COMPLETION);
       
       // Show a toast notification
       iconToast({
@@ -133,12 +125,15 @@ export const useProgressTracking = ({
         description: 'Earned for completing this podcast',
         icon: "trophy"
       });
+      
+      return success;
     }
-  }, [completionPercentage, hasEarnedCompletionXP, markCompleted, awardXP]);
+    return false;
+  }, [completionPercentage, hasEarnedCompletionXP, awardXP, iconToast]);
 
   // Save progress to database
   const saveProgress = useCallback(async () => {
-    if (!podcastId || currentTime <= 0) return;
+    if (!podcastId || !audioRef.current || audioRef.current.currentTime <= 0) return;
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -149,6 +144,8 @@ export const useProgressTracking = ({
       }
       
       const userId = session.user.id;
+      const currentTime = audioRef.current.currentTime;
+      const isCompleted = completionPercentage >= 90;
       
       // First check if a progress record exists
       const { data: existingProgress } = await supabase
@@ -165,7 +162,7 @@ export const useProgressTracking = ({
             .from('podcast_progress')
             .update({
               progress_seconds: currentTime,
-              completed: completionPercentage >= 90,
+              completed: isCompleted,
               updated_at: new Date().toISOString(), // Always update timestamp
             })
             .eq('id', existingProgress.id);
@@ -182,7 +179,7 @@ export const useProgressTracking = ({
             user_id: userId,
             podcast_id: podcastId,
             progress_seconds: currentTime,
-            completed: completionPercentage >= 90,
+            completed: isCompleted,
           });
         
         if (error) {
@@ -192,7 +189,47 @@ export const useProgressTracking = ({
     } catch (error) {
       console.error('Error saving podcast progress:', error);
     }
-  }, [podcastId, currentTime, completionPercentage]);
+  }, [podcastId, audioRef, completionPercentage]);
+
+  // Fetch user progress
+  const fetchUserProgress = useCallback(async () => {
+    if (!podcastId) return null;
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.user?.id) {
+        console.error('No authenticated user found');
+        return null;
+      }
+      
+      const userId = session.user.id;
+      
+      const { data, error } = await supabase
+        .from('podcast_progress')
+        .select('progress_seconds, completed')
+        .eq('user_id', userId)
+        .eq('podcast_id', podcastId)
+        .maybeSingle();
+      
+      if (error) {
+        console.error('Error fetching podcast progress:', error);
+        return null;
+      }
+      
+      if (data) {
+        return {
+          last_position: data.progress_seconds,
+          completed: data.completed
+        };
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error fetching podcast progress:', error);
+      return null;
+    }
+  }, [podcastId]);
 
   // Save progress when unmounting
   useEffect(() => {
@@ -204,6 +241,8 @@ export const useProgressTracking = ({
   return {
     completionPercentage,
     totalListened,
-    saveProgress
+    saveProgress,
+    handleCompletion,
+    fetchUserProgress
   };
 };
