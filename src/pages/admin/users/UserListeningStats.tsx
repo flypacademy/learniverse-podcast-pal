@@ -6,126 +6,129 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { format } from "date-fns";
 import AdminLayout from "@/components/AdminLayout";
 import { ListeningStats } from "@/types/xp";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
 
 const UserListeningStats = () => {
   const [userStats, setUserStats] = useState<(ListeningStats & { id: string })[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchAllUserListeningStats() {
+  const fetchAllUserListeningStats = async () => {
+    try {
+      setLoading(true);
+      
+      // Get all users first
+      const { data: users, error: usersError } = await supabase
+        .from('user_profiles')
+        .select('id, display_name');
+      
+      if (usersError) {
+        throw usersError;
+      }
+      
+      // Get all listening data
+      const { data: progressData, error: progressError } = await supabase
+        .from('user_progress')
+        .select('*');
+      
+      if (progressError) {
+        throw progressError;
+      }
+      
+      console.log("Found user profiles:", users?.length || 0);
+      console.log("Found progress entries:", progressData?.length || 0);
+      
+      // Try to get email data for all users
+      const userIds = users?.map(u => u.id) || [];
+      let emailsMap: Record<string, string> = {};
+      
       try {
-        setLoading(true);
+        const { data: emailsData, error: emailsError } = await supabase
+          .rpc('get_user_emails_for_ids', {
+            user_ids: userIds
+          });
         
-        // Get all users first
-        const { data: users, error: usersError } = await supabase
-          .from('user_profiles')
-          .select('id, display_name');
-        
-        if (usersError) {
-          throw usersError;
+        if (!emailsError && emailsData) {
+          emailsMap = emailsData.reduce((acc: Record<string, string>, item: any) => {
+            if (item && item.id && item.email) {
+              acc[item.id] = item.email;
+            }
+            return acc;
+          }, {});
         }
         
-        // Get all listening data
-        const { data: progressData, error: progressError } = await supabase
-          .from('user_progress')
-          .select('*');
+        console.log("Retrieved emails for users:", Object.keys(emailsMap).length);
+      } catch (emailErr) {
+        console.error("Error getting emails:", emailErr);
+      }
+      
+      // Process and aggregate the data by user
+      const userStatsMap: Record<string, ListeningStats & { id: string }> = {};
+      
+      if (users && progressData) {
+        // Initialize stats for all users
+        users.forEach(user => {
+          userStatsMap[user.id] = {
+            id: user.id,
+            userId: user.id,
+            totalMinutes: 0,
+            lastListened: null,
+            email: emailsMap[user.id] || user.display_name || user.id
+          };
+        });
         
-        if (progressError) {
-          throw progressError;
-        }
-        
-        console.log("Found user profiles:", users?.length || 0);
-        console.log("Found progress entries:", progressData?.length || 0);
-        
-        // Try to get email data for all users
-        const userIds = users?.map(u => u.id) || [];
-        let emailsMap: Record<string, string> = {};
-        
-        try {
-          const { data: emailsData, error: emailsError } = await supabase
-            .rpc('get_user_emails_for_ids', {
-              user_ids: userIds
-            });
+        // Process all progress data
+        progressData.forEach(entry => {
+          const userId = entry.user_id;
           
-          if (!emailsError && emailsData) {
-            emailsMap = emailsData.reduce((acc: Record<string, string>, item: any) => {
-              if (item && item.id && item.email) {
-                acc[item.id] = item.email;
-              }
-              return acc;
-            }, {});
-          }
-          
-          console.log("Retrieved emails for users:", Object.keys(emailsMap).length);
-        } catch (emailErr) {
-          console.error("Error getting emails:", emailErr);
-        }
-        
-        // Process and aggregate the data by user
-        const userStatsMap: Record<string, ListeningStats & { id: string }> = {};
-        
-        if (users && progressData) {
-          // Initialize stats for all users
-          users.forEach(user => {
-            userStatsMap[user.id] = {
-              id: user.id,
-              userId: user.id,
+          if (!userStatsMap[userId]) {
+            // Create entry if not exists (should not happen as we initialized all users)
+            userStatsMap[userId] = {
+              id: userId,
+              userId: userId,
               totalMinutes: 0,
               lastListened: null,
-              email: emailsMap[user.id] || user.display_name || user.id
+              email: emailsMap[userId] || userId
             };
-          });
+          }
           
-          // Process all progress data
-          progressData.forEach(entry => {
-            const userId = entry.user_id;
+          // Add to total time if last_position is valid
+          if (entry.last_position && typeof entry.last_position === 'number' && !isNaN(entry.last_position)) {
+            // Convert seconds to minutes
+            const minutes = Math.floor(entry.last_position / 60);
+            userStatsMap[userId].totalMinutes += minutes;
             
-            if (!userStatsMap[userId]) {
-              // Create entry if not exists (should not happen as we initialized all users)
-              userStatsMap[userId] = {
-                id: userId,
-                userId: userId,
-                totalMinutes: 0,
-                lastListened: null,
-                email: emailsMap[userId] || userId
-              };
+            // Also add the remaining seconds (convert to fraction of minute)
+            const remainingSeconds = entry.last_position % 60;
+            userStatsMap[userId].totalMinutes += (remainingSeconds / 60);
+          }
+          
+          // Update last listened date if more recent
+          if (entry.updated_at) {
+            if (!userStatsMap[userId].lastListened || new Date(entry.updated_at) > new Date(userStatsMap[userId].lastListened as string)) {
+              userStatsMap[userId].lastListened = entry.updated_at;
             }
-            
-            // Add to total time if last_position is valid
-            if (entry.last_position && typeof entry.last_position === 'number' && !isNaN(entry.last_position)) {
-              // Convert seconds to minutes
-              const minutes = Math.floor(entry.last_position / 60);
-              userStatsMap[userId].totalMinutes += minutes;
-              
-              // Also add the remaining seconds (convert to fraction of minute)
-              const remainingSeconds = entry.last_position % 60;
-              userStatsMap[userId].totalMinutes += (remainingSeconds / 60);
-            }
-            
-            // Update last listened date if more recent
-            if (entry.updated_at) {
-              if (!userStatsMap[userId].lastListened || entry.updated_at > userStatsMap[userId].lastListened) {
-                userStatsMap[userId].lastListened = entry.updated_at;
-              }
-            }
-          });
-        }
-        
-        // Convert map to array and sort by total minutes (descending)
-        const statsArray = Object.values(userStatsMap).sort((a, b) => 
-          b.totalMinutes - a.totalMinutes
-        );
-        
-        setUserStats(statsArray);
-        setLoading(false);
-      } catch (err: any) {
-        console.error("Error fetching all user stats:", err);
-        setError(err.message || "Failed to fetch user statistics");
-        setLoading(false);
+          }
+        });
       }
+      
+      // Convert map to array and sort by total minutes (descending)
+      const statsArray = Object.values(userStatsMap).sort((a, b) => 
+        b.totalMinutes - a.totalMinutes
+      );
+      
+      setUserStats(statsArray);
+      setLoading(false);
+    } catch (err: any) {
+      console.error("Error fetching all user stats:", err);
+      setError(err.message || "Failed to fetch user statistics");
+      setLoading(false);
     }
-    
+  };
+  
+  useEffect(() => {
     fetchAllUserListeningStats();
   }, []);
 
@@ -137,12 +140,24 @@ const UserListeningStats = () => {
     
     return `${hours}h ${remainingMinutes}m`;
   };
+  
+  const handleRefresh = () => {
+    toast({
+      title: "Refreshing stats",
+      description: "Fetching the latest listening statistics for all users..."
+    });
+    fetchAllUserListeningStats();
+  };
 
   return (
     <AdminLayout>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold tracking-tight">User Listening Statistics</h1>
+          <Button onClick={handleRefresh} variant="outline" className="flex items-center gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Refresh Stats
+          </Button>
         </div>
         
         {loading ? (

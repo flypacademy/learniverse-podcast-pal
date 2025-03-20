@@ -1,3 +1,4 @@
+
 import { supabase } from "@/lib/supabase";
 
 export function useProgressSaving(podcastId: string | undefined, podcastCourseId?: string) {
@@ -14,9 +15,9 @@ export function useProgressSaving(podcastId: string | undefined, podcastCourseId
       const userId = session.user.id;
       const last_position = Math.floor(audioElement.currentTime);
       
-      // Only save progress if we have a meaningful position (greater than 5 seconds)
+      // Only save progress if we have a meaningful position (greater than 1 second)
       // or if it's explicitly marked as completed
-      if (last_position <= 5 && !completed) {
+      if (last_position <= 1 && !completed) {
         console.log("Position too small to save progress:", last_position);
         return;
       }
@@ -42,6 +43,9 @@ export function useProgressSaving(podcastId: string | undefined, podcastCourseId
         return;
       }
       
+      // Force the updated_at to be now to ensure we always update the timestamp
+      const timestamp = new Date().toISOString();
+      
       // If record exists, update it
       if (existingRecord) {
         // Check if we're newly completing the podcast
@@ -55,9 +59,9 @@ export function useProgressSaving(podcastId: string | undefined, podcastCourseId
           .from('user_progress')
           .update({
             last_position: last_position,
-            completed: completed,
+            completed: completed || existingRecord.completed, // Keep as completed if it was already completed
             course_id: podcastCourseId,
-            updated_at: new Date().toISOString()
+            updated_at: timestamp
           })
           .eq('user_id', userId)
           .eq('podcast_id', podcastId);
@@ -65,7 +69,7 @@ export function useProgressSaving(podcastId: string | undefined, podcastCourseId
         if (updateError) {
           console.error("Error updating progress:", updateError);
         } else {
-          console.log("Progress updated successfully");
+          console.log("Progress updated successfully with timestamp:", timestamp);
         }
       } 
       // Otherwise insert a new record
@@ -78,14 +82,16 @@ export function useProgressSaving(podcastId: string | undefined, podcastCourseId
               podcast_id: podcastId,
               last_position: last_position,
               completed: completed,
-              course_id: podcastCourseId
+              course_id: podcastCourseId,
+              updated_at: timestamp,
+              created_at: timestamp
             }
           ]);
         
         if (insertError) {
           console.error("Error inserting progress:", insertError);
         } else {
-          console.log("Progress inserted successfully");
+          console.log("Progress inserted successfully with timestamp:", timestamp);
         }
       }
     } catch (error) {
