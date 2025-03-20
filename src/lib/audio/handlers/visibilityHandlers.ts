@@ -16,6 +16,7 @@ export const createVisibilityHandlers = (
       // Check if it was playing before and try to resume
       const isCurrentlyPlaying = get().isPlaying;
       if (isCurrentlyPlaying && audioElement.paused) {
+        console.log("Visibility change detected, resuming playback");
         audioElement.play().catch(err => {
           console.warn("Could not auto-resume audio after visibility change:", err);
         });
