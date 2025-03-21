@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useCallback } from "react";
 import { Slider } from "@/components/ui/slider";
 import { formatDuration } from "@/pages/admin/podcasts/utils/formatters";
 
@@ -17,11 +17,12 @@ const AudioProgress = ({ currentTime, duration, onSeek }: AudioProgressProps) =>
   // Calculate progress as a percentage (0-100)
   const progress = Math.min(100, Math.max(0, (safeCurrentTime / safeDuration) * 100));
   
-  const handleSliderChange = (value: number[]) => {
+  // Use useCallback to prevent unnecessary re-renders and potential loops
+  const handleSliderChange = useCallback((value: number[]) => {
     if (onSeek && value && value.length > 0) {
       onSeek(value[0]);
     }
-  };
+  }, [onSeek]);
   
   return (
     <div className="space-y-2">
@@ -41,4 +42,5 @@ const AudioProgress = ({ currentTime, duration, onSeek }: AudioProgressProps) =>
   );
 };
 
-export default AudioProgress;
+// Use React.memo to prevent unnecessary re-renders
+export default React.memo(AudioProgress);

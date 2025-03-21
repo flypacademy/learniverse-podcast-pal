@@ -20,6 +20,12 @@ export function useAudioSync(
   const syncInProgressRef = useRef(false);
   const lastUpdateTimeRef = useRef(0);
   const initialSyncCompleteRef = useRef(false);
+  const lastStoreValuesRef = useRef({
+    isPlaying: false,
+    currentTime: 0,
+    duration: 0,
+    volume: 0
+  });
   
   // Only initialize from the store once when the component mounts
   useEffect(() => {
@@ -45,6 +51,14 @@ export function useAudioSync(
         audioRef.current.currentTime = 0;
       }
       
+      // Save initial store values to prevent unnecessary updates
+      lastStoreValuesRef.current = {
+        isPlaying: audioStore.isPlaying,
+        currentTime: audioStore.currentTime,
+        duration: audioStore.duration,
+        volume: audioStore.volume
+      };
+      
       initialSyncCompleteRef.current = true;
     }
   }, [audioStore, podcastId, setCurrentTime, setDuration, setIsPlaying, setReady, setVolume, audioRef]);
@@ -65,32 +79,49 @@ export function useAudioSync(
       return;
     }
     
+    // Check if store values have actually changed before updating local state
+    const storeValues = {
+      isPlaying: audioStore.isPlaying,
+      currentTime: audioStore.currentTime,
+      duration: audioStore.duration,
+      volume: audioStore.volume
+    };
+    
+    // Only proceed if there are meaningful differences
+    const hasSignificantChanges = 
+      storeValues.isPlaying !== lastStoreValuesRef.current.isPlaying ||
+      Math.abs(storeValues.currentTime - lastStoreValuesRef.current.currentTime) > 1 ||
+      Math.abs(storeValues.duration - lastStoreValuesRef.current.duration) > 1 ||
+      Math.abs(storeValues.volume - lastStoreValuesRef.current.volume) > 2;
+      
+    if (!hasSignificantChanges) {
+      return;
+    }
+    
     syncInProgressRef.current = true;
     lastUpdateTimeRef.current = now;
     
     try {
       // Only update state if there's a significant difference to avoid render loops
-      if (isPlaying !== audioStore.isPlaying) {
-        setIsPlaying(audioStore.isPlaying);
+      if (isPlaying !== storeValues.isPlaying) {
+        setIsPlaying(storeValues.isPlaying);
       }
-      
-      // Create local variables to avoid excessive property access
-      const storeTime = audioStore.currentTime;
-      const storeDuration = audioStore.duration;
-      const storeVolume = audioStore.volume;
       
       // Only update time if the difference is significant
-      if (isFinite(storeTime) && Math.abs(currentTime - storeTime) > 1) {
-        setCurrentTime(storeTime);
+      if (isFinite(storeValues.currentTime) && Math.abs(currentTime - storeValues.currentTime) > 1) {
+        setCurrentTime(storeValues.currentTime);
       }
       
-      if (storeDuration > 0 && Math.abs(duration - storeDuration) > 1) {
-        setDuration(storeDuration);
+      if (storeValues.duration > 0 && Math.abs(duration - storeValues.duration) > 1) {
+        setDuration(storeValues.duration);
       }
       
-      if (Math.abs(volume - storeVolume) > 2) {
-        setVolume(storeVolume);
+      if (Math.abs(volume - storeValues.volume) > 2) {
+        setVolume(storeValues.volume);
       }
+      
+      // Update the last store values reference
+      lastStoreValuesRef.current = storeValues;
     } finally {
       syncInProgressRef.current = false;
     }

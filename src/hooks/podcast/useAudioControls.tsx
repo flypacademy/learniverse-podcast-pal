@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAudioStore } from "@/lib/audioContext";
 
 export function useAudioControls(
@@ -9,6 +9,7 @@ export function useAudioControls(
   syncInProgressRef: React.MutableRefObject<boolean>
 ) {
   const audioStore = useAudioStore();
+  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const play = () => {
     if (audioRef.current) {
@@ -29,8 +30,16 @@ export function useAudioControls(
               // Only update the store if our local state changed
               if (!audioStore.isPlaying) {
                 syncInProgressRef.current = true;
-                audioStore.play();
-                syncInProgressRef.current = false;
+                
+                // Use timeout to break the potential update cycle
+                if (updateTimeoutRef.current) {
+                  clearTimeout(updateTimeoutRef.current);
+                }
+                
+                updateTimeoutRef.current = setTimeout(() => {
+                  audioStore.play();
+                  syncInProgressRef.current = false;
+                }, 0);
               }
             })
             .catch(error => {
@@ -62,8 +71,16 @@ export function useAudioControls(
         // Only update the store if our local state changed
         if (audioStore.isPlaying) {
           syncInProgressRef.current = true;
-          audioStore.pause();
-          syncInProgressRef.current = false;
+          
+          // Use timeout to break the potential update cycle
+          if (updateTimeoutRef.current) {
+            clearTimeout(updateTimeoutRef.current);
+          }
+          
+          updateTimeoutRef.current = setTimeout(() => {
+            audioStore.pause();
+            syncInProgressRef.current = false;
+          }, 0);
         }
       }
     } catch (error) {
@@ -89,8 +106,15 @@ export function useAudioControls(
         setCurrentTime(newTime);
         
         syncInProgressRef.current = true;
-        audioStore.setCurrentTime(newTime);
-        syncInProgressRef.current = false;
+        // Use timeout to break the potential update cycle
+        if (updateTimeoutRef.current) {
+          clearTimeout(updateTimeoutRef.current);
+        }
+        
+        updateTimeoutRef.current = setTimeout(() => {
+          audioStore.setCurrentTime(newTime);
+          syncInProgressRef.current = false;
+        }, 0);
       } catch (error) {
         console.error("Error seeking audio:", error);
       }
@@ -104,8 +128,15 @@ export function useAudioControls(
         audioRef.current.volume = Math.max(0, Math.min(1, volumeValue));
         
         syncInProgressRef.current = true;
-        audioStore.setVolume(value);
-        syncInProgressRef.current = false;
+        // Use timeout to break the potential update cycle
+        if (updateTimeoutRef.current) {
+          clearTimeout(updateTimeoutRef.current);
+        }
+        
+        updateTimeoutRef.current = setTimeout(() => {
+          audioStore.setVolume(value);
+          syncInProgressRef.current = false;
+        }, 0);
       } catch (error) {
         console.error("Error changing volume:", error);
       }
@@ -120,8 +151,15 @@ export function useAudioControls(
         setCurrentTime(newTime);
         
         syncInProgressRef.current = true;
-        audioStore.setCurrentTime(newTime);
-        syncInProgressRef.current = false;
+        // Use timeout to break the potential update cycle
+        if (updateTimeoutRef.current) {
+          clearTimeout(updateTimeoutRef.current);
+        }
+        
+        updateTimeoutRef.current = setTimeout(() => {
+          audioStore.setCurrentTime(newTime);
+          syncInProgressRef.current = false;
+        }, 0);
       } catch (error) {
         console.error("Error skipping forward:", error);
       }
@@ -136,13 +174,29 @@ export function useAudioControls(
         setCurrentTime(newTime);
         
         syncInProgressRef.current = true;
-        audioStore.setCurrentTime(newTime);
-        syncInProgressRef.current = false;
+        // Use timeout to break the potential update cycle
+        if (updateTimeoutRef.current) {
+          clearTimeout(updateTimeoutRef.current);
+        }
+        
+        updateTimeoutRef.current = setTimeout(() => {
+          audioStore.setCurrentTime(newTime);
+          syncInProgressRef.current = false;
+        }, 0);
       } catch (error) {
         console.error("Error skipping backward:", error);
       }
     }
   };
+  
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return {
     play,
