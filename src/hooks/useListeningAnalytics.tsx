@@ -101,13 +101,34 @@ export function useListeningAnalytics(days: number = 7) {
       const sampleData: DailyListeningData[] = [];
       const today = new Date();
       
+      // Create a more realistic pattern with some days having higher values than others
+      // Monday, Wednesday, Friday are more active days
       for (let i = days - 1; i >= 0; i--) {
         const date = new Date(today);
         date.setDate(today.getDate() - i);
         const dateString = date.toISOString().split('T')[0];
+        const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
         
-        // Generate random minutes between 10 and 60
-        const minutes = Math.floor(Math.random() * 50) + 10;
+        // Different minutes based on day of week to create a pattern
+        let minutes = 0;
+        
+        switch(dayOfWeek) {
+          case 1: // Monday
+            minutes = Math.floor(Math.random() * 15) + 35; // 35-50
+            break;
+          case 3: // Wednesday
+            minutes = Math.floor(Math.random() * 15) + 25; // 25-40
+            break;
+          case 5: // Friday
+            minutes = Math.floor(Math.random() * 15) + 30; // 30-45
+            break;
+          case 0: // Sunday
+          case 6: // Saturday
+            minutes = Math.floor(Math.random() * 10) + 5; // 5-15 (weekend, less studying)
+            break;
+          default: // Tuesday, Thursday
+            minutes = Math.floor(Math.random() * 20) + 10; // 10-30
+        }
         
         sampleData.push({
           date: dateString,
