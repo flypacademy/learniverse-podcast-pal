@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useListeningAnalytics } from "@/hooks/useListeningAnalytics";
 import { useListeningStats } from "@/hooks/useListeningStats";
 import ProfileHeader from "./ProfileHeader";
@@ -87,8 +87,13 @@ interface ProfileContentProps {
 const ProfileContent: React.FC<ProfileContentProps> = ({ userData }) => {
   const { analytics, loading: analyticsLoading } = useListeningAnalytics(7);
   const { stats, loading: statsLoading, error: statsError } = useListeningStats();
-  const { totalXP, isLoading } = useXP();
+  const { totalXP, isLoading, refreshXPData } = useXP();
   const { toast } = useToast();
+  
+  // Refresh XP when the component mounts
+  useEffect(() => {
+    refreshXPData();
+  }, [refreshXPData]);
   
   // Use the XP data from the hook or fall back to the props data or finally to default
   const displayXP = totalXP ?? userData?.totalXP ?? defaultUserData.xp;

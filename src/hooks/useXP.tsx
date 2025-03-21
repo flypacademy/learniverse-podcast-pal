@@ -5,12 +5,19 @@ import { XPReason } from "@/types/xp";
 import { toast } from "sonner";
 
 export function useXP() {
-  const [totalXP, setTotalXP] = useState<number>(0);
+  const [totalXP, setTotalXP] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastFetch, setLastFetch] = useState<number>(0);
 
   // Fetch user's XP data
-  const fetchXPData = useCallback(async () => {
+  const fetchXPData = useCallback(async (force = false) => {
+    // Don't fetch if we've fetched recently (within last 30 seconds) unless forced
+    const now = Date.now();
+    if (!force && now - lastFetch < 30000 && totalXP !== null) {
+      return;
+    }
+    
     try {
       setIsLoading(true);
       setError(null);
@@ -24,32 +31,64 @@ export function useXP() {
       
       const userId = session.user.id;
       
-      // Get total XP
-      const { data: xpData, error: xpError } = await supabase
-        .from('user_xp')
-        .select('amount')
-        .eq('user_id', userId);
-      
-      if (xpError) {
-        // Check if the error is because the table doesn't exist
-        if (xpError.code === '42P01') { // PostgreSQL error code for "relation does not exist"
-          console.log("user_xp table does not exist yet, setting XP to 0");
-          setTotalXP(0);
-        } else {
-          throw xpError;
+      // First try the new user_xp table
+      try {
+        // Get total XP from user_xp table
+        const { data: xpData, error: xpError } = await supabase
+          .from('user_xp')
+          .select('amount')
+          .eq('user_id', userId);
+        
+        if (xpError) {
+          // If this table doesn't exist, try the legacy table
+          if (xpError.code === '42P01') { // PostgreSQL error code for "relation does not exist"
+            console.log("user_xp table does not exist yet, checking legacy table");
+            throw new Error("Table not found");
+          } else {
+            throw xpError;
+          }
         }
-      } else {
+        
         const total = xpData?.reduce((sum, item) => sum + (item.amount || 0), 0) || 0;
+        console.log("Found XP in user_xp table:", total);
         setTotalXP(total);
+        setLastFetch(now);
+      } catch (err) {
+        // Try legacy user_experience table
+        console.log("Trying legacy user_experience table");
+        const { data: legacyXP, error: legacyError } = await supabase
+          .from('user_experience')
+          .select('total_xp')
+          .eq('user_id', userId)
+          .single();
+        
+        if (legacyError && legacyError.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+          console.error("Error fetching legacy XP:", legacyError);
+          setError(legacyError.message);
+        } else if (legacyXP) {
+          console.log("Found XP in legacy table:", legacyXP.total_xp);
+          setTotalXP(legacyXP.total_xp);
+          setLastFetch(now);
+        } else {
+          // If neither table has data, set to 0
+          console.log("No XP data found in any table");
+          setTotalXP(0);
+          setLastFetch(now);
+        }
       }
       
     } catch (err: any) {
       console.error("Error fetching XP data:", err);
       setError(err.message || "Failed to load XP data");
+      
+      // Fallback to 0 if we can't load
+      if (totalXP === null) {
+        setTotalXP(0);
+      }
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [lastFetch, totalXP]);
   
   // Load XP data on mount
   useEffect(() => {
@@ -85,11 +124,60 @@ export function useXP() {
         
         if (insertError) {
           console.error("Error awarding XP:", insertError);
+          
+          // Try updating legacy table as fallback
+          try {
+            const { data: legacyXP } = await supabase
+              .from('user_experience')
+              .select('total_xp, weekly_xp')
+              .eq('user_id', userId)
+              .single();
+            
+            if (legacyXP) {
+              // Update existing record
+              const { error: updateError } = await supabase
+                .from('user_experience')
+                .update({
+                  total_xp: legacyXP.total_xp + amount,
+                  weekly_xp: legacyXP.weekly_xp + amount,
+                  last_updated: new Date().toISOString()
+                })
+                .eq('user_id', userId);
+                
+              if (!updateError) {
+                // Update local state
+                setTotalXP(prev => (prev || 0) + amount);
+                console.log(`Added ${amount} XP for ${reason} to legacy table`);
+                return true;
+              }
+            } else {
+              // Insert new record in legacy table
+              const { error: createError } = await supabase
+                .from('user_experience')
+                .insert([{
+                  user_id: userId,
+                  total_xp: amount,
+                  weekly_xp: amount,
+                  last_updated: new Date().toISOString(),
+                  created_at: new Date().toISOString()
+                }]);
+                
+              if (!createError) {
+                // Update local state
+                setTotalXP(prev => (prev || 0) + amount);
+                console.log(`Added ${amount} XP for ${reason} to new legacy record`);
+                return true;
+              }
+            }
+          } catch (err) {
+            console.error("Error updating legacy XP:", err);
+          }
+          
           return false;
         }
         
         // Update local state
-        setTotalXP(prev => prev + amount);
+        setTotalXP(prev => (prev || 0) + amount);
         
         console.log(`Awarded ${amount} XP for ${reason}`);
         return true;
@@ -98,7 +186,7 @@ export function useXP() {
         
         // If the error is because the table doesn't exist, just update local state
         // so the UI works even if we can't save to the database yet
-        setTotalXP(prev => prev + amount);
+        setTotalXP(prev => (prev || 0) + amount);
         return true;
       }
       
@@ -108,9 +196,9 @@ export function useXP() {
     }
   };
   
-  // Refresh XP data
-  const refreshXPData = useCallback(async () => {
-    await fetchXPData();
+  // Refresh XP data with force option
+  const refreshXPData = useCallback(() => {
+    return fetchXPData(true);
   }, [fetchXPData]);
 
   return {

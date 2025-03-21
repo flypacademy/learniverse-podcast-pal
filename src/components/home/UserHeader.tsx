@@ -14,7 +14,7 @@ const UserHeader = ({ userName, totalXP: propTotalXP }: UserHeaderProps) => {
   const { totalXP, isLoading, refreshXPData } = useXP();
   
   // Use prop totalXP if provided, otherwise use the totalXP from the hook
-  const displayXP = propTotalXP !== undefined ? propTotalXP : totalXP;
+  const displayXP = propTotalXP !== undefined ? propTotalXP : totalXP ?? 0;
   
   // Refresh XP data when component mounts
   useEffect(() => {
