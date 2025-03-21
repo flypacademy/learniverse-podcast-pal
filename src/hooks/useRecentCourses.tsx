@@ -52,6 +52,7 @@ export function useRecentCourses() {
         
         if (!progressData || progressData.length === 0) {
           console.log("No recent courses found");
+          setRecentCourses([]); // Ensure we set an empty array
           setLoading(false);
           return;
         }
@@ -65,6 +66,7 @@ export function useRecentCourses() {
 
         if (uniqueCourseIds.length === 0) {
           console.log("No course IDs found in progress data");
+          setRecentCourses([]); // Ensure we set an empty array
           setLoading(false);
           return;
         }
@@ -76,6 +78,7 @@ export function useRecentCourses() {
         
         if (!coursesData || coursesData.length === 0) {
           console.log("No course details found");
+          setRecentCourses([]); // Ensure we set an empty array
           setLoading(false);
           return;
         }
@@ -94,6 +97,7 @@ export function useRecentCourses() {
           description: "Failed to load your recent courses",
           variant: "destructive"
         });
+        setRecentCourses([]); // Ensure we set an empty array on error
         setLoading(false);
       }
     };

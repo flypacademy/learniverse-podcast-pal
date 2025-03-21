@@ -9,11 +9,18 @@ import { RecentCourse } from "@/hooks/useRecentCourses";
 interface ContinueLearningProps {
   courses: RecentCourse[];
   loading: boolean;
-  handleLinkClick: () => void;
+  handleLinkClick?: () => void; // Make this optional
 }
 
 const ContinueLearning = ({ courses, loading, handleLinkClick }: ContinueLearningProps) => {
   const [activeSlide, setActiveSlide] = useState(0);
+
+  const onLinkClick = () => {
+    // Only call handleLinkClick if it exists
+    if (handleLinkClick) {
+      handleLinkClick();
+    }
+  };
 
   return (
     <div className="space-y-2.5">
@@ -24,7 +31,7 @@ const ContinueLearning = ({ courses, loading, handleLinkClick }: ContinueLearnin
         <Link 
           to="/courses" 
           className="text-primary flex items-center text-sm font-medium"
-          onClick={handleLinkClick}
+          onClick={onLinkClick}
         >
           View all
           <ArrowRight className="h-4 w-4 ml-1" />
@@ -42,7 +49,7 @@ const ContinueLearning = ({ courses, loading, handleLinkClick }: ContinueLearnin
             </div>
           </div>
         </div>
-      ) : courses.length > 0 ? (
+      ) : courses && courses.length > 0 ? ( // Add null check for courses
         <Carousel 
           className="w-full"
           onSelect={(index) => {
@@ -91,7 +98,7 @@ const ContinueLearning = ({ courses, loading, handleLinkClick }: ContinueLearnin
           <Link 
             to="/courses" 
             className="text-primary font-medium text-sm hover:underline"
-            onClick={handleLinkClick}
+            onClick={onLinkClick}
           >
             Browse courses
           </Link>

@@ -15,7 +15,7 @@ import { fetchUserActivity, calculateStreak } from "@/utils/streakUtils";
 const Home = () => {
   const { data: userData, loading: userLoading } = useUserXP();
   const { totalXP, refreshXPData, isLoading: xpLoading } = useXP();
-  const { courses: recentCourses, loading: coursesLoading } = useRecentCourses();
+  const { recentCourses, loading: coursesLoading } = useRecentCourses();
   const [activityDays, setActivityDays] = useState<{ date: string; completed: boolean; partial?: boolean }[]>([]);
   const [currentStreak, setCurrentStreak] = useState<number>(0);
   const [isLoadingStreak, setIsLoadingStreak] = useState<boolean>(true);
@@ -45,11 +45,6 @@ const Home = () => {
     refreshXPData();
   }, [refreshXPData]);
   
-  // Show skeleton state while loading
-  if (userLoading || xpLoading) {
-    // We can still show the UI with loading states
-  }
-  
   // Show the primary XP (from the new system) or fallback to legacy
   const xp = totalXP !== null ? totalXP : userData?.totalXP || 0;
   
@@ -60,7 +55,7 @@ const Home = () => {
       
       <div className="space-y-6 animate-slide-up">
         <UserHeader 
-          name={userData?.userName || "Student"} 
+          username={userData?.userName || "Student"} 
           xp={xp}
           loading={userLoading || xpLoading} 
         />
