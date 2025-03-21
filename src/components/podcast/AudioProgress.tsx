@@ -21,12 +21,16 @@ const AudioProgress = ({ currentTime, duration, onSeek }: AudioProgressProps) =>
   const progressRef = useRef(progress);
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastSeekTimeRef = useRef(0);
+  const isMounted = useRef(true);
   
   // Clear any pending timeouts on unmount
   useEffect(() => {
+    isMounted.current = true;
     return () => {
+      isMounted.current = false;
       if (updateTimeoutRef.current) {
         clearTimeout(updateTimeoutRef.current);
+        updateTimeoutRef.current = null;
       }
     };
   }, []);
@@ -34,32 +38,37 @@ const AudioProgress = ({ currentTime, duration, onSeek }: AudioProgressProps) =>
   // Only update the slider when there's a significant change in progress
   useEffect(() => {
     const progressDiff = Math.abs(progress - progressRef.current);
-    if (progressDiff > 1.0) { // Increased threshold to reduce updates
+    
+    // Only update ref if there's a meaningful change (more than 2%)
+    if (progressDiff > 2.0) {
       progressRef.current = progress;
     }
   }, [progress]);
   
-  // Use useCallback with stronger debouncing for seeking
+  // Use useCallback with strong debouncing for seeking
   const handleSliderChange = useCallback((value: number[]) => {
-    if (onSeek && value && value.length > 0) {
-      // Ignore rapid changes (debounce)
-      const now = Date.now();
-      if (now - lastSeekTimeRef.current < 200) {
-        return;
-      }
-      lastSeekTimeRef.current = now;
-      
-      // Cancel any pending updates
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current);
-      }
-      
-      // Schedule the update with a delay to avoid rapid successive updates
-      updateTimeoutRef.current = setTimeout(() => {
+    if (!onSeek || !value || value.length === 0) return;
+    
+    // Ignore rapid changes (debounce)
+    const now = Date.now();
+    if (now - lastSeekTimeRef.current < 300) {
+      return;
+    }
+    
+    lastSeekTimeRef.current = now;
+    
+    // Cancel any pending updates
+    if (updateTimeoutRef.current) {
+      clearTimeout(updateTimeoutRef.current);
+    }
+    
+    // Schedule the update with a delay to avoid rapid successive updates
+    updateTimeoutRef.current = setTimeout(() => {
+      if (isMounted.current) {
         onSeek(value[0]);
         updateTimeoutRef.current = null;
-      }, 100); // Increased timeout for more aggressive debouncing
-    }
+      }
+    }, 200);
   }, [onSeek]);
   
   return (
@@ -68,7 +77,7 @@ const AudioProgress = ({ currentTime, duration, onSeek }: AudioProgressProps) =>
         value={[progressRef.current]} 
         min={0}
         max={100}
-        step={0.5} // Reduced precision to minimize updates
+        step={1.0} // Reduced precision further to minimize updates
         onValueChange={handleSliderChange}
         className="w-full"
       />
@@ -81,10 +90,10 @@ const AudioProgress = ({ currentTime, duration, onSeek }: AudioProgressProps) =>
 };
 
 // Use React.memo with a custom comparison function to prevent unnecessary re-renders
+// Only re-render if time changes by more than 2 seconds or duration changes significantly
 export default React.memo(AudioProgress, (prevProps, nextProps) => {
-  // Only re-render if time changes by more than 1 second or duration changes significantly
   return (
-    Math.abs(prevProps.currentTime - nextProps.currentTime) < 1 &&
-    Math.abs(prevProps.duration - nextProps.duration) < 1
+    Math.abs(prevProps.currentTime - nextProps.currentTime) < 2 &&
+    Math.abs(prevProps.duration - nextProps.duration) < 2
   );
 });

@@ -1,5 +1,5 @@
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useAudioStore } from "@/lib/audioContext";
 
 export function useAudioControls(
@@ -14,7 +14,17 @@ export function useAudioControls(
   const lastActionTimeRef = useRef<number>(0);
   const isUpdatingRef = useRef<boolean>(false);
   
-  const throttleAction = (minInterval = 300): boolean => {
+  // Clean up any timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+        updateTimeoutRef.current = null;
+      }
+    };
+  }, []);
+  
+  const throttleAction = (minInterval = 500): boolean => {
     const now = Date.now();
     if (now - lastActionTimeRef.current < minInterval) {
       return false; // Too soon for another action
@@ -37,15 +47,15 @@ export function useAudioControls(
         callback();
       } finally {
         isUpdatingRef.current = false;
+        updateTimeoutRef.current = null;
       }
-    }, 200);
+    }, 300);
   };
   
   const play = () => {
-    if (!audioRef.current || !throttleAction(500)) return;
+    if (!audioRef.current || !throttleAction(800)) return;
     
     try {
-      // Stop any other audio that might be playing
       const storeAudioElement = audioStore.audioElement;
       if (storeAudioElement && storeAudioElement !== audioRef.current && !storeAudioElement.paused) {
         console.log("Stopping other audio before playing this one");
@@ -65,24 +75,15 @@ export function useAudioControls(
           })
           .catch(error => {
             console.error("Error playing audio:", error);
-            // Try one more time with a small delay
-            setTimeout(() => {
-              if (audioRef.current) {
-                console.log("Retrying playback after error");
-                audioRef.current.play().catch(e => {
-                  console.error("Retry play attempt also failed:", e);
-                });
-              }
-            }, 300);
           });
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Exception during play:", error);
     }
   };
   
   const pause = () => {
-    if (!audioRef.current || !throttleAction(300)) return;
+    if (!audioRef.current || !throttleAction(500)) return;
     
     try {
       console.log("Pause called, pausing audio");
@@ -106,12 +107,12 @@ export function useAudioControls(
   };
   
   const seek = (percent: number) => {
-    if (!audioRef.current || duration <= 0 || !throttleAction(200)) return;
+    if (!audioRef.current || duration <= 0 || !throttleAction(300)) return;
     
     try {
       // Further debounce seek operations to prevent rapid successive updates
       const now = Date.now();
-      if (now - lastSeekTimeRef.current < 300) {
+      if (now - lastSeekTimeRef.current < 500) {
         return; // Ignore rapid seek events
       }
       lastSeekTimeRef.current = now;
@@ -121,7 +122,7 @@ export function useAudioControls(
       audioRef.current.currentTime = newTime;
       setCurrentTime(newTime);
       
-      // Only update store if not already syncing
+      // Only update store if not already syncing, and with a delay
       if (!syncInProgressRef.current) {
         updateStore(() => audioStore.setCurrentTime(newTime));
       }
@@ -131,13 +132,13 @@ export function useAudioControls(
   };
   
   const changeVolume = (value: number) => {
-    if (!audioRef.current || !throttleAction(300)) return;
+    if (!audioRef.current || !throttleAction(500)) return;
     
     try {
       const volumeValue = value / 100;
       audioRef.current.volume = Math.max(0, Math.min(1, volumeValue));
       
-      // Only update store if not already syncing
+      // Only update store if not already syncing, and with a delay
       if (!syncInProgressRef.current) {
         updateStore(() => audioStore.setVolume(value));
       }
@@ -147,7 +148,7 @@ export function useAudioControls(
   };
   
   const skipForward = () => {
-    if (!audioRef.current || !throttleAction(300)) return;
+    if (!audioRef.current || !throttleAction(500)) return;
     
     try {
       const newTime = Math.min(audioRef.current.duration, audioRef.current.currentTime + 15);
@@ -164,7 +165,7 @@ export function useAudioControls(
   };
   
   const skipBackward = () => {
-    if (!audioRef.current || !throttleAction(300)) return;
+    if (!audioRef.current || !throttleAction(500)) return;
     
     try {
       const newTime = Math.max(0, audioRef.current.currentTime - 15);
@@ -179,15 +180,6 @@ export function useAudioControls(
       console.error("Error skipping backward:", error);
     }
   };
-  
-  // Clean up timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current);
-      }
-    };
-  }, []);
 
   return {
     play,
