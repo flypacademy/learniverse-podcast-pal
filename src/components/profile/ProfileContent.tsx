@@ -13,13 +13,14 @@ import { UserXPData } from "@/hooks/useUserXP";
 import { useXP } from "@/hooks/useXP";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
+import { fetchUserActivity, calculateStreak } from "@/utils/streakUtils";
 
 const defaultUserData = {
   name: "Student",
   email: "student@example.com",
   xp: 0,
   level: 1,
-  streak: 4,
+  streak: 0,
   totalPodcastsCompleted: 0,
   totalHoursListened: 8.5,
   nextLevelXP: 500,
@@ -95,7 +96,11 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ userData, isLoading = f
   const [dataInitialized, setDataInitialized] = useState(false);
   const [completedPodcasts, setCompletedPodcasts] = useState<number>(0);
   const [isLoadingPodcasts, setIsLoadingPodcasts] = useState<boolean>(true);
+  const [activityDays, setActivityDays] = useState<{ date: string; completed: boolean; partial?: boolean }[]>([]);
+  const [currentStreak, setCurrentStreak] = useState<number>(0);
+  const [isLoadingStreak, setIsLoadingStreak] = useState<boolean>(true);
   
+  // Initialize XP data
   useEffect(() => {
     if (!isLoading && !xpLoading && (totalXP !== null || userData?.totalXP !== undefined)) {
       const newXP = totalXP ?? userData?.totalXP ?? 0;
@@ -109,6 +114,26 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ userData, isLoading = f
       refreshXPData();
     }
   }, [dataInitialized, refreshXPData]);
+  
+  // Fetch user activity data for streak calculation
+  useEffect(() => {
+    async function loadActivityData() {
+      try {
+        setIsLoadingStreak(true);
+        const activityData = await fetchUserActivity();
+        setActivityDays(activityData);
+        
+        const streak = calculateStreak(activityData);
+        setCurrentStreak(streak);
+      } catch (err) {
+        console.error("Error loading streak data:", err);
+      } finally {
+        setIsLoadingStreak(false);
+      }
+    }
+    
+    loadActivityData();
+  }, []);
   
   // Fetch completed podcasts count
   useEffect(() => {
@@ -201,7 +226,7 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ userData, isLoading = f
     email: defaultUserData.email,
     xp: displayXP,
     level,
-    streak: defaultUserData.streak,
+    streak: currentStreak,
     nextLevelXP,
     progress
   };
@@ -226,7 +251,11 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ userData, isLoading = f
       />
       
       <div className="glass-card p-4 rounded-xl">
-        <StreakCalendar streak={defaultUserData.streak} days={activityDays} />
+        <StreakCalendar 
+          streak={currentStreak} 
+          days={activityDays} 
+          loading={isLoadingStreak}
+        />
       </div>
       
       <WeeklyAnalytics analytics={analytics} loading={analyticsLoading} />

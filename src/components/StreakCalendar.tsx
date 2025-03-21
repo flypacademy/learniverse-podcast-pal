@@ -8,9 +8,10 @@ interface StreakCalendarProps {
     completed: boolean;
     partial?: boolean;
   }[];
+  loading?: boolean;
 }
 
-const StreakCalendar = ({ streak, days }: StreakCalendarProps) => {
+const StreakCalendar = ({ streak, days, loading = false }: StreakCalendarProps) => {
   const today = new Date();
   const dayNames = ["M", "T", "W", "T", "F", "S", "S"];
   
@@ -53,7 +54,11 @@ const StreakCalendar = ({ streak, days }: StreakCalendarProps) => {
         <div className="flex items-center text-sm">
           <div className="inline-flex items-center px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium">
             <span className="pulse mr-1.5 h-2 w-2 rounded-full bg-primary"></span>
-            {streak} day streak
+            {loading ? (
+              <span className="animate-pulse">Loading...</span>
+            ) : (
+              <>{streak} day streak</>
+            )}
           </div>
         </div>
       </div>
@@ -73,13 +78,14 @@ const StreakCalendar = ({ streak, days }: StreakCalendarProps) => {
             <div 
               className={`
                 h-10 w-10 rounded-full flex items-center justify-center text-sm
-                ${day.isToday ? 'border-2 border-primary' : ''}
-                ${day.completed ? 'bg-primary text-white' : 
-                  day.partial ? 'bg-primary/20 text-primary' : 
+                ${loading ? 'animate-pulse bg-gray-200' : ''}
+                ${!loading && day.isToday ? 'border-2 border-primary' : ''}
+                ${!loading && day.completed ? 'bg-primary text-white' : 
+                  !loading && day.partial ? 'bg-primary/20 text-primary' : 
                   'bg-gray-100 text-gray-500'}
               `}
             >
-              {day.day}
+              {loading ? '' : day.day}
             </div>
           </div>
         ))}

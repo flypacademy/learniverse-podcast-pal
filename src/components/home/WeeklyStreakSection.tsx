@@ -9,9 +9,10 @@ interface WeeklyStreakSectionProps {
     completed: boolean;
     partial?: boolean;
   }[];
+  loading?: boolean;
 }
 
-const WeeklyStreakSection = ({ streak, days }: WeeklyStreakSectionProps) => {
+const WeeklyStreakSection = ({ streak, days, loading = false }: WeeklyStreakSectionProps) => {
   // Check for full weekly streak (7 days)
   const hasFullWeekStreak = days.filter(day => day.completed).length === 7;
   
@@ -28,7 +29,11 @@ const WeeklyStreakSection = ({ streak, days }: WeeklyStreakSectionProps) => {
           )}
         </div>
       </div>
-      <StreakCalendar streak={streak} days={days} />
+      <StreakCalendar 
+        streak={streak} 
+        days={days} 
+        loading={loading}
+      />
     </div>
   );
 };
