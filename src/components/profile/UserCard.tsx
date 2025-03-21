@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import ProgressBar from "@/components/ProgressBar";
 
 interface UserData {
@@ -17,6 +17,26 @@ interface UserCardProps {
 }
 
 const UserCard = ({ userData, loading = false }: UserCardProps) => {
+  const [showLoading, setShowLoading] = useState(false);
+  
+  // Only show loading indicator after a short delay to prevent flickering
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    
+    if (loading) {
+      // Delay showing loading state to prevent flickering
+      timer = setTimeout(() => {
+        setShowLoading(true);
+      }, 300); // Short delay before showing loading state
+    } else {
+      setShowLoading(false);
+    }
+    
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [loading]);
+  
   return (
     <div className="glass-card p-5 rounded-xl">
       <div className="flex items-center gap-4">
@@ -34,7 +54,7 @@ const UserCard = ({ userData, loading = false }: UserCardProps) => {
             <div className="flex justify-between text-xs mb-1">
               <span className="font-medium">Level {userData.level}</span>
               <span>
-                {loading ? "Loading..." : `${userData.xp} / ${userData.nextLevelXP} XP`}
+                {showLoading ? "Loading..." : `${userData.xp} / ${userData.nextLevelXP} XP`}
               </span>
             </div>
             <ProgressBar 

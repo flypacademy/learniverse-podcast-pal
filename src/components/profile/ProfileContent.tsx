@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useListeningAnalytics } from "@/hooks/useListeningAnalytics";
 import { useListeningStats } from "@/hooks/useListeningStats";
 import ProfileHeader from "./ProfileHeader";
@@ -89,12 +89,24 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ userData, isLoading = f
   const { stats, loading: statsLoading, error: statsError } = useListeningStats();
   const { totalXP, isLoading: xpLoading, refreshXPData } = useXP();
   const { toast } = useToast();
+  const [stableXP, setStableXP] = useState<number>(0);
+  const [dataInitialized, setDataInitialized] = useState(false);
   
   useEffect(() => {
-    refreshXPData();
-  }, [refreshXPData]);
+    if (!isLoading && !xpLoading && (totalXP !== null || userData?.totalXP !== undefined)) {
+      const newXP = totalXP ?? userData?.totalXP ?? 0;
+      setStableXP(newXP);
+      setDataInitialized(true);
+    }
+  }, [totalXP, userData?.totalXP, isLoading, xpLoading]);
   
-  const displayXP = isLoading ? 0 : (totalXP ?? userData?.totalXP ?? defaultUserData.xp);
+  useEffect(() => {
+    if (!dataInitialized) {
+      refreshXPData();
+    }
+  }, [dataInitialized, refreshXPData]);
+  
+  const displayXP = stableXP;
   
   const level = Math.floor(displayXP / 500) + 1;
   const nextLevelXP = level * 500;
@@ -147,6 +159,8 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ userData, isLoading = f
     progress
   };
   
+  const showLoading = isLoading || (xpLoading && !dataInitialized);
+  
   const listeningTime = formatListeningTime();
   
   return (
@@ -156,7 +170,7 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ userData, isLoading = f
         subtitle="Track your progress and achievements" 
       />
       
-      <UserCard userData={userCardData} loading={isLoading || xpLoading} />
+      <UserCard userData={userCardData} loading={showLoading} />
       
       <ProfileStats 
         totalPodcastsCompleted={podcastsCompleted}

@@ -10,24 +10,25 @@ const Profile = () => {
   const { totalXP, isLoading: xpLoading, refreshXPData } = useXP();
   const [finalLoading, setFinalLoading] = useState(true);
   
-  // Refresh XP data when component mounts
+  // Fetch XP data when component mounts, but don't cause re-renders
   useEffect(() => {
     refreshXPData();
     
-    // Add timeout to prevent indefinite loading
+    // Add timeout to prevent indefinite loading and flickering
     const loadingTimeout = setTimeout(() => {
       setFinalLoading(false);
-    }, 3000);
+    }, 1500); // Slightly longer timeout to ensure data is loaded
     
     return () => clearTimeout(loadingTimeout);
-  }, [refreshXPData]);
+  }, []);
   
-  // Update loading state based on both loading states
+  // Update loading state based on both loading states, but don't toggle back to loading
+  // once we've shown data to prevent flickering
   useEffect(() => {
-    if (!legacyLoading && !xpLoading) {
+    if (!legacyLoading && !xpLoading && finalLoading) {
       setFinalLoading(false);
     }
-  }, [legacyLoading, xpLoading]);
+  }, [legacyLoading, xpLoading, finalLoading]);
   
   // Merge data from both hooks, prioritizing the new XP system
   const userData = {
