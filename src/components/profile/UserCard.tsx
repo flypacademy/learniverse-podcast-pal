@@ -13,9 +13,10 @@ interface UserData {
 
 interface UserCardProps {
   userData: UserData;
+  loading?: boolean;
 }
 
-const UserCard = ({ userData }: UserCardProps) => {
+const UserCard = ({ userData, loading = false }: UserCardProps) => {
   return (
     <div className="glass-card p-5 rounded-xl">
       <div className="flex items-center gap-4">
@@ -32,7 +33,9 @@ const UserCard = ({ userData }: UserCardProps) => {
           <div className="mt-1.5">
             <div className="flex justify-between text-xs mb-1">
               <span className="font-medium">Level {userData.level}</span>
-              <span>{userData.xp} / {userData.nextLevelXP} XP</span>
+              <span>
+                {loading ? "Loading..." : `${userData.xp} / ${userData.nextLevelXP} XP`}
+              </span>
             </div>
             <ProgressBar 
               value={userData.progress} 
