@@ -6,14 +6,15 @@ import StatCard from "./StatCard";
 interface ProfileStatsProps {
   totalPodcastsCompleted: number;
   totalHoursListened: string;
+  loading?: boolean;
 }
 
-const ProfileStats = ({ totalPodcastsCompleted, totalHoursListened }: ProfileStatsProps) => {
+const ProfileStats = ({ totalPodcastsCompleted, totalHoursListened, loading = false }: ProfileStatsProps) => {
   return (
     <div className="grid grid-cols-2 gap-4">
       <StatCard 
         label="Podcasts" 
-        value={totalPodcastsCompleted} 
+        value={loading ? "Loading..." : totalPodcastsCompleted} 
         icon={<BookOpen className="h-4 w-4 text-primary" />} 
       />
       <StatCard 

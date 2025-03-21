@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useListeningAnalytics } from "@/hooks/useListeningAnalytics";
 import { useListeningStats } from "@/hooks/useListeningStats";
@@ -11,6 +12,7 @@ import { Award, BookOpen, Calendar, Clock, Headphones } from "lucide-react";
 import { UserXPData } from "@/hooks/useUserXP";
 import { useXP } from "@/hooks/useXP";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/lib/supabase";
 
 const defaultUserData = {
   name: "Student",
@@ -18,7 +20,7 @@ const defaultUserData = {
   xp: 0,
   level: 1,
   streak: 4,
-  totalPodcastsCompleted: 15,
+  totalPodcastsCompleted: 0,
   totalHoursListened: 8.5,
   nextLevelXP: 500,
   progress: 0
@@ -91,6 +93,8 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ userData, isLoading = f
   const { toast } = useToast();
   const [stableXP, setStableXP] = useState<number>(0);
   const [dataInitialized, setDataInitialized] = useState(false);
+  const [completedPodcasts, setCompletedPodcasts] = useState<number>(0);
+  const [isLoadingPodcasts, setIsLoadingPodcasts] = useState<boolean>(true);
   
   useEffect(() => {
     if (!isLoading && !xpLoading && (totalXP !== null || userData?.totalXP !== undefined)) {
@@ -105,6 +109,43 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ userData, isLoading = f
       refreshXPData();
     }
   }, [dataInitialized, refreshXPData]);
+  
+  // Fetch completed podcasts count
+  useEffect(() => {
+    async function fetchCompletedPodcasts() {
+      try {
+        setIsLoadingPodcasts(true);
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session?.user) {
+          console.log("No user session found, can't fetch podcast completion data");
+          setIsLoadingPodcasts(false);
+          return;
+        }
+        
+        const { count, error } = await supabase
+          .from('user_progress')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', session.user.id)
+          .eq('completed', true);
+        
+        if (error) {
+          console.error("Error fetching completed podcasts:", error);
+          setIsLoadingPodcasts(false);
+          return;
+        }
+        
+        console.log("Completed podcasts count:", count);
+        setCompletedPodcasts(count || 0);
+      } catch (err) {
+        console.error("Error in fetchCompletedPodcasts:", err);
+      } finally {
+        setIsLoadingPodcasts(false);
+      }
+    }
+    
+    fetchCompletedPodcasts();
+  }, []);
   
   const displayXP = stableXP;
   
@@ -155,8 +196,6 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ userData, isLoading = f
     }
   }, [stats, statsLoading, statsError, toast]);
   
-  const podcastsCompleted = defaultUserData.totalPodcastsCompleted;
-  
   const userCardData = {
     name: userData?.userName || defaultUserData.name,
     email: defaultUserData.email,
@@ -181,8 +220,9 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ userData, isLoading = f
       <UserCard userData={userCardData} loading={showLoading} />
       
       <ProfileStats 
-        totalPodcastsCompleted={podcastsCompleted}
+        totalPodcastsCompleted={completedPodcasts}
         totalHoursListened={listeningTime}
+        loading={isLoadingPodcasts}
       />
       
       <div className="glass-card p-4 rounded-xl">
