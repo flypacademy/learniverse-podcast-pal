@@ -5,7 +5,7 @@ import StatCard from "./StatCard";
 
 interface ProfileStatsProps {
   totalPodcastsCompleted: number;
-  totalHoursListened: string;
+  totalHoursListened: React.ReactNode;
   loading?: boolean;
 }
 
