@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { useListeningAnalytics } from "@/hooks/useListeningAnalytics";
 import { useListeningStats } from "@/hooks/useListeningStats";
@@ -82,30 +81,26 @@ const activityDays = [
 
 interface ProfileContentProps {
   userData?: UserXPData;
+  isLoading?: boolean;
 }
 
-const ProfileContent: React.FC<ProfileContentProps> = ({ userData }) => {
+const ProfileContent: React.FC<ProfileContentProps> = ({ userData, isLoading = false }) => {
   const { analytics, loading: analyticsLoading } = useListeningAnalytics(7);
   const { stats, loading: statsLoading, error: statsError } = useListeningStats();
-  const { totalXP, isLoading, refreshXPData } = useXP();
+  const { totalXP, isLoading: xpLoading, refreshXPData } = useXP();
   const { toast } = useToast();
   
-  // Refresh XP when the component mounts
   useEffect(() => {
     refreshXPData();
   }, [refreshXPData]);
   
-  // Use the XP data from the hook or fall back to the props data or finally to default
-  const displayXP = totalXP ?? userData?.totalXP ?? defaultUserData.xp;
+  const displayXP = isLoading ? 0 : (totalXP ?? userData?.totalXP ?? defaultUserData.xp);
   
-  // Calculate level based on XP (500 XP per level)
   const level = Math.floor(displayXP / 500) + 1;
   const nextLevelXP = level * 500;
   const progress = ((displayXP % 500) / 500) * 100;
   
-  // Format listening time
   const formatListeningTime = () => {
-    // Default to 0 if stats aren't loaded yet or no minutes are recorded
     const minutes = stats?.totalMinutes ?? 0;
     
     const hours = Math.floor(minutes / 60);
@@ -114,7 +109,6 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ userData }) => {
     return `${hours}h ${remainingMinutes}m`;
   };
   
-  // Log stats data for debugging
   React.useEffect(() => {
     if (statsError) {
       console.error("Error loading listening stats:", statsError);
@@ -130,7 +124,6 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ userData }) => {
       console.log("Formatted listening time:", formatListeningTime());
       
       if (stats.totalMinutes === 0 && !statsLoading) {
-        // Show a toast if there are no stats after loading
         toast({
           title: "Listening data syncing",
           description: "It may take a moment for your latest listening activity to appear.",
@@ -142,8 +135,7 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ userData }) => {
     }
   }, [stats, statsLoading, statsError, toast]);
   
-  // Use real data or fallback to default for podcasts completed
-  const podcastsCompleted = defaultUserData.totalPodcastsCompleted; // We don't have a way to count this yet
+  const podcastsCompleted = defaultUserData.totalPodcastsCompleted;
   
   const userCardData = {
     name: userData?.userName || defaultUserData.name,
@@ -164,7 +156,7 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ userData }) => {
         subtitle="Track your progress and achievements" 
       />
       
-      <UserCard userData={userCardData} />
+      <UserCard userData={userCardData} loading={isLoading || xpLoading} />
       
       <ProfileStats 
         totalPodcastsCompleted={podcastsCompleted}

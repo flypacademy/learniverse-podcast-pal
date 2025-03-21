@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { XPReason } from "@/types/xp";
 import { toast } from "sonner";
@@ -9,12 +9,14 @@ export function useXP() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [lastFetch, setLastFetch] = useState<number>(0);
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch user's XP data
   const fetchXPData = useCallback(async (force = false) => {
     // Don't fetch if we've fetched recently (within last 30 seconds) unless forced
     const now = Date.now();
     if (!force && now - lastFetch < 30000 && totalXP !== null) {
+      setIsLoading(false);
       return;
     }
     
@@ -22,10 +24,25 @@ export function useXP() {
       setIsLoading(true);
       setError(null);
       
+      // Set a timeout to exit loading state even if the request fails
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+      
+      loadingTimeoutRef.current = setTimeout(() => {
+        setIsLoading(false);
+        if (totalXP === null) {
+          setTotalXP(0); // Default to 0 if we can't load
+        }
+      }, 5000);
+      
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         console.log("No active session, can't fetch XP");
         setIsLoading(false);
+        if (totalXP === null) {
+          setTotalXP(0);
+        }
         return;
       }
       
@@ -87,12 +104,23 @@ export function useXP() {
       }
     } finally {
       setIsLoading(false);
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+        loadingTimeoutRef.current = null;
+      }
     }
   }, [lastFetch, totalXP]);
   
   // Load XP data on mount
   useEffect(() => {
     fetchXPData();
+    
+    // Clean up timeout on unmount
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+    };
   }, [fetchXPData]);
   
   // Award XP to the user

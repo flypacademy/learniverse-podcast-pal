@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
 import ProfileContent from "@/components/profile/ProfileContent";
 import { useUserXP } from "@/hooks/useUserXP";
@@ -8,13 +8,26 @@ import { useXP } from "@/hooks/useXP";
 const Profile = () => {
   const { data: legacyUserData, loading: legacyLoading } = useUserXP();
   const { totalXP, isLoading: xpLoading, refreshXPData } = useXP();
+  const [finalLoading, setFinalLoading] = useState(true);
   
   // Refresh XP data when component mounts
   useEffect(() => {
     refreshXPData();
+    
+    // Add timeout to prevent indefinite loading
+    const loadingTimeout = setTimeout(() => {
+      setFinalLoading(false);
+    }, 3000);
+    
+    return () => clearTimeout(loadingTimeout);
   }, [refreshXPData]);
   
-  const loading = legacyLoading || xpLoading;
+  // Update loading state based on both loading states
+  useEffect(() => {
+    if (!legacyLoading && !xpLoading) {
+      setFinalLoading(false);
+    }
+  }, [legacyLoading, xpLoading]);
   
   // Merge data from both hooks, prioritizing the new XP system
   const userData = {
@@ -25,7 +38,10 @@ const Profile = () => {
   
   return (
     <Layout>
-      <ProfileContent userData={userData} />
+      <ProfileContent 
+        userData={userData} 
+        isLoading={finalLoading}
+      />
     </Layout>
   );
 };

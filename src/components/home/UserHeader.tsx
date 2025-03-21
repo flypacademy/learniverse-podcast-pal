@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useXP } from "@/hooks/useXP";
@@ -12,14 +12,31 @@ interface UserHeaderProps {
 const UserHeader = ({ userName, totalXP: propTotalXP }: UserHeaderProps) => {
   const { toast } = useToast();
   const { totalXP, isLoading, refreshXPData } = useXP();
+  const [displayLoading, setDisplayLoading] = useState(true);
   
   // Use prop totalXP if provided, otherwise use the totalXP from the hook
   const displayXP = propTotalXP !== undefined ? propTotalXP : totalXP ?? 0;
+  
+  // Add timeout to prevent indefinite loading state
+  useEffect(() => {
+    const loadingTimeout = setTimeout(() => {
+      setDisplayLoading(false);
+    }, 3000); // Set a 3-second timeout for loading state
+    
+    return () => clearTimeout(loadingTimeout);
+  }, []);
   
   // Refresh XP data when component mounts
   useEffect(() => {
     refreshXPData();
   }, [refreshXPData]);
+  
+  // Update loading state based on XP hook loading state
+  useEffect(() => {
+    if (!isLoading) {
+      setDisplayLoading(false);
+    }
+  }, [isLoading]);
   
   // XP calculation information
   const xpInfo = () => {
@@ -46,7 +63,7 @@ const UserHeader = ({ userName, totalXP: propTotalXP }: UserHeaderProps) => {
         onClick={xpInfo}
       >
         <Sparkles className="h-4 w-4 mr-1" />
-        {isLoading ? "Loading..." : `${displayXP} XP`}
+        {displayLoading ? "Loading..." : `${displayXP} XP`}
       </div>
     </div>
   );
