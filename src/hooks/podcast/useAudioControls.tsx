@@ -10,6 +10,7 @@ export function useAudioControls(
 ) {
   const audioStore = useAudioStore();
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSeekTimeRef = useRef<number>(0);
   
   const play = () => {
     if (audioRef.current) {
@@ -39,7 +40,7 @@ export function useAudioControls(
                 updateTimeoutRef.current = setTimeout(() => {
                   audioStore.play();
                   syncInProgressRef.current = false;
-                }, 0);
+                }, 50);
               }
             })
             .catch(error => {
@@ -80,7 +81,7 @@ export function useAudioControls(
           updateTimeoutRef.current = setTimeout(() => {
             audioStore.pause();
             syncInProgressRef.current = false;
-          }, 0);
+          }, 50);
         }
       }
     } catch (error) {
@@ -100,6 +101,13 @@ export function useAudioControls(
   const seek = (percent: number) => {
     if (audioRef.current && duration > 0) {
       try {
+        // Debounce seek operations to prevent rapid successive updates
+        const now = Date.now();
+        if (now - lastSeekTimeRef.current < 100) {
+          return; // Ignore rapid seek events
+        }
+        lastSeekTimeRef.current = now;
+        
         const newTime = (percent / 100) * duration;
         console.log("Seeking to position:", newTime, "seconds");
         audioRef.current.currentTime = newTime;
@@ -114,7 +122,7 @@ export function useAudioControls(
         updateTimeoutRef.current = setTimeout(() => {
           audioStore.setCurrentTime(newTime);
           syncInProgressRef.current = false;
-        }, 0);
+        }, 50);
       } catch (error) {
         console.error("Error seeking audio:", error);
       }
@@ -136,7 +144,7 @@ export function useAudioControls(
         updateTimeoutRef.current = setTimeout(() => {
           audioStore.setVolume(value);
           syncInProgressRef.current = false;
-        }, 0);
+        }, 50);
       } catch (error) {
         console.error("Error changing volume:", error);
       }
@@ -159,7 +167,7 @@ export function useAudioControls(
         updateTimeoutRef.current = setTimeout(() => {
           audioStore.setCurrentTime(newTime);
           syncInProgressRef.current = false;
-        }, 0);
+        }, 50);
       } catch (error) {
         console.error("Error skipping forward:", error);
       }
@@ -182,7 +190,7 @@ export function useAudioControls(
         updateTimeoutRef.current = setTimeout(() => {
           audioStore.setCurrentTime(newTime);
           syncInProgressRef.current = false;
-        }, 0);
+        }, 50);
       } catch (error) {
         console.error("Error skipping backward:", error);
       }

@@ -90,9 +90,9 @@ export function useAudioSync(
     // Only proceed if there are meaningful differences
     const hasSignificantChanges = 
       storeValues.isPlaying !== lastStoreValuesRef.current.isPlaying ||
-      Math.abs(storeValues.currentTime - lastStoreValuesRef.current.currentTime) > 1 ||
-      Math.abs(storeValues.duration - lastStoreValuesRef.current.duration) > 1 ||
-      Math.abs(storeValues.volume - lastStoreValuesRef.current.volume) > 2;
+      Math.abs(storeValues.currentTime - lastStoreValuesRef.current.currentTime) > 1.5 ||
+      Math.abs(storeValues.duration - lastStoreValuesRef.current.duration) > 1.5 ||
+      Math.abs(storeValues.volume - lastStoreValuesRef.current.volume) > 3;
       
     if (!hasSignificantChanges) {
       return;
@@ -102,27 +102,35 @@ export function useAudioSync(
     lastUpdateTimeRef.current = now;
     
     try {
-      // Only update state if there's a significant difference to avoid render loops
-      if (isPlaying !== storeValues.isPlaying) {
-        setIsPlaying(storeValues.isPlaying);
-      }
+      // Use a local state update timeout to break potential update cycles
+      const updateTimeout = setTimeout(() => {
+        // Only update state if there's a significant difference to avoid render loops
+        if (isPlaying !== storeValues.isPlaying) {
+          setIsPlaying(storeValues.isPlaying);
+        }
+        
+        // Only update time if the difference is significant
+        if (isFinite(storeValues.currentTime) && Math.abs(currentTime - storeValues.currentTime) > 1.5) {
+          setCurrentTime(storeValues.currentTime);
+        }
+        
+        if (storeValues.duration > 0 && Math.abs(duration - storeValues.duration) > 1.5) {
+          setDuration(storeValues.duration);
+        }
+        
+        if (Math.abs(volume - storeValues.volume) > 3) {
+          setVolume(storeValues.volume);
+        }
+        
+        // Update the last store values reference
+        lastStoreValuesRef.current = { ...storeValues };
+        syncInProgressRef.current = false;
+      }, 50);
       
-      // Only update time if the difference is significant
-      if (isFinite(storeValues.currentTime) && Math.abs(currentTime - storeValues.currentTime) > 1) {
-        setCurrentTime(storeValues.currentTime);
-      }
-      
-      if (storeValues.duration > 0 && Math.abs(duration - storeValues.duration) > 1) {
-        setDuration(storeValues.duration);
-      }
-      
-      if (Math.abs(volume - storeValues.volume) > 2) {
-        setVolume(storeValues.volume);
-      }
-      
-      // Update the last store values reference
-      lastStoreValuesRef.current = storeValues;
-    } finally {
+      // Clean up the timeout if the component unmounts or dependencies change
+      return () => clearTimeout(updateTimeout);
+    } catch (error) {
+      console.error("Error during audio sync:", error);
       syncInProgressRef.current = false;
     }
   }, [
