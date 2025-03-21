@@ -43,7 +43,7 @@ export function useAudioSync(
       }
       
       setVolume(audioStore.volume);
-      setIsPlaying(audioStore.isPlaying);
+      setIsPlaying(false); // Always start paused to prevent autoplay issues
       setReady(true);
       
       // Reset the audio element's current time to ensure we start from the beginning
@@ -53,8 +53,8 @@ export function useAudioSync(
       
       // Save initial store values to prevent unnecessary updates
       lastStoreValuesRef.current = {
-        isPlaying: audioStore.isPlaying,
-        currentTime: audioStore.currentTime,
+        isPlaying: false, // Force to false initially
+        currentTime: 0,
         duration: audioStore.duration,
         volume: audioStore.volume
       };
@@ -63,9 +63,9 @@ export function useAudioSync(
     }
   }, [audioStore, podcastId, setCurrentTime, setDuration, setIsPlaying, setReady, setVolume, audioRef]);
   
-  // Only update state from store when significant changes occur
+  // Only update state from store when significant changes occur and with much less frequency
   useEffect(() => {
-    // If initial sync is complete and this is just a normal update, we can be more selective
+    // If initial sync is not complete, don't process updates
     if (!initialSyncCompleteRef.current) return;
     
     // Skip if audio ref doesn't match store or if we're already syncing
@@ -73,13 +73,13 @@ export function useAudioSync(
       return;
     }
     
-    // Throttle updates to avoid excessive re-renders
+    // Aggressive throttling - only update once every 2 seconds max
     const now = Date.now();
-    if (now - lastUpdateTimeRef.current < 1000) { // 1000ms throttle (reduced frequency)
+    if (now - lastUpdateTimeRef.current < 2000) {
       return;
     }
     
-    // Check if store values have actually changed before updating local state
+    // Check if store values have actually changed significantly before updating local state
     const storeValues = {
       isPlaying: audioStore.isPlaying,
       currentTime: audioStore.currentTime,
@@ -87,12 +87,12 @@ export function useAudioSync(
       volume: audioStore.volume
     };
     
-    // Only proceed if there are meaningful differences
+    // Only proceed if there are truly meaningful differences
     const hasSignificantChanges = 
       storeValues.isPlaying !== lastStoreValuesRef.current.isPlaying ||
-      Math.abs(storeValues.currentTime - lastStoreValuesRef.current.currentTime) > 1.5 ||
-      Math.abs(storeValues.duration - lastStoreValuesRef.current.duration) > 1.5 ||
-      Math.abs(storeValues.volume - lastStoreValuesRef.current.volume) > 3;
+      Math.abs(storeValues.currentTime - lastStoreValuesRef.current.currentTime) > 5 || // 5 seconds difference
+      Math.abs(storeValues.duration - lastStoreValuesRef.current.duration) > 5 ||
+      Math.abs(storeValues.volume - lastStoreValuesRef.current.volume) > 10; // 10% volume difference
       
     if (!hasSignificantChanges) {
       return;
@@ -101,38 +101,51 @@ export function useAudioSync(
     syncInProgressRef.current = true;
     lastUpdateTimeRef.current = now;
     
-    try {
-      // Use a local state update timeout to break potential update cycles
-      const updateTimeout = setTimeout(() => {
+    // Use a timeout with cleanups to avoid update cycles
+    const updateTimeout = setTimeout(() => {
+      try {
         // Only update state if there's a significant difference to avoid render loops
-        if (isPlaying !== storeValues.isPlaying) {
-          setIsPlaying(storeValues.isPlaying);
+        const localStatesDiffer = 
+          isPlaying !== storeValues.isPlaying ||
+          Math.abs(currentTime - storeValues.currentTime) > 5 ||
+          (storeValues.duration > 0 && Math.abs(duration - storeValues.duration) > 5) ||
+          Math.abs(volume - storeValues.volume) > 10;
+
+        if (localStatesDiffer) {
+          // Batch updates to minimize renders
+          const batchedUpdates = () => {
+            if (isPlaying !== storeValues.isPlaying) {
+              setIsPlaying(storeValues.isPlaying);
+            }
+            
+            if (isFinite(storeValues.currentTime) && Math.abs(currentTime - storeValues.currentTime) > 5) {
+              setCurrentTime(storeValues.currentTime);
+            }
+            
+            if (storeValues.duration > 0 && Math.abs(duration - storeValues.duration) > 5) {
+              setDuration(storeValues.duration);
+            }
+            
+            if (Math.abs(volume - storeValues.volume) > 10) {
+              setVolume(storeValues.volume);
+            }
+          };
+          
+          // Execute the batched updates
+          batchedUpdates();
         }
         
-        // Only update time if the difference is significant
-        if (isFinite(storeValues.currentTime) && Math.abs(currentTime - storeValues.currentTime) > 1.5) {
-          setCurrentTime(storeValues.currentTime);
-        }
-        
-        if (storeValues.duration > 0 && Math.abs(duration - storeValues.duration) > 1.5) {
-          setDuration(storeValues.duration);
-        }
-        
-        if (Math.abs(volume - storeValues.volume) > 3) {
-          setVolume(storeValues.volume);
-        }
-        
-        // Update the last store values reference
+        // Update the last store values reference regardless
         lastStoreValuesRef.current = { ...storeValues };
+      } catch (error) {
+        console.error("Error during audio sync:", error);
+      } finally {
         syncInProgressRef.current = false;
-      }, 50);
-      
-      // Clean up the timeout if the component unmounts or dependencies change
-      return () => clearTimeout(updateTimeout);
-    } catch (error) {
-      console.error("Error during audio sync:", error);
-      syncInProgressRef.current = false;
-    }
+      }
+    }, 150); // Increased delay to further reduce update frequency
+    
+    // Clean up the timeout if the component unmounts or dependencies change
+    return () => clearTimeout(updateTimeout);
   }, [
     audioStore.isPlaying,
     audioStore.currentTime,

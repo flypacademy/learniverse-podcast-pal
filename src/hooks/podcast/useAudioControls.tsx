@@ -11,78 +11,85 @@ export function useAudioControls(
   const audioStore = useAudioStore();
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastSeekTimeRef = useRef<number>(0);
+  const lastActionTimeRef = useRef<number>(0);
+  const isUpdatingRef = useRef<boolean>(false);
+  
+  const throttleAction = (minInterval = 300): boolean => {
+    const now = Date.now();
+    if (now - lastActionTimeRef.current < minInterval) {
+      return false; // Too soon for another action
+    }
+    lastActionTimeRef.current = now;
+    return true;
+  };
+  
+  // Safe store update with debouncing
+  const updateStore = (callback: () => void) => {
+    if (isUpdatingRef.current) return;
+    
+    isUpdatingRef.current = true;
+    if (updateTimeoutRef.current) {
+      clearTimeout(updateTimeoutRef.current);
+    }
+    
+    updateTimeoutRef.current = setTimeout(() => {
+      try {
+        callback();
+      } finally {
+        isUpdatingRef.current = false;
+      }
+    }, 200);
+  };
   
   const play = () => {
-    if (audioRef.current) {
-      try {
-        // Stop any other audio that might be playing
-        const storeAudioElement = audioStore.audioElement;
-        if (storeAudioElement && storeAudioElement !== audioRef.current && !storeAudioElement.paused) {
-          console.log("Stopping other audio before playing this one");
-          storeAudioElement.pause();
-        }
-        
-        console.log("Play called, attempting to play audio");
-        const playPromise = audioRef.current.play();
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => {
-              console.log("Audio playback started successfully");
-              // Only update the store if our local state changed
-              if (!audioStore.isPlaying) {
-                syncInProgressRef.current = true;
-                
-                // Use timeout to break the potential update cycle
-                if (updateTimeoutRef.current) {
-                  clearTimeout(updateTimeoutRef.current);
-                }
-                
-                updateTimeoutRef.current = setTimeout(() => {
-                  audioStore.play();
-                  syncInProgressRef.current = false;
-                }, 50);
-              }
-            })
-            .catch(error => {
-              console.error("Error playing audio:", error);
-              // Try one more time with a small delay
-              setTimeout(() => {
-                if (audioRef.current) {
-                  console.log("Retrying playback after error");
-                  audioRef.current.play().catch(e => {
-                    console.error("Retry play attempt also failed:", e);
-                  });
-                }
-              }, 100);
-            });
-        }
-      } catch (error: any) {
-        console.error("Exception during play:", error);
+    if (!audioRef.current || !throttleAction(500)) return;
+    
+    try {
+      // Stop any other audio that might be playing
+      const storeAudioElement = audioStore.audioElement;
+      if (storeAudioElement && storeAudioElement !== audioRef.current && !storeAudioElement.paused) {
+        console.log("Stopping other audio before playing this one");
+        storeAudioElement.pause();
       }
-    } else {
-      console.warn("Audio element reference is not available");
+      
+      console.log("Play called, attempting to play audio");
+      const playPromise = audioRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            console.log("Audio playback started successfully");
+            // Only update the store if our local state changed and not already syncing
+            if (!audioStore.isPlaying && !syncInProgressRef.current) {
+              updateStore(() => audioStore.play());
+            }
+          })
+          .catch(error => {
+            console.error("Error playing audio:", error);
+            // Try one more time with a small delay
+            setTimeout(() => {
+              if (audioRef.current) {
+                console.log("Retrying playback after error");
+                audioRef.current.play().catch(e => {
+                  console.error("Retry play attempt also failed:", e);
+                });
+              }
+            }, 300);
+          });
+      }
+    } catch (error: any) {
+      console.error("Exception during play:", error);
     }
   };
   
   const pause = () => {
+    if (!audioRef.current || !throttleAction(300)) return;
+    
     try {
-      if (audioRef.current) {
-        console.log("Pause called, pausing audio");
-        audioRef.current.pause();
-        // Only update the store if our local state changed
-        if (audioStore.isPlaying) {
-          syncInProgressRef.current = true;
-          
-          // Use timeout to break the potential update cycle
-          if (updateTimeoutRef.current) {
-            clearTimeout(updateTimeoutRef.current);
-          }
-          
-          updateTimeoutRef.current = setTimeout(() => {
-            audioStore.pause();
-            syncInProgressRef.current = false;
-          }, 50);
-        }
+      console.log("Pause called, pausing audio");
+      audioRef.current.pause();
+      // Only update the store if our local state changed and not already syncing
+      if (audioStore.isPlaying && !syncInProgressRef.current) {
+        updateStore(() => audioStore.pause());
       }
     } catch (error) {
       console.error("Error pausing audio:", error);
@@ -99,101 +106,77 @@ export function useAudioControls(
   };
   
   const seek = (percent: number) => {
-    if (audioRef.current && duration > 0) {
-      try {
-        // Debounce seek operations to prevent rapid successive updates
-        const now = Date.now();
-        if (now - lastSeekTimeRef.current < 100) {
-          return; // Ignore rapid seek events
-        }
-        lastSeekTimeRef.current = now;
-        
-        const newTime = (percent / 100) * duration;
-        console.log("Seeking to position:", newTime, "seconds");
-        audioRef.current.currentTime = newTime;
-        setCurrentTime(newTime);
-        
-        syncInProgressRef.current = true;
-        // Use timeout to break the potential update cycle
-        if (updateTimeoutRef.current) {
-          clearTimeout(updateTimeoutRef.current);
-        }
-        
-        updateTimeoutRef.current = setTimeout(() => {
-          audioStore.setCurrentTime(newTime);
-          syncInProgressRef.current = false;
-        }, 50);
-      } catch (error) {
-        console.error("Error seeking audio:", error);
+    if (!audioRef.current || duration <= 0 || !throttleAction(200)) return;
+    
+    try {
+      // Further debounce seek operations to prevent rapid successive updates
+      const now = Date.now();
+      if (now - lastSeekTimeRef.current < 300) {
+        return; // Ignore rapid seek events
       }
+      lastSeekTimeRef.current = now;
+      
+      const newTime = (percent / 100) * duration;
+      console.log("Seeking to position:", newTime, "seconds");
+      audioRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+      
+      // Only update store if not already syncing
+      if (!syncInProgressRef.current) {
+        updateStore(() => audioStore.setCurrentTime(newTime));
+      }
+    } catch (error) {
+      console.error("Error seeking audio:", error);
     }
   };
   
   const changeVolume = (value: number) => {
-    if (audioRef.current) {
-      try {
-        const volumeValue = value / 100;
-        audioRef.current.volume = Math.max(0, Math.min(1, volumeValue));
-        
-        syncInProgressRef.current = true;
-        // Use timeout to break the potential update cycle
-        if (updateTimeoutRef.current) {
-          clearTimeout(updateTimeoutRef.current);
-        }
-        
-        updateTimeoutRef.current = setTimeout(() => {
-          audioStore.setVolume(value);
-          syncInProgressRef.current = false;
-        }, 50);
-      } catch (error) {
-        console.error("Error changing volume:", error);
+    if (!audioRef.current || !throttleAction(300)) return;
+    
+    try {
+      const volumeValue = value / 100;
+      audioRef.current.volume = Math.max(0, Math.min(1, volumeValue));
+      
+      // Only update store if not already syncing
+      if (!syncInProgressRef.current) {
+        updateStore(() => audioStore.setVolume(value));
       }
+    } catch (error) {
+      console.error("Error changing volume:", error);
     }
   };
   
   const skipForward = () => {
-    if (audioRef.current) {
-      try {
-        const newTime = Math.min(audioRef.current.duration, audioRef.current.currentTime + 15);
-        audioRef.current.currentTime = newTime;
-        setCurrentTime(newTime);
-        
-        syncInProgressRef.current = true;
-        // Use timeout to break the potential update cycle
-        if (updateTimeoutRef.current) {
-          clearTimeout(updateTimeoutRef.current);
-        }
-        
-        updateTimeoutRef.current = setTimeout(() => {
-          audioStore.setCurrentTime(newTime);
-          syncInProgressRef.current = false;
-        }, 50);
-      } catch (error) {
-        console.error("Error skipping forward:", error);
+    if (!audioRef.current || !throttleAction(300)) return;
+    
+    try {
+      const newTime = Math.min(audioRef.current.duration, audioRef.current.currentTime + 15);
+      audioRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+      
+      // Only update store if not already syncing
+      if (!syncInProgressRef.current) {
+        updateStore(() => audioStore.setCurrentTime(newTime));
       }
+    } catch (error) {
+      console.error("Error skipping forward:", error);
     }
   };
   
   const skipBackward = () => {
-    if (audioRef.current) {
-      try {
-        const newTime = Math.max(0, audioRef.current.currentTime - 15);
-        audioRef.current.currentTime = newTime;
-        setCurrentTime(newTime);
-        
-        syncInProgressRef.current = true;
-        // Use timeout to break the potential update cycle
-        if (updateTimeoutRef.current) {
-          clearTimeout(updateTimeoutRef.current);
-        }
-        
-        updateTimeoutRef.current = setTimeout(() => {
-          audioStore.setCurrentTime(newTime);
-          syncInProgressRef.current = false;
-        }, 50);
-      } catch (error) {
-        console.error("Error skipping backward:", error);
+    if (!audioRef.current || !throttleAction(300)) return;
+    
+    try {
+      const newTime = Math.max(0, audioRef.current.currentTime - 15);
+      audioRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+      
+      // Only update store if not already syncing
+      if (!syncInProgressRef.current) {
+        updateStore(() => audioStore.setCurrentTime(newTime));
       }
+    } catch (error) {
+      console.error("Error skipping backward:", error);
     }
   };
   

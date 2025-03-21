@@ -20,6 +20,7 @@ const AudioProgress = ({ currentTime, duration, onSeek }: AudioProgressProps) =>
   // Use refs to track the previous progress value to prevent unnecessary updates
   const progressRef = useRef(progress);
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSeekTimeRef = useRef(0);
   
   // Clear any pending timeouts on unmount
   useEffect(() => {
@@ -33,34 +34,41 @@ const AudioProgress = ({ currentTime, duration, onSeek }: AudioProgressProps) =>
   // Only update the slider when there's a significant change in progress
   useEffect(() => {
     const progressDiff = Math.abs(progress - progressRef.current);
-    if (progressDiff > 0.5) { // Only update if progress changed by more than 0.5%
+    if (progressDiff > 1.0) { // Increased threshold to reduce updates
       progressRef.current = progress;
     }
   }, [progress]);
   
-  // Use useCallback to prevent unnecessary re-renders and potential loops
+  // Use useCallback with stronger debouncing for seeking
   const handleSliderChange = useCallback((value: number[]) => {
     if (onSeek && value && value.length > 0) {
+      // Ignore rapid changes (debounce)
+      const now = Date.now();
+      if (now - lastSeekTimeRef.current < 200) {
+        return;
+      }
+      lastSeekTimeRef.current = now;
+      
       // Cancel any pending updates
       if (updateTimeoutRef.current) {
         clearTimeout(updateTimeoutRef.current);
       }
       
-      // Schedule the update with a small delay to avoid rapid successive updates
+      // Schedule the update with a delay to avoid rapid successive updates
       updateTimeoutRef.current = setTimeout(() => {
         onSeek(value[0]);
         updateTimeoutRef.current = null;
-      }, 50);
+      }, 100); // Increased timeout for more aggressive debouncing
     }
   }, [onSeek]);
   
   return (
     <div className="space-y-2">
       <Slider 
-        value={[progress]} 
+        value={[progressRef.current]} 
         min={0}
         max={100}
-        step={0.1}
+        step={0.5} // Reduced precision to minimize updates
         onValueChange={handleSliderChange}
         className="w-full"
       />
@@ -72,5 +80,11 @@ const AudioProgress = ({ currentTime, duration, onSeek }: AudioProgressProps) =>
   );
 };
 
-// Use React.memo to prevent unnecessary re-renders
-export default React.memo(AudioProgress);
+// Use React.memo with a custom comparison function to prevent unnecessary re-renders
+export default React.memo(AudioProgress, (prevProps, nextProps) => {
+  // Only re-render if time changes by more than 1 second or duration changes significantly
+  return (
+    Math.abs(prevProps.currentTime - nextProps.currentTime) < 1 &&
+    Math.abs(prevProps.duration - nextProps.duration) < 1
+  );
+});
