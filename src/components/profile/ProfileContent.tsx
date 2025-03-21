@@ -115,10 +115,18 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ userData, isLoading = f
   const formatListeningTime = () => {
     const minutes = stats?.totalMinutes ?? 0;
     
+    if (minutes === 0) {
+      return "Just started";
+    }
+    
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = minutes % 60;
     
-    return `${hours}h ${remainingMinutes}m`;
+    if (hours === 0) {
+      return `${remainingMinutes}m`;
+    }
+    
+    return `${hours}h ${remainingMinutes > 0 ? `${remainingMinutes}m` : ''}`;
   };
   
   React.useEffect(() => {
