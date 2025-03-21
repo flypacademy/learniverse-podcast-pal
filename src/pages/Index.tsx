@@ -1,82 +1,77 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import Layout from "@/components/Layout";
+import { useToast } from "@/components/ui/use-toast";
+import { useRecentCourses } from "@/hooks/useRecentCourses";
+import { useUserXP } from "@/hooks/useUserXP";
+import { useXP } from "@/hooks/useXP";
+
+// Import our components
 import UserHeader from "@/components/home/UserHeader";
 import ContinueLearning from "@/components/home/ContinueLearning";
 import WeeklyStreakSection from "@/components/home/WeeklyStreakSection";
 import LeaderboardSection from "@/components/home/LeaderboardSection";
-import { useXP } from "@/hooks/useXP";
-import { useUserXP } from "@/hooks/useUserXP";
-import { useRecentCourses } from "@/hooks/useRecentCourses";
-import OnboardingCheck from "@/components/OnboardingCheck";
 import TodaysGoalButton from "@/components/home/TodaysGoalButton";
-import { fetchUserActivity, calculateStreak } from "@/utils/streakUtils";
 
-const Home = () => {
-  const { data: userData, loading: userLoading } = useUserXP();
-  const { totalXP, refreshXPData, isLoading: xpLoading } = useXP();
+// Mock streak data
+const streakData = [
+  { date: "2023-06-12", completed: true },
+  { date: "2023-06-13", completed: true },
+  { date: "2023-06-14", completed: true },
+  { date: "2023-06-15", completed: false },
+  { date: "2023-06-16", completed: false },
+  { date: "2023-06-17", completed: false, partial: true },
+  { date: "2023-06-18", completed: false }
+];
+
+const Index = () => {
+  const { toast } = useToast();
   const { recentCourses, loading: coursesLoading } = useRecentCourses();
-  const [activityDays, setActivityDays] = useState<{ date: string; completed: boolean; partial?: boolean }[]>([]);
-  const [currentStreak, setCurrentStreak] = useState<number>(0);
-  const [isLoadingStreak, setIsLoadingStreak] = useState<boolean>(true);
+  const { data: legacyUserData, loading: legacyUserLoading } = useUserXP();
+  const { totalXP, isLoading, refreshXPData } = useXP();
   
-  // Load streak data
-  useEffect(() => {
-    async function loadActivityData() {
-      try {
-        setIsLoadingStreak(true);
-        const activityData = await fetchUserActivity();
-        setActivityDays(activityData);
-        
-        const streak = calculateStreak(activityData);
-        setCurrentStreak(streak);
-      } catch (err) {
-        console.error("Error loading streak data:", err);
-      } finally {
-        setIsLoadingStreak(false);
-      }
-    }
-    
-    loadActivityData();
-  }, []);
+  // Use the new XP system data if available, otherwise fall back to legacy data
+  const userName = legacyUserData?.userName || "Student";
+  const displayXP = totalXP ?? legacyUserData?.totalXP ?? 0;
   
   // Refresh XP data when component mounts
   useEffect(() => {
     refreshXPData();
   }, [refreshXPData]);
   
-  // Show the primary XP (from the new system) or fallback to legacy
-  const xp = totalXP !== null ? totalXP : userData?.totalXP || 0;
+  const handleLinkClick = () => {
+    if (navigator.vibrate) {
+      navigator.vibrate(5);
+    }
+  };
   
-  // Continue with the rest of the component
   return (
     <Layout>
-      <OnboardingCheck />
-      
-      <div className="space-y-6 animate-slide-up">
+      <div className="space-y-5 animate-slide-up pt-3">
+        {/* User Header with real XP data */}
         <UserHeader 
-          username={userData?.userName || "Student"} 
-          xp={xp}
-          loading={userLoading || xpLoading} 
+          userName={userName} 
+          totalXP={displayXP} 
         />
         
-        <TodaysGoalButton />
-        
+        {/* Continue Learning with Carousel */}
         <ContinueLearning 
-          courses={recentCourses} 
+          courses={recentCourses}
           loading={coursesLoading}
+          handleLinkClick={handleLinkClick}
         />
         
-        <WeeklyStreakSection 
-          streak={currentStreak} 
-          days={activityDays}
-          loading={isLoadingStreak}
-        />
+        {/* Weekly Streak */}
+        <WeeklyStreakSection streak={3} days={streakData} />
         
+        {/* Leaderboard */}
         <LeaderboardSection />
+        
+        {/* Today's Goal Button */}
+        <TodaysGoalButton handleLinkClick={handleLinkClick} />
       </div>
     </Layout>
   );
 };
 
-export default Home;
+export default Index;
