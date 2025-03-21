@@ -1,9 +1,10 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAudioStore } from "@/lib/audioContext";
 import { ChevronUp, X, Play, Pause } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { useMiniPlayerTracking } from "@/hooks/podcast/useMiniPlayerTracking";
 
 interface MiniPlayerProps {
   podcastId: string;
@@ -15,6 +16,16 @@ interface MiniPlayerProps {
 const MiniPlayer = ({ podcastId, title, courseName, thumbnailUrl }: MiniPlayerProps) => {
   const navigate = useNavigate();
   const { isPlaying, currentTime, duration, play, pause } = useAudioStore();
+  
+  // Use the mini player tracking hook for background progress saving
+  const { isTracking } = useMiniPlayerTracking(podcastId);
+  
+  useEffect(() => {
+    // Ensure we're tracking this podcast
+    if (!isTracking && podcastId) {
+      console.log("MiniPlayer: Ensuring tracking is active for:", podcastId);
+    }
+  }, [isTracking, podcastId]);
   
   // Calculate progress percentage
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;

@@ -1,6 +1,8 @@
 
 import { create } from 'zustand';
 import { AudioState, PodcastMeta } from './audio/types';
+import { createAudioSetup } from './audio/audioSetup';
+import { createAudioCore } from './audio/audioCore';
 
 // Re-export the PodcastMeta type
 export { type PodcastMeta } from './audio/types';
@@ -10,6 +12,9 @@ let globalAudio: HTMLAudioElement | null = null;
 
 // Create the audio store
 export const useAudioStore = create<AudioState>((set, get) => {
+  const audioCore = createAudioCore(set, get);
+  const audioSetup = createAudioSetup(set, get);
+
   return {
     // Initial state
     audioElement: null,
@@ -57,37 +62,12 @@ export const useAudioStore = create<AudioState>((set, get) => {
         globalAudio.volume = get().volume / 100;
       }
       
-      // Update state with new podcast info
-      set({ 
-        audioElement: globalAudio, 
-        currentPodcastId: podcastId,
-        podcastMeta: meta || null
-      });
+      // Use our setup method to handle the audio element
+      audioSetup.setAudio(audioElement, podcastId, meta);
     },
     
-    setPodcastMeta: (meta) => {
-      console.log("audioContext: setPodcastMeta called", meta);
-      set({ podcastMeta: meta });
-    },
-    
-    cleanup: () => {
-      const { audioElement } = get();
-      if (audioElement) {
-        audioElement.pause();
-        audioElement.src = '';
-      }
-      
-      set({ 
-        audioElement: null, 
-        isPlaying: false, 
-        currentPodcastId: null,
-        currentTime: 0,
-        podcastMeta: null
-      });
-      
-      // Reset global audio
-      globalAudio = null;
-    },
+    setPodcastMeta: audioSetup.setPodcastMeta,
+    cleanup: audioSetup.cleanup,
     
     play: () => {
       console.log("audioContext: play called");

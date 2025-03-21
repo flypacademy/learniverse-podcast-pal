@@ -21,7 +21,7 @@ const Layout = ({ children }: LayoutProps) => {
   } = useAudioStore();
   
   const previousPathRef = useRef<string>(location.pathname);
-  const playAttemptedRef = useRef<boolean>(false);
+  const audioResumptionAttemptedRef = useRef<boolean>(false);
   
   // Show mini player except on the podcast page
   const isPodcastPage = location.pathname.includes('/podcast/') && 
@@ -44,24 +44,32 @@ const Layout = ({ children }: LayoutProps) => {
     if (previousPathRef.current !== location.pathname) {
       console.log("Layout: Path changed from", previousPathRef.current, "to", location.pathname);
       previousPathRef.current = location.pathname;
-      playAttemptedRef.current = false;
       
-      // Reset the play attempted flag when navigating to a podcast page
+      // Reset the play attempted flag for new navigation
+      audioResumptionAttemptedRef.current = false;
+      
+      // Skip attempts on podcast pages - they handle playback themselves
       if (isPodcastPage) {
-        playAttemptedRef.current = true; // Skip attempts on podcast pages
+        audioResumptionAttemptedRef.current = true;
       }
     }
     
     // If we have audio, it should be playing, but it's paused, try to resume it
-    if (audioElement && isPlaying && audioElement.paused && !playAttemptedRef.current) {
+    if (
+      audioElement && 
+      isPlaying && 
+      audioElement.paused && 
+      !audioResumptionAttemptedRef.current && 
+      !isPodcastPage
+    ) {
       console.log("Layout: Ensuring audio playback continues during navigation");
-      playAttemptedRef.current = true;
+      audioResumptionAttemptedRef.current = true;
       
-      // Attempt to resume playback with a delay
+      // Attempt to resume playback with a delay to ensure DOM is ready
       setTimeout(() => {
         console.log("Layout: Attempting to resume playback after navigation");
         play();
-      }, 200);
+      }, 500);
     }
   }, [location.pathname, isPlaying, audioElement, isPodcastPage, play]);
   

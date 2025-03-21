@@ -35,10 +35,19 @@ const PodcastAudio = ({
       prevSrcRef.current = src;
     }
     
-    // Register with the audio store
-    if (podcastMeta && !initializedRef.current) {
+    // Check if this is the currently active podcast
+    const isCurrentPodcast = audioStore.currentPodcastId === podcastId;
+    
+    // Register with the audio store if this is a new podcast
+    // or if we're returning to the current podcast
+    if (podcastMeta && (!initializedRef.current || isCurrentPodcast)) {
       console.log("PodcastAudio: Registering with audio store", podcastId);
       initializedRef.current = true;
+      
+      // Mark the audio for autoplay if it was already playing
+      if (isCurrentPodcast && audioStore.isPlaying) {
+        audioRef.current.dataset.shouldAutoPlay = "true";
+      }
       
       audioStore.setAudio(audioRef.current, podcastId, {
         id: podcastId,
@@ -51,7 +60,8 @@ const PodcastAudio = ({
       console.log("PodcastAudio: Audio registered successfully", {
         id: podcastId,
         title: podcastMeta.title,
-        currentPodcastId: audioStore.currentPodcastId
+        currentPodcastId: audioStore.currentPodcastId,
+        isPlaying: audioStore.isPlaying
       });
     }
     

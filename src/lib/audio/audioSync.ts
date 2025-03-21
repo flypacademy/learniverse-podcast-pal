@@ -21,7 +21,7 @@ export const createAudioSync = (
     audioElement.addEventListener('ended', () => eventHandlers.handleEnded(audioElement));
     audioElement.addEventListener('loadedmetadata', () => eventHandlers.handleLoadedMetadata(audioElement));
     
-    // Preserve playback state across navigation
+    // Preserve playback state across navigation and visibility changes
     const visibilityChangeHandler = () => eventHandlers.handleVisibilityChange(audioElement);
     document.addEventListener('visibilitychange', visibilityChangeHandler);
     
@@ -81,7 +81,7 @@ export const createAudioSync = (
             console.warn("Error during delayed playback continuation:", error);
             set({ isPlaying: false });
           }
-        }, 300); // Increased delay to ensure DOM is ready
+        }, 500); // Increased delay to ensure DOM is ready
       }
     },
     
@@ -141,14 +141,14 @@ export const createAudioSync = (
                       console.warn("Error during retry playback:", retryError);
                       set({ isPlaying: false });
                     }
-                  }, 300);
+                  }, 500);
                 });
               }
             } catch (error) {
               console.warn("Error auto-playing audio:", error);
               set({ isPlaying: false });
             }
-          }, 500); // Increased delay to ensure DOM is fully ready
+          }, 800); // Increased delay to ensure DOM is fully ready
         } catch (error) {
           console.warn("Error scheduling audio playback:", error);
           set({ isPlaying: false });

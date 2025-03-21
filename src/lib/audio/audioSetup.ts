@@ -17,6 +17,14 @@ export const createAudioSetup = (
       // Get current state for comparison
       const { currentPodcastId, audioElement: currentAudio, currentTime: storedTime, isPlaying: wasPlaying } = get();
       
+      console.log("Audio setup: setAudio called", { 
+        podcastId, 
+        currentPodcastId, 
+        wasPlaying, 
+        storedTime,
+        hasMeta: !!meta
+      });
+      
       // If this is the same podcast that's already playing, preserve the state
       if (currentPodcastId === podcastId && currentAudio) {
         console.log("Audio setup: Same podcast detected, preserving state");
