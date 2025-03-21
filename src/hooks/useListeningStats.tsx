@@ -115,8 +115,8 @@ export function useListeningStats(userEmail?: string) {
         
         console.log("Total seconds calculated:", totalSeconds);
         
-        // Convert seconds to minutes (rounded)
-        const totalMinutes = Math.floor(totalSeconds / 60);
+        // Make sure we don't floor the minutes - we just need to have them
+        const totalMinutes = Math.max(1, Math.round(totalSeconds / 60));
         
         console.log("Total minutes calculated:", totalMinutes);
         

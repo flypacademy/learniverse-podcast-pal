@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useListeningAnalytics } from "@/hooks/useListeningAnalytics";
 import { useListeningStats } from "@/hooks/useListeningStats";
@@ -110,7 +109,6 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ userData, isLoading = f
     }
   }, [dataInitialized, refreshXPData]);
   
-  // Fetch completed podcasts count
   useEffect(() => {
     async function fetchCompletedPodcasts() {
       try {

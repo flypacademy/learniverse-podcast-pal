@@ -56,7 +56,7 @@ const Index = () => {
         
         {/* Continue Learning with Carousel */}
         <ContinueLearning 
-          courses={recentCourses}
+          courses={recentCourses || []}
           loading={coursesLoading}
           handleLinkClick={handleLinkClick}
         />
