@@ -15,10 +15,8 @@ export function useAudioPlayer(podcastId: string | undefined) {
   const [showXPModal, setShowXPModal] = useState(false);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const updatingStateRef = useRef(false);
-  const preventUpdateCycleRef = useRef(false);
   
-  // Use the audio sync hook with stricter update prevention
+  // Use the audio sync hook
   const { syncInProgressRef } = useAudioSync(
     podcastId,
     audioRef,
@@ -33,7 +31,7 @@ export function useAudioPlayer(podcastId: string | undefined) {
     setReady
   );
   
-  // Use the audio controls hook with more debouncing
+  // Use the audio controls hook
   const {
     play,
     pause,
@@ -47,31 +45,8 @@ export function useAudioPlayer(podcastId: string | undefined) {
   // Use the progress data hook
   const { handleProgressData } = useProgressData(audioRef, setCurrentTime);
   
-  // Wrapper for togglePlayPause with debouncing and cycle prevention
-  const togglePlayPause = () => {
-    if (updatingStateRef.current || preventUpdateCycleRef.current) return;
-    
-    updatingStateRef.current = true;
-    preventUpdateCycleRef.current = true;
-    
-    // Using setTimeout to break potential update cycles
-    setTimeout(() => {
-      togglePlay(isPlaying);
-      updatingStateRef.current = false;
-      
-      // Reset the prevention flag after a delay
-      setTimeout(() => {
-        preventUpdateCycleRef.current = false;
-      }, 300);
-    }, 100);
-  };
-
-  // Add cleanup to prevent memory leaks
-  useEffect(() => {
-    return () => {
-      // Any cleanup needed
-    };
-  }, []);
+  // Wrapper for togglePlayPause to pass the current isPlaying state
+  const togglePlayPause = () => togglePlay(isPlaying);
 
   return {
     ready,
