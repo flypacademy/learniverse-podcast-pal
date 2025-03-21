@@ -7,11 +7,9 @@ import UserCard from "./UserCard";
 import ProfileStats from "./ProfileStats";
 import WeeklyAnalytics from "./WeeklyAnalytics";
 import StreakCalendar from "@/components/StreakCalendar";
-import AchievementsSection from "./AchievementsSection";
 import { UserXPData } from "@/hooks/useUserXP";
 import { useToast } from "@/components/ui/use-toast";
 import { useProfileData } from "@/hooks/useProfileData";
-import { achievements } from "@/data/achievementsData";
 import { activityDays } from "@/data/activityData";
 import TimeDisplay from "./TimeDisplay";
 
@@ -82,8 +80,6 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ userData, isLoading = f
       </div>
       
       <WeeklyAnalytics analytics={analytics} loading={analyticsLoading} />
-      
-      <AchievementsSection achievements={achievements} />
     </div>
   );
 };
