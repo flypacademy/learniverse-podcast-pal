@@ -10,7 +10,7 @@ import StreakCalendar from "@/components/StreakCalendar";
 import { UserXPData } from "@/hooks/useUserXP";
 import { useToast } from "@/components/ui/use-toast";
 import { useProfileData } from "@/hooks/useProfileData";
-import { activityDays } from "@/data/activityData";
+import { activityDays, streakCount } from "@/data/activityData";
 import TimeDisplay from "./TimeDisplay";
 
 interface ProfileContentProps {
@@ -53,7 +53,7 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ userData, isLoading = f
     email: profileData.email,
     xp: profileData.displayXP,
     level: profileData.level,
-    streak: 4, // Hardcoded in original
+    streak: streakCount, // Use consistent streak count
     nextLevelXP: profileData.nextLevelXP,
     progress: profileData.progress
   };
@@ -76,7 +76,7 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ userData, isLoading = f
       />
       
       <div className="glass-card p-4 rounded-xl">
-        <StreakCalendar streak={4} days={activityDays} />
+        <StreakCalendar streak={streakCount} days={activityDays} />
       </div>
       
       <WeeklyAnalytics analytics={analytics} loading={analyticsLoading} />

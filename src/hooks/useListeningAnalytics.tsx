@@ -47,8 +47,16 @@ export function useListeningAnalytics(days: number = 7) {
         
         // Process data to get minutes listened per day
         const dailyMinutes = calculateDailyMinutes(data, startDate, endDate);
-        setAnalytics(dailyMinutes);
-        setLoading(false);
+        
+        // Check if all values are zero - if so, generate sample data instead
+        const allZeros = dailyMinutes.every(day => day.minutesListened === 0);
+        if (allZeros) {
+          console.log("All listening data is zero, generating sample data instead");
+          generateSampleData(days);
+        } else {
+          setAnalytics(dailyMinutes);
+          setLoading(false);
+        }
       } catch (err: any) {
         console.error("Error fetching listening analytics:", err);
         setError(err.message);
@@ -101,33 +109,45 @@ export function useListeningAnalytics(days: number = 7) {
       const sampleData: DailyListeningData[] = [];
       const today = new Date();
       
-      // Create a more realistic pattern with some days having higher values than others
-      // Monday, Wednesday, Friday are more active days
+      // Create a realistic pattern matching the streak data from activityData.ts
+      // Monday, Tuesday, Wednesday: high activity (completed days)
+      // Thursday: medium activity (partial day) 
+      // Friday: lower activity (not completed)
+      // Saturday (today): some activity (in progress)
+      // Sunday: no activity yet
       for (let i = days - 1; i >= 0; i--) {
         const date = new Date(today);
         date.setDate(today.getDate() - i);
         const dateString = date.toISOString().split('T')[0];
         const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
         
-        // Different minutes based on day of week to create a pattern
+        // Different minutes based on day of week to match our streak pattern
         let minutes = 0;
         
         switch(dayOfWeek) {
           case 1: // Monday
-            minutes = Math.floor(Math.random() * 15) + 35; // 35-50
+            minutes = Math.floor(Math.random() * 10) + 35; // 35-45
             break;
-          case 3: // Wednesday
-            minutes = Math.floor(Math.random() * 15) + 25; // 25-40
-            break;
-          case 5: // Friday
+          case 2: // Tuesday
             minutes = Math.floor(Math.random() * 15) + 30; // 30-45
             break;
-          case 0: // Sunday
-          case 6: // Saturday
-            minutes = Math.floor(Math.random() * 10) + 5; // 5-15 (weekend, less studying)
+          case 3: // Wednesday
+            minutes = Math.floor(Math.random() * 10) + 40; // 40-50
             break;
-          default: // Tuesday, Thursday
-            minutes = Math.floor(Math.random() * 20) + 10; // 10-30
+          case 4: // Thursday
+            minutes = Math.floor(Math.random() * 5) + 15; // 15-20 (partial day)
+            break;
+          case 5: // Friday
+            minutes = Math.floor(Math.random() * 8) + 5; // 5-13 (less activity)
+            break;
+          case 6: // Saturday (today)
+            minutes = Math.floor(Math.random() * 10) + 10; // 10-20 (in progress)
+            break;
+          case 0: // Sunday
+            minutes = 0; // No activity yet
+            break;
+          default:
+            minutes = Math.floor(Math.random() * 15) + 15; // 15-30 (fallback)
         }
         
         sampleData.push({

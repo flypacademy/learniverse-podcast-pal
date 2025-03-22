@@ -12,17 +12,7 @@ import ContinueLearning from "@/components/home/ContinueLearning";
 import WeeklyStreakSection from "@/components/home/WeeklyStreakSection";
 import LeaderboardSection from "@/components/home/LeaderboardSection";
 import TodaysGoalButton from "@/components/home/TodaysGoalButton";
-
-// Mock streak data
-const streakData = [
-  { date: "2023-06-12", completed: true },
-  { date: "2023-06-13", completed: true },
-  { date: "2023-06-14", completed: true },
-  { date: "2023-06-15", completed: false },
-  { date: "2023-06-16", completed: false },
-  { date: "2023-06-17", completed: false, partial: true },
-  { date: "2023-06-18", completed: false }
-];
+import { activityDays, streakCount } from "@/data/activityData";
 
 const Index = () => {
   const { toast } = useToast();
@@ -61,8 +51,8 @@ const Index = () => {
           handleLinkClick={handleLinkClick}
         />
         
-        {/* Weekly Streak */}
-        <WeeklyStreakSection streak={3} days={streakData} />
+        {/* Weekly Streak - updated to use consistent data */}
+        <WeeklyStreakSection streak={3} days={activityDays} />
         
         {/* Leaderboard */}
         <LeaderboardSection />
