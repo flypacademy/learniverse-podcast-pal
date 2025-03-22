@@ -101,13 +101,25 @@ export function useListeningAnalytics(days: number = 7) {
       const sampleData: DailyListeningData[] = [];
       const today = new Date();
       
+      // Generate realistic distribution of listening minutes for the week
+      // with a pattern that matches the example image (higher values on weekdays)
+      const today_day = today.getDay(); // 0 is Sunday, 6 is Saturday
+      
       for (let i = days - 1; i >= 0; i--) {
         const date = new Date(today);
         date.setDate(today.getDate() - i);
         const dateString = date.toISOString().split('T')[0];
+        const dayOfWeek = date.getDay(); // 0 is Sunday, 6 is Saturday
         
-        // Generate random minutes between 10 and 60
-        const minutes = Math.floor(Math.random() * 50) + 10;
+        // Generate minutes with higher values on weekdays (Monday-Friday: 1-5)
+        let minutes;
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+          // Weekends: lower values (0-20)
+          minutes = Math.floor(Math.random() * 20);
+        } else {
+          // Weekdays: higher values (25-55)
+          minutes = 25 + Math.floor(Math.random() * 30);
+        }
         
         sampleData.push({
           date: dateString,
