@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { activityDays } from "@/data/activityData";
 
 export interface DailyListeningData {
   date: string; // ISO format date string
@@ -109,45 +110,32 @@ export function useListeningAnalytics(days: number = 7) {
       const sampleData: DailyListeningData[] = [];
       const today = new Date();
       
-      // Create a realistic pattern matching the streak data from activityData.ts
-      // Monday, Tuesday, Wednesday: high activity (completed days)
-      // Thursday: medium activity (partial day) 
-      // Friday: lower activity (not completed)
-      // Saturday (today): some activity (in progress)
-      // Sunday: no activity yet
+      // Create sample data that aligns with our activity pattern in activityData.ts
       for (let i = days - 1; i >= 0; i--) {
         const date = new Date(today);
         date.setDate(today.getDate() - i);
         const dateString = date.toISOString().split('T')[0];
-        const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
         
-        // Different minutes based on day of week to match our streak pattern
+        // Find if this day is in our activityDays data
+        const activityDay = activityDays.find(day => day.date === dateString);
+        
+        // Assign minutes based on the activity status
         let minutes = 0;
         
-        switch(dayOfWeek) {
-          case 1: // Monday
-            minutes = Math.floor(Math.random() * 10) + 35; // 35-45
-            break;
-          case 2: // Tuesday
-            minutes = Math.floor(Math.random() * 15) + 30; // 30-45
-            break;
-          case 3: // Wednesday
-            minutes = Math.floor(Math.random() * 10) + 40; // 40-50
-            break;
-          case 4: // Thursday
-            minutes = Math.floor(Math.random() * 5) + 15; // 15-20 (partial day)
-            break;
-          case 5: // Friday
-            minutes = Math.floor(Math.random() * 8) + 5; // 5-13 (less activity)
-            break;
-          case 6: // Saturday (today)
-            minutes = Math.floor(Math.random() * 10) + 10; // 10-20 (in progress)
-            break;
-          case 0: // Sunday
-            minutes = 0; // No activity yet
-            break;
-          default:
-            minutes = Math.floor(Math.random() * 15) + 15; // 15-30 (fallback)
+        if (activityDay) {
+          if (activityDay.completed) {
+            // Completed days have higher minutes (30-45)
+            minutes = Math.floor(Math.random() * 15) + 30;
+          } else if (activityDay.partial) {
+            // Partial days have medium minutes (15-25)
+            minutes = Math.floor(Math.random() * 10) + 15;
+          } else {
+            // Not completed days have lower or zero minutes (0-10)
+            minutes = Math.floor(Math.random() * 10);
+          }
+        } else {
+          // Default fallback
+          minutes = Math.floor(Math.random() * 15) + 5;
         }
         
         sampleData.push({

@@ -51,8 +51,8 @@ const Index = () => {
           handleLinkClick={handleLinkClick}
         />
         
-        {/* Weekly Streak - updated to use consistent data */}
-        <WeeklyStreakSection streak={3} days={activityDays} />
+        {/* Weekly Streak - using the streak count from activityData */}
+        <WeeklyStreakSection streak={streakCount} days={activityDays} />
         
         {/* Leaderboard */}
         <LeaderboardSection />

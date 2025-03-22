@@ -53,7 +53,7 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ userData, isLoading = f
     email: profileData.email,
     xp: profileData.displayXP,
     level: profileData.level,
-    streak: streakCount, // Use consistent streak count
+    streak: streakCount, // Use the shared streak count from activityData
     nextLevelXP: profileData.nextLevelXP,
     progress: profileData.progress
   };
