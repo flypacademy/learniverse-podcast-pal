@@ -32,5 +32,6 @@ export const activityDays = [
   { date: weekDates[6], completed: false }       // Sunday - not completed yet
 ];
 
-// Export the streak count that matches the UI
-export const streakCount = 4;
+// Calculate the streak count dynamically based on the activity days
+// Count fully completed days (not partial days) in our streak
+export const streakCount = activityDays.filter(day => day.completed).length;
