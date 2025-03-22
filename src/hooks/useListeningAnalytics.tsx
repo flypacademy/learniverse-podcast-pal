@@ -101,24 +101,33 @@ export function useListeningAnalytics(days: number = 7) {
       const sampleData: DailyListeningData[] = [];
       const today = new Date();
       
-      // Generate realistic distribution of listening minutes for the week
-      // with a pattern that matches the example image (higher values on weekdays)
-      const today_day = today.getDay(); // 0 is Sunday, 6 is Saturday
-      
+      // Create a more realistic pattern with some days having higher values than others
+      // Monday, Wednesday, Friday are more active days
       for (let i = days - 1; i >= 0; i--) {
         const date = new Date(today);
         date.setDate(today.getDate() - i);
         const dateString = date.toISOString().split('T')[0];
-        const dayOfWeek = date.getDay(); // 0 is Sunday, 6 is Saturday
+        const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
         
-        // Generate minutes with higher values on weekdays (Monday-Friday: 1-5)
-        let minutes;
-        if (dayOfWeek === 0 || dayOfWeek === 6) {
-          // Weekends: lower values (0-20)
-          minutes = Math.floor(Math.random() * 20);
-        } else {
-          // Weekdays: higher values (25-55)
-          minutes = 25 + Math.floor(Math.random() * 30);
+        // Different minutes based on day of week to create a pattern
+        let minutes = 0;
+        
+        switch(dayOfWeek) {
+          case 1: // Monday
+            minutes = Math.floor(Math.random() * 15) + 35; // 35-50
+            break;
+          case 3: // Wednesday
+            minutes = Math.floor(Math.random() * 15) + 25; // 25-40
+            break;
+          case 5: // Friday
+            minutes = Math.floor(Math.random() * 15) + 30; // 30-45
+            break;
+          case 0: // Sunday
+          case 6: // Saturday
+            minutes = Math.floor(Math.random() * 10) + 5; // 5-15 (weekend, less studying)
+            break;
+          default: // Tuesday, Thursday
+            minutes = Math.floor(Math.random() * 20) + 10; // 10-30
         }
         
         sampleData.push({
