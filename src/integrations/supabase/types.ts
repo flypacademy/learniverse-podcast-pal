@@ -207,6 +207,30 @@ export type Database = {
           },
         ]
       }
+      user_daily_streaks: {
+        Row: {
+          created_at: string
+          id: string
+          streak_date: string
+          user_id: string
+          xp_awarded: boolean
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          streak_date: string
+          user_id: string
+          xp_awarded?: boolean
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          streak_date?: string
+          user_id?: string
+          xp_awarded?: boolean
+        }
+        Relationships: []
+      }
       user_experience: {
         Row: {
           created_at: string

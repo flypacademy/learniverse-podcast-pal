@@ -1,8 +1,9 @@
-
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useXP } from "@/hooks/useXP";
 import { XPReason } from "@/types/xp";
+import { getUserSession } from "@/utils/xp/userSession";
+import { recordDailyStreak } from "@/utils/xp/dailyStreakXP";
 
 const LISTENING_XP_PER_MINUTE = 10;
 const PODCAST_COMPLETION_XP = 50;
@@ -18,8 +19,31 @@ export function useProgressTracking(
   const { awardXP } = useXP();
   const [lastSavedTime, setLastSavedTime] = useState(0);
   const [listenedSeconds, setListenedSeconds] = useState(0);
+  const [dailyStreakAwarded, setDailyStreakAwarded] = useState(false);
   const lastTimestampRef = useRef(Date.now());
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Award daily streak XP when user starts listening
+  useEffect(() => {
+    if (isPlaying && audioElement && podcastId && !dailyStreakAwarded) {
+      const awardDailyStreakXP = async () => {
+        try {
+          const userId = await getUserSession();
+          if (!userId) return;
+          
+          const streakRecorded = await recordDailyStreak(userId);
+          if (streakRecorded) {
+            console.log("Daily streak XP awarded successfully");
+            setDailyStreakAwarded(true);
+          }
+        } catch (err) {
+          console.error("Error awarding daily streak XP:", err);
+        }
+      };
+      
+      awardDailyStreakXP();
+    }
+  }, [isPlaying, audioElement, podcastId, dailyStreakAwarded]);
   
   // Set up tracking timers
   useEffect(() => {
