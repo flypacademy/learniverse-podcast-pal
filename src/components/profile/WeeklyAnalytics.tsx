@@ -16,20 +16,18 @@ const WeeklyAnalytics = ({ analytics, loading }: WeeklyAnalyticsProps) => {
   const chartData = analytics.map(day => {
     // Extract the day of the week (e.g., 'M', 'T', etc.)
     const date = new Date(day.date);
-    const dayOfWeek = ['S', 'M', 'T', 'W', 'T', 'F', 'S'][date.getDay()];
+    const dayOfWeek = ['S', 'S', 'M', 'T', 'W', 'T', 'F', 'S'][date.getDay()];
     
     return {
       day: dayOfWeek,
       minutes: day.minutesListened,
-      // Add full date for tooltip
-      fullDate: date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
     };
   });
 
-  // Find max minutes for Y axis domain - ensure it's at least 60 for better visualization
-  const maxMinutes = Math.max(...chartData.map(data => data.minutes), 0);
-  // If max is 0, use 60 as default max, otherwise round up to nearest multiple of 15
-  const yAxisMax = maxMinutes === 0 ? 60 : Math.ceil(maxMinutes / 15) * 15;
+  // Find max minutes for Y axis domain
+  const maxMinutes = Math.max(...chartData.map(data => data.minutes), 60);
+  // Round up to nearest 15 for better increments (0, 15, 30, 45, 60)
+  const yAxisMax = Math.ceil(maxMinutes / 15) * 15;
 
   return (
     <div className="glass-card p-4 rounded-xl">
@@ -70,11 +68,7 @@ const WeeklyAnalytics = ({ analytics, loading }: WeeklyAnalyticsProps) => {
               />
               <Tooltip 
                 formatter={(value) => [`${value} minutes`, 'Listened']} 
-                labelFormatter={(label, data) => {
-                  // Use the fullDate property for a more descriptive tooltip
-                  const item = data[0]?.payload;
-                  return `Day: ${item?.fullDate}`;
-                }}
+                labelFormatter={(label) => `Day: ${label}`}
                 contentStyle={{ 
                   backgroundColor: 'white', 
                   borderRadius: '8px', 
