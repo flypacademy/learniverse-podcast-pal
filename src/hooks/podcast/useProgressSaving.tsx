@@ -1,7 +1,7 @@
 
 import { supabase } from "@/lib/supabase";
 
-// Add a completion threshold (e.g., 95% of the podcast duration)
+// Add a completion threshold (e.g., 90% of the podcast duration)
 const COMPLETION_THRESHOLD = 0.90;
 
 export function useProgressSaving(podcastId: string | undefined, podcastCourseId?: string) {
@@ -30,7 +30,7 @@ export function useProgressSaving(podcastId: string | undefined, podcastCourseId
       // Mark as completed if explicitly set or if position is near end (90%)
       const isCompleted = completed || (duration > 0 && last_position >= duration * COMPLETION_THRESHOLD);
       
-      console.log(`Saving progress for ${podcastId}: position=${last_position}/${duration} (${progressPercentage.toFixed(1)}%), completed=${isCompleted}`);
+      console.log(`[Progress Saving] Saving progress for ${podcastId}: position=${last_position}/${duration} (${progressPercentage.toFixed(1)}%), completed=${isCompleted}, threshold=${duration * COMPLETION_THRESHOLD}`);
       
       // First check if a record already exists
       const { data: existingRecord, error: fetchError } = await supabase
@@ -54,7 +54,7 @@ export function useProgressSaving(podcastId: string | undefined, podcastCourseId
         const newlyCompleted = !existingRecord.completed && isCompleted;
         
         if (newlyCompleted) {
-          console.log(`Podcast ${podcastId} being marked as completed for the first time!`);
+          console.log(`[Progress Saving] Podcast ${podcastId} being marked as completed for the first time!`);
         }
         
         const { data, error: updateError } = await supabase
@@ -73,7 +73,7 @@ export function useProgressSaving(podcastId: string | undefined, podcastCourseId
         if (updateError) {
           console.error("Error updating progress:", updateError);
         } else {
-          console.log(`Progress updated successfully, completed=${isCompleted}, timestamp: ${timestamp}`, data);
+          console.log(`[Progress Saving] Progress updated successfully, completed=${isCompleted}, timestamp: ${timestamp}`, data);
         }
       } 
       // Otherwise insert a new record
@@ -97,7 +97,7 @@ export function useProgressSaving(podcastId: string | undefined, podcastCourseId
         if (insertError) {
           console.error("Error inserting progress:", insertError);
         } else {
-          console.log(`Progress inserted successfully, completed=${isCompleted}, timestamp: ${timestamp}`, data);
+          console.log(`[Progress Saving] Progress inserted successfully, completed=${isCompleted}, timestamp: ${timestamp}`, data);
         }
       }
     } catch (error) {
@@ -119,6 +119,8 @@ export function useProgressSaving(podcastId: string | undefined, podcastCourseId
       const userId = session.user.id;
       const timestamp = new Date().toISOString();
       
+      console.log(`[Progress Saving] Explicitly marking podcast ${podcastId} as completed for user ${userId}`);
+      
       // Check if record exists
       const { data: existingRecord } = await supabase
         .from('user_progress')
@@ -129,22 +131,25 @@ export function useProgressSaving(podcastId: string | undefined, podcastCourseId
       
       if (existingRecord) {
         // Update existing record
-        const { error } = await supabase
+        const { error, data } = await supabase
           .from('user_progress')
           .update({
             completed: true,
             updated_at: timestamp
           })
           .eq('user_id', userId)
-          .eq('podcast_id', podcastId);
+          .eq('podcast_id', podcastId)
+          .select();
         
         if (error) {
           console.error("Error marking podcast as completed:", error);
           return false;
         }
+        
+        console.log(`[Progress Saving] Successfully updated completion status:`, data);
       } else {
         // Insert new record
-        const { error } = await supabase
+        const { error, data } = await supabase
           .from('user_progress')
           .insert([
             {
@@ -156,15 +161,18 @@ export function useProgressSaving(podcastId: string | undefined, podcastCourseId
               updated_at: timestamp,
               created_at: timestamp
             }
-          ]);
+          ])
+          .select();
         
         if (error) {
           console.error("Error inserting completed podcast:", error);
           return false;
         }
+        
+        console.log(`[Progress Saving] Successfully inserted completion status:`, data);
       }
       
-      console.log(`Podcast ${podcastId} marked as completed`);
+      console.log(`[Progress Saving] Podcast ${podcastId} marked as completed`);
       return true;
     } catch (error) {
       console.error("Exception marking podcast as completed:", error);

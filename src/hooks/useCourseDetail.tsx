@@ -122,7 +122,7 @@ export const useCourseDetail = (courseId: string | undefined) => {
           // Fetch user progress for the podcasts in this course with a more detailed select
           const { data: progressData, error: progressError } = await supabase
             .from("user_progress")
-            .select("*")  // Select all fields to get more details
+            .select("*")
             .eq("user_id", session.user.id)
             .eq("course_id", courseId);
 
@@ -131,20 +131,30 @@ export const useCourseDetail = (courseId: string | undefined) => {
           } else {
             userProgress = progressData || [];
             console.log("User progress data:", userProgress);
+            
+            // Explicitly log the completion status of all podcasts in progress data
+            console.log("Raw completion status for all podcasts:");
+            userProgress.forEach(progress => {
+              console.log(`Podcast ${progress.podcast_id}: completed=${progress.completed}, completedType=${typeof progress.completed}, updated=${progress.updated_at}`);
+            });
           }
         }
 
         // Create a map for quick lookup of user progress with more details for debugging
-        const progressMap: Record<string, { position: number; completed: boolean, duration?: number }> = {};
+        const progressMap: Record<string, { position: number; completed: boolean, duration?: number, updatedAt?: string }> = {};
         userProgress.forEach((progress) => {
+          // Ensure completed is a strict boolean value
+          const isCompleted = progress.completed === true;
+          
           progressMap[progress.podcast_id] = {
             position: progress.last_position || 0,
-            completed: progress.completed === true, // Ensure boolean conversion
-            duration: progress.duration
+            completed: isCompleted,
+            duration: progress.duration,
+            updatedAt: progress.updated_at
           };
           
-          // Log individual progress records
-          console.log(`Progress for podcast ${progress.podcast_id}: position=${progress.last_position}, completed=${progress.completed}, completedType=${typeof progress.completed}`);
+          // Log individual progress records with explicit type checking
+          console.log(`Progress for podcast ${progress.podcast_id}: position=${progress.last_position}, completed=${isCompleted}, completedType=${typeof isCompleted}, updatedAt=${progress.updated_at}`);
         });
 
         // Transform podcast data to include progress and header info
@@ -152,11 +162,11 @@ export const useCourseDetail = (courseId: string | undefined) => {
           const progress = progressMap[podcast.id] || { position: 0, completed: false };
           const podcastProgress = podcast.duration ? (progress.position / podcast.duration) * 100 : 0;
           
-          // Ensure completed is a boolean
+          // Ensure completed is a boolean with explicit type check
           const isCompleted = progress.completed === true;
           
           // Log detailed completion info about each podcast
-          console.log(`Processing podcast ${podcast.id} "${podcast.title}": ${isCompleted ? "COMPLETED" : "not completed"} (${progress.position}/${podcast.duration} = ${podcastProgress.toFixed(1)}%)`);
+          console.log(`Processing podcast ${podcast.id} "${podcast.title}": ${isCompleted ? "COMPLETED" : "not completed"} (${progress.position}/${podcast.duration} = ${podcastProgress.toFixed(1)}%) updated: ${progress.updatedAt || 'N/A'}`);
           
           return {
             id: podcast.id,
@@ -165,7 +175,7 @@ export const useCourseDetail = (courseId: string | undefined) => {
             courseName: courseData.title,
             duration: podcast.duration || 0,
             progress: podcastProgress,
-            completed: isCompleted, // Enforce boolean value
+            completed: isCompleted, // Use the strictly-checked boolean
             image: podcast.image_url || courseData.image_url,
             header_text: podcastToHeader[podcast.id] || null,
           };

@@ -51,21 +51,33 @@ const CourseEpisodes: React.FC<CourseEpisodesProps> = ({ podcasts }) => {
     id: p.id,
     title: p.title,
     completed: p.completed,
-    progress: p.progress,
-    completedType: typeof p.completed
+    completedType: typeof p.completed,
+    progress: p.progress
   })));
+  
+  // Force refresh the cache of completion status for ID comparisons
+  const refreshedCompletionStatus = new Map(
+    podcasts.map(podcast => [podcast.id, podcast.completed === true])
+  );
   
   return (
     <div className="space-y-6 pt-4">
       {/* No header section */}
       {groupedPodcasts[noHeaderKey] && (
         <div className="space-y-4">
-          {groupedPodcasts[noHeaderKey].map((podcast) => (
-            <PodcastCard 
-              key={podcast.id}
-              {...podcast}
-            />
-          ))}
+          {groupedPodcasts[noHeaderKey].map((podcast) => {
+            // Get the fresh completion status
+            const isCompleted = refreshedCompletionStatus.get(podcast.id) || false;
+            console.log(`Rendering podcast ${podcast.id} "${podcast.title}" with completion status: ${isCompleted}`);
+            
+            return (
+              <PodcastCard 
+                key={podcast.id}
+                {...podcast}
+                completed={isCompleted} // Explicitly pass completion status
+              />
+            );
+          })}
         </div>
       )}
       
@@ -75,12 +87,19 @@ const CourseEpisodes: React.FC<CourseEpisodesProps> = ({ podcasts }) => {
         .map(([header, podcasts]) => (
           <div key={header} className="space-y-4">
             <h3 className="font-medium text-lg">{header}</h3>
-            {podcasts.map((podcast) => (
-              <PodcastCard 
-                key={podcast.id}
-                {...podcast}
-              />
-            ))}
+            {podcasts.map((podcast) => {
+              // Get the fresh completion status
+              const isCompleted = refreshedCompletionStatus.get(podcast.id) || false;
+              console.log(`Rendering podcast ${podcast.id} "${podcast.title}" in section "${header}" with completion status: ${isCompleted}`);
+              
+              return (
+                <PodcastCard 
+                  key={podcast.id}
+                  {...podcast}
+                  completed={isCompleted} // Explicitly pass completion status
+                />
+              );
+            })}
           </div>
         ))}
     </div>
