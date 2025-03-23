@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useXP } from "@/hooks/useXP";
@@ -8,6 +9,8 @@ import { recordDailyStreak } from "@/utils/xp/dailyStreakXP";
 
 const LISTENING_XP_PER_MINUTE = 10;
 const PODCAST_COMPLETION_XP = 50;
+// Add a completion threshold (e.g., 95% of the podcast duration)
+const COMPLETION_THRESHOLD = 0.95;
 
 export function useProgressTracking(
   podcastId: string | undefined,
@@ -45,6 +48,17 @@ export function useProgressTracking(
       awardDailyStreakXP();
     }
   }, [isPlaying, audioElement, podcastId, dailyStreakAwarded]);
+  
+  // Check if podcast should be marked as completed based on progress
+  useEffect(() => {
+    if (podcastId && audioElement && duration > 0) {
+      // If near the end or at the end, mark as completed
+      if (currentTime >= duration * COMPLETION_THRESHOLD) {
+        console.log(`Podcast ${podcastId} has reached completion threshold (${Math.round(COMPLETION_THRESHOLD*100)}%)`);
+        saveProgress(true);
+      }
+    }
+  }, [currentTime, duration, podcastId, audioElement]);
   
   // Set up tracking timers
   useEffect(() => {
@@ -123,12 +137,16 @@ export function useProgressTracking(
       
       const userId = session.user.id;
       const last_position = Math.floor(currentTime);
+      const isCompleted = completed || (duration > 0 && currentTime >= duration * COMPLETION_THRESHOLD);
       
       console.log("Saving progress:", {
         podcastId,
         position: last_position,
-        completed,
-        courseId
+        completed: isCompleted,
+        courseId,
+        duration,
+        currentTime,
+        thresholdReached: currentTime >= duration * COMPLETION_THRESHOLD
       });
       
       // Check if record exists
@@ -142,17 +160,26 @@ export function useProgressTracking(
       const timestamp = new Date().toISOString();
       
       if (existingRecord) {
+        // Only update completed status if this is the first time we're marking it complete
+        const shouldAwardCompletionXP = !existingRecord.completed && isCompleted;
+        
         // Update existing record
         await supabase
           .from('user_progress')
           .update({
             last_position,
-            completed: completed || existingRecord.completed,
+            completed: isCompleted || existingRecord.completed,
             course_id: courseId,
             updated_at: timestamp
           })
           .eq('user_id', userId)
           .eq('podcast_id', podcastId);
+        
+        // Award completion XP if this is the first time completing
+        if (shouldAwardCompletionXP) {
+          console.log("Awarding completion XP for podcast", podcastId);
+          await awardXP(PODCAST_COMPLETION_XP, XPReason.PODCAST_COMPLETION);
+        }
       } else {
         // Insert new record
         await supabase
@@ -162,12 +189,18 @@ export function useProgressTracking(
               user_id: userId,
               podcast_id: podcastId,
               last_position,
-              completed,
+              completed: isCompleted,
               course_id: courseId,
               updated_at: timestamp,
               created_at: timestamp
             }
           ]);
+          
+        // Award completion XP if we're inserting as complete
+        if (isCompleted) {
+          console.log("Awarding completion XP for newly completed podcast", podcastId);
+          await awardXP(PODCAST_COMPLETION_XP, XPReason.PODCAST_COMPLETION);
+        }
       }
     } catch (error) {
       console.error("Error saving progress:", error);
@@ -180,8 +213,8 @@ export function useProgressTracking(
     
     try {
       await saveProgress(true);
-      const success = await awardXP(PODCAST_COMPLETION_XP, XPReason.PODCAST_COMPLETION);
-      return success;
+      // XP is now awarded in the saveProgress function
+      return true;
     } catch (error) {
       console.error("Error handling completion:", error);
       return false;
@@ -203,6 +236,7 @@ export function useProgressTracking(
         .eq('user_id', session.user.id)
         .maybeSingle();
       
+      console.log("Fetched progress data for podcast", podcastId, data);
       return data;
     } catch (error) {
       console.error("Error fetching progress:", error);

@@ -46,6 +46,9 @@ const PodcastCard = ({
   const getSubject = (courseName: string): string => {
     return courseName.split(" ")[0];
   };
+  
+  // Debug the completed status
+  console.log(`PodcastCard ${id} "${title}": completed=${completed}, progress=${progress}`);
 
   return (
     <Link 
@@ -119,6 +122,12 @@ const PodcastCard = ({
                 className="progress-value bg-primary"
                 style={{ width: `${progress}%` }}
               />
+            </div>
+          )}
+          
+          {completed && (
+            <div className="text-xs text-green-600 font-medium">
+              Completed
             </div>
           )}
         </div>

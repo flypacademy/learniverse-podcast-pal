@@ -45,6 +45,14 @@ const CourseEpisodes: React.FC<CourseEpisodesProps> = ({ podcasts }) => {
     );
   }
   
+  // Debug log to see podcast completion status
+  console.log("CourseEpisodes: podcasts with completion status:", podcasts.map(p => ({
+    id: p.id,
+    title: p.title,
+    completed: p.completed,
+    progress: p.progress
+  })));
+  
   return (
     <div className="space-y-6 pt-4">
       {/* No header section */}

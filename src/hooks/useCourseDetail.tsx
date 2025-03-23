@@ -1,7 +1,21 @@
 
 import { useState, useEffect } from "react";
-import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
+
+interface Course {
+  id: string;
+  title: string;
+  subject: string;
+  description: string;
+  totalPodcasts: number;
+  completedPodcasts: number;
+  totalDuration: number;
+  difficulty: string;
+  image: string;
+  exam?: string;
+  board?: string;
+  podcasts: Podcast[];
+}
 
 interface Podcast {
   id: string;
@@ -15,181 +29,170 @@ interface Podcast {
   header_text?: string | null;
 }
 
-interface Course {
-  id: string;
-  title: string;
-  subject: string;
-  description: string;
-  totalPodcasts: number;
-  completedPodcasts: number;
-  totalDuration: number;
-  difficulty: string;
-  image: string;
-  podcasts: Podcast[];
-  exam?: string;
-  board?: string;
-}
-
-interface UseCourseDetailResult {
-  course: Course | null;
-  loading: boolean;
-  error: string | null;
-}
-
-export const useCourseDetail = (courseId: string | undefined): UseCourseDetailResult => {
+export const useCourseDetail = (courseId: string | undefined) => {
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
-  
+
   useEffect(() => {
-    // Reset state when courseId changes
-    setLoading(true);
-    setError(null);
-    setCourse(null);
-    
-    const fetchCourseDetails = async () => {
+    console.log("CourseDetail - courseId from params:", courseId);
+    if (!courseId) {
+      setLoading(false);
+      setError("Course ID is missing");
+      return;
+    }
+
+    async function fetchCourseDetails() {
       try {
         console.log("fetchCourseDetails called with courseId:", courseId);
-        
-        // Check if courseId exists and is not empty
-        if (!courseId) {
-          console.error("No courseId provided");
-          setError("No course ID provided");
-          setLoading(false);
-          return;
-        }
-        
-        // Fetch course data
+        setLoading(true);
+        setError(null);
+
+        // Fetch the course data
         const { data: courseData, error: courseError } = await supabase
-          .from('courses')
-          .select('*')
-          .eq('id', courseId)
-          .maybeSingle();
-        
+          .from("courses")
+          .select("*")
+          .eq("id", courseId)
+          .single();
+
         if (courseError) {
-          console.error("Error fetching course:", courseError);
-          setError(`Failed to load course: ${courseError.message}`);
-          setLoading(false);
-          return;
+          throw courseError;
         }
-        
+
         if (!courseData) {
-          console.log("No course found with ID:", courseId);
-          setLoading(false);
-          return; // Don't set an error, let the component handle this case
+          throw new Error("Course not found");
         }
-        
+
         console.log("Course data fetched successfully:", courseData);
-        
-        // Fetch course headers
+
+        // Fetch the podcasts for this course
+        const { data: podcastsData, error: podcastsError } = await supabase
+          .from("podcasts")
+          .select("*")
+          .eq("course_id", courseId)
+          .order("created_at", { ascending: true });
+
+        if (podcastsError) {
+          throw podcastsError;
+        }
+
+        // Fetch course headers to organize podcasts
         const { data: headersData, error: headersError } = await supabase
-          .from('course_headers')
-          .select('*')
-          .eq('course_id', courseId)
-          .order('display_order', { ascending: true });
-          
+          .from("course_headers")
+          .select("*")
+          .eq("course_id", courseId);
+
         if (headersError) {
           console.error("Error fetching headers:", headersError);
           // Continue even if headers fetch fails
         }
-        
+
         const headers = headersData || [];
         console.log("Fetched headers:", headers);
-        
-        // Create a map of header_id to header_text for faster lookups
-        const headerMap: Record<string, string> = {};
-        headers.forEach(header => {
-          headerMap[header.id] = header.header_text;
-        });
-        
-        // Fetch podcasts data
-        const { data: podcastsData, error: podcastsError } = await supabase
-          .from('podcasts')
-          .select('*')
-          .eq('course_id', courseId);
-        
-        if (podcastsError) {
-          console.error("Error fetching podcasts:", podcastsError);
-          setError(`Failed to load podcasts: ${podcastsError.message}`);
-          setLoading(false);
-          return;
-        }
-        
-        const podcasts = podcastsData || [];
-        
+
         // Fetch podcast-header relationships
-        const { data: podcastHeadersData, error: podcastHeadersError } = await supabase
-          .from('podcast_headers')
-          .select('*')
-          .in('podcast_id', podcasts.map(p => p.id));
-        
-        if (podcastHeadersError) {
-          console.error("Error fetching podcast-header relationships:", podcastHeadersError);
-          // Continue even if relationship fetch fails
+        const { data: podcastHeadersData, error: relationshipsError } = await supabase
+          .from("podcast_headers")
+          .select("podcast_id, header_id, course_headers(id, header_text)")
+          .eq("course_headers.course_id", courseId);
+
+        if (relationshipsError) {
+          console.error("Error fetching podcast-header relationships:", relationshipsError);
+          // Continue even if relationships fetch fails
         }
-        
-        // Create a map of podcast_id to header_text
-        const podcastToHeaderMap: Record<string, string> = {};
-        
+
+        // Create a map from podcast ID to header text
+        const podcastToHeader: Record<string, string> = {};
+
         if (podcastHeadersData) {
-          podcastHeadersData.forEach(ph => {
-            const headerText = headerMap[ph.header_id];
-            if (headerText) {
-              podcastToHeaderMap[ph.podcast_id] = headerText;
+          podcastHeadersData.forEach((ph: any) => {
+            if (ph.course_headers && ph.course_headers.header_text) {
+              podcastToHeader[ph.podcast_id] = ph.course_headers.header_text;
             }
           });
         }
-        
-        console.log("Podcast to header map:", podcastToHeaderMap);
-        
-        // Calculate total duration
-        const totalDuration = podcasts.reduce((sum, podcast) => {
-          return sum + (podcast.duration || 0);
-        }, 0);
-        
-        // Format course data
-        const formattedCourse: Course = {
+
+        console.log("Podcast to header map:", podcastToHeader);
+
+        // Get the current user's session
+        const { data: { session } } = await supabase.auth.getSession();
+        let userProgress: any[] = [];
+
+        if (session) {
+          // Fetch user progress for the podcasts in this course
+          const { data: progressData, error: progressError } = await supabase
+            .from("user_progress")
+            .select("podcast_id, last_position, completed")
+            .eq("user_id", session.user.id)
+            .eq("course_id", courseId);
+
+          if (progressError) {
+            console.error("Error fetching user progress:", progressError);
+          } else {
+            userProgress = progressData || [];
+            console.log("User progress data:", userProgress);
+          }
+        }
+
+        // Create a map for quick lookup of user progress
+        const progressMap: Record<string, { position: number; completed: boolean }> = {};
+        userProgress.forEach((progress) => {
+          progressMap[progress.podcast_id] = {
+            position: progress.last_position || 0,
+            completed: progress.completed || false,
+          };
+        });
+
+        // Transform podcast data to include progress and header info
+        const processedPodcasts = podcastsData.map((podcast: any) => {
+          const progress = progressMap[podcast.id] || { position: 0, completed: false };
+          return {
+            id: podcast.id,
+            title: podcast.title,
+            courseId: courseId,
+            courseName: courseData.title,
+            duration: podcast.duration || 0,
+            progress: podcast.duration ? (progress.position / podcast.duration) * 100 : 0,
+            completed: progress.completed,
+            image: podcast.image_url || courseData.image_url,
+            header_text: podcastToHeader[podcast.id] || null,
+          };
+        });
+
+        // Calculate total and completed podcasts
+        const totalPodcasts = processedPodcasts.length;
+        const completedPodcasts = processedPodcasts.filter(p => p.completed).length;
+        const totalDuration = processedPodcasts.reduce((sum, p) => sum + (p.duration || 0), 0);
+
+        // Construct the final course object
+        const courseWithPodcasts: Course = {
           id: courseData.id,
           title: courseData.title,
-          subject: courseData.subject || "math", // Default to math if subject not specified
-          description: courseData.description || "No description available",
-          totalPodcasts: podcasts.length,
-          completedPodcasts: 0,
-          totalDuration: totalDuration,
-          difficulty: courseData.difficulty || "Intermediate",
+          subject: courseData.subject || "math",
+          description: courseData.description || "",
+          totalPodcasts,
+          completedPodcasts,
+          totalDuration,
+          difficulty: totalDuration < 600 ? "Beginner" : totalDuration < 1800 ? "Intermediate" : "Advanced",
           image: courseData.image_url || "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png",
           exam: courseData.exam || "GCSE",
           board: courseData.board || "AQA",
-          podcasts: podcasts.map(podcast => ({
-            id: podcast.id,
-            title: podcast.title || "Untitled Podcast",
-            courseId: podcast.course_id,
-            courseName: courseData.title,
-            duration: podcast.duration || 0,
-            progress: 0,
-            completed: false,
-            image: podcast.image_url || courseData.image_url || "/lovable-uploads/429ae110-6f7f-402e-a6a0-7cff7720c1cf.png",
-            header_text: podcastToHeaderMap[podcast.id] || null
-          }))
+          podcasts: processedPodcasts,
         };
-        
-        setCourse(formattedCourse);
-        setLoading(false);
+
+        setCourse(courseWithPodcasts);
       } catch (err: any) {
-        console.error("Unexpected error in fetchCourseDetails:", err);
-        setError(err.message || "An unexpected error occurred");
+        console.error("Error in fetchCourseDetails:", err);
+        setError(err.message || "Failed to load course details");
+      } finally {
         setLoading(false);
-        toast({
-          title: "Error",
-          description: err.message || "Failed to load course details",
-          variant: "destructive"
-        });
       }
-    };
-    
+    }
+
     fetchCourseDetails();
-  }, [courseId, toast]);
-  
+  }, [courseId]);
+
+  console.log("Hook results - course:", course, "loading:", loading, "error:", error);
+
   return { course, loading, error };
 };
