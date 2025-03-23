@@ -49,9 +49,6 @@ const PodcastCard = ({
   
   // Force boolean conversion for completed to ensure it's a true boolean
   const isCompleted = completed === true;
-  
-  // Detailed debug logging for completion status
-  console.log(`PodcastCard ${id} "${title}": completed=${completed}, type=${typeof completed}, isCompleted=${isCompleted}, progress=${progress}`);
 
   return (
     <Link 
@@ -136,6 +133,13 @@ const PodcastCard = ({
           )}
         </div>
       </div>
+      
+      {/* Add the prominent completion checkmark */}
+      {isCompleted && (
+        <div className="absolute right-3 top-3 h-7 w-7 rounded-md border-2 border-gray-800 flex items-center justify-center bg-white">
+          <Check className="h-5 w-5 text-green-600" />
+        </div>
+      )}
     </Link>
   );
 };
