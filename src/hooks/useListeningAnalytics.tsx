@@ -49,15 +49,12 @@ export function useListeningAnalytics(days: number = 7) {
         // Process data to get minutes listened per day
         const dailyMinutes = calculateDailyMinutes(data, startDate, endDate);
         
-        // Check if all values are zero - if so, generate sample data instead
-        const allZeros = dailyMinutes.every(day => day.minutesListened === 0);
-        if (allZeros) {
-          console.log("All listening data is zero, generating sample data instead");
-          generateSampleData(days);
-        } else {
-          setAnalytics(dailyMinutes);
-          setLoading(false);
-        }
+        // Always use the actual data, don't replace with sample data
+        setAnalytics(dailyMinutes);
+        setLoading(false);
+        
+        // Log what data we're using
+        console.log("Using real user listening data:", dailyMinutes);
       } catch (err: any) {
         console.error("Error fetching listening analytics:", err);
         setError(err.message);
@@ -89,7 +86,7 @@ export function useListeningAnalytics(days: number = 7) {
           // Calculate minutes listened (convert seconds to minutes)
           let minutesListened = 0;
           if (entry.last_position) {
-            minutesListened = Math.floor(entry.last_position / 60);
+            minutesListened = Math.ceil(entry.last_position / 60); // Use ceiling to count partial minutes
           }
           
           // Add to the daily total
@@ -110,40 +107,19 @@ export function useListeningAnalytics(days: number = 7) {
       const sampleData: DailyListeningData[] = [];
       const today = new Date();
       
-      // Create sample data that aligns with our activity pattern in activityData.ts
+      // Create sample data with all zeros to indicate no real data is available
       for (let i = days - 1; i >= 0; i--) {
         const date = new Date(today);
         date.setDate(today.getDate() - i);
         const dateString = date.toISOString().split('T')[0];
         
-        // Find if this day is in our activityDays data
-        const activityDay = activityDays.find(day => day.date === dateString);
-        
-        // Assign minutes based on the activity status
-        let minutes = 0;
-        
-        if (activityDay) {
-          if (activityDay.completed) {
-            // Completed days have higher minutes (30-45)
-            minutes = Math.floor(Math.random() * 15) + 30;
-          } else if (activityDay.partial) {
-            // Partial days have medium minutes (15-25)
-            minutes = Math.floor(Math.random() * 10) + 15;
-          } else {
-            // Not completed days have lower or zero minutes (0-10)
-            minutes = Math.floor(Math.random() * 10);
-          }
-        } else {
-          // Default fallback
-          minutes = Math.floor(Math.random() * 15) + 5;
-        }
-        
         sampleData.push({
           date: dateString,
-          minutesListened: minutes
+          minutesListened: 0
         });
       }
       
+      console.log("Using zero sample data to indicate no listening data", sampleData);
       setAnalytics(sampleData);
       setLoading(false);
     }

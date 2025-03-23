@@ -115,8 +115,8 @@ export function useListeningStats(userEmail?: string) {
         
         console.log("Total seconds calculated:", totalSeconds);
         
-        // Make sure we don't floor the minutes - we just need to have them
-        const totalMinutes = Math.max(1, Math.round(totalSeconds / 60));
+        // Calculate total minutes for display
+        const totalMinutes = Math.floor(totalSeconds / 60);
         
         console.log("Total minutes calculated:", totalMinutes);
         
@@ -146,6 +146,7 @@ export function useListeningStats(userEmail?: string) {
         
         setStats({
           totalMinutes,
+          totalSeconds, // Now also storing the raw seconds
           lastListened: lastListenedDate,
           userId,
           email: email || ""
@@ -153,6 +154,7 @@ export function useListeningStats(userEmail?: string) {
         
         console.log("Final stats object being set:", {
           totalMinutes,
+          totalSeconds,
           lastListened: lastListenedDate,
           userId,
           email: email || ""

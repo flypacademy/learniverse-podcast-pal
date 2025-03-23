@@ -1,4 +1,3 @@
-
 export interface XPTransaction {
   amount: number;
   reason: string;
@@ -22,7 +21,8 @@ export enum XPReason {
 
 export interface ListeningStats {
   totalMinutes: number;
+  totalSeconds?: number;
   lastListened: string | null;
-  email?: string;
   userId: string;
+  email: string;
 }
