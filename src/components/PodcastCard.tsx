@@ -134,12 +134,12 @@ const PodcastCard = ({
         </div>
       </div>
       
-      {/* Add the prominent completion checkmark */}
-      {isCompleted && (
-        <div className="absolute right-3 top-3 h-7 w-7 rounded-md border-2 border-gray-800 flex items-center justify-center bg-white">
-          <Check className="h-5 w-5 text-green-600" />
-        </div>
-      )}
+      {/* Always show completion checkmark, with color based on completion status */}
+      <div className="absolute right-3 top-3 h-7 w-7 rounded-md border-2 border-gray-200 flex items-center justify-center bg-white">
+        <Check 
+          className={`h-5 w-5 ${isCompleted ? 'text-green-600' : 'text-gray-300'}`} 
+        />
+      </div>
     </Link>
   );
 };
