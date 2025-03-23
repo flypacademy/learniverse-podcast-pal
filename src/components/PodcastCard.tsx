@@ -67,7 +67,7 @@ const PodcastCard = ({
         )}
         
         {completed ? (
-          <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+          <div className="absolute inset-0 bg-green-500/80 flex items-center justify-center">
             <Check className="h-8 w-8 text-white" />
           </div>
         ) : (
