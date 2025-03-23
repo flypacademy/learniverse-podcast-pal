@@ -47,8 +47,8 @@ const PodcastCard = ({
     return courseName.split(" ")[0];
   };
   
-  // Debug the completed status
-  console.log(`PodcastCard ${id} "${title}": completed=${completed}, progress=${progress}`);
+  // Detailed debug logging for completion status
+  console.log(`PodcastCard ${id} "${title}": completed=${completed}, progress=${progress}, should show checkmark=${completed === true}`);
 
   return (
     <Link 
@@ -70,7 +70,7 @@ const PodcastCard = ({
         )}
         
         {completed ? (
-          <div className="absolute inset-0 bg-green-500/80 flex items-center justify-center">
+          <div className="absolute inset-0 bg-green-500/90 flex items-center justify-center">
             <Check className="h-8 w-8 text-white" />
           </div>
         ) : (
@@ -117,16 +117,17 @@ const PodcastCard = ({
           </div>
           
           {!completed && progress > 0 && (
-            <div className="flex-1 progress-bar h-1.5 max-w-[100px]">
+            <div className="flex-1 progress-bar h-1.5 max-w-[100px] bg-gray-200 rounded-full overflow-hidden">
               <div 
-                className="progress-value bg-primary"
+                className="progress-value bg-primary h-full"
                 style={{ width: `${progress}%` }}
               />
             </div>
           )}
           
           {completed && (
-            <div className="text-xs text-green-600 font-medium">
+            <div className="text-xs text-green-600 font-medium flex items-center">
+              <Check className="h-3 w-3 mr-1" />
               Completed
             </div>
           )}

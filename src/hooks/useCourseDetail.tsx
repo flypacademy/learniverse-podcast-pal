@@ -119,10 +119,10 @@ export const useCourseDetail = (courseId: string | undefined) => {
         let userProgress: any[] = [];
 
         if (session) {
-          // Fetch user progress for the podcasts in this course
+          // Fetch user progress for the podcasts in this course with a more detailed select
           const { data: progressData, error: progressError } = await supabase
             .from("user_progress")
-            .select("podcast_id, last_position, completed")
+            .select("*")  // Select all fields to get more details
             .eq("user_id", session.user.id)
             .eq("course_id", courseId);
 
@@ -134,26 +134,35 @@ export const useCourseDetail = (courseId: string | undefined) => {
           }
         }
 
-        // Create a map for quick lookup of user progress
-        const progressMap: Record<string, { position: number; completed: boolean }> = {};
+        // Create a map for quick lookup of user progress with more details for debugging
+        const progressMap: Record<string, { position: number; completed: boolean, duration?: number }> = {};
         userProgress.forEach((progress) => {
           progressMap[progress.podcast_id] = {
             position: progress.last_position || 0,
-            completed: progress.completed || false,
+            completed: progress.completed === true, // Ensure boolean conversion
+            duration: progress.duration
           };
+          
+          // Log individual progress records
+          console.log(`Progress for podcast ${progress.podcast_id}: position=${progress.last_position}, completed=${progress.completed}`);
         });
 
         // Transform podcast data to include progress and header info
         const processedPodcasts = podcastsData.map((podcast: any) => {
           const progress = progressMap[podcast.id] || { position: 0, completed: false };
+          const podcastProgress = podcast.duration ? (progress.position / podcast.duration) * 100 : 0;
+          
+          // Log detailed completion info about each podcast
+          console.log(`Processing podcast ${podcast.id} "${podcast.title}": ${progress.completed ? "COMPLETED" : "not completed"} (${progress.position}/${podcast.duration} = ${podcastProgress.toFixed(1)}%)`);
+          
           return {
             id: podcast.id,
             title: podcast.title,
             courseId: courseId,
             courseName: courseData.title,
             duration: podcast.duration || 0,
-            progress: podcast.duration ? (progress.position / podcast.duration) * 100 : 0,
-            completed: progress.completed,
+            progress: podcastProgress,
+            completed: progress.completed === true, // Enforce boolean value
             image: podcast.image_url || courseData.image_url,
             header_text: podcastToHeader[podcast.id] || null,
           };
@@ -161,7 +170,7 @@ export const useCourseDetail = (courseId: string | undefined) => {
 
         // Calculate total and completed podcasts
         const totalPodcasts = processedPodcasts.length;
-        const completedPodcasts = processedPodcasts.filter(p => p.completed).length;
+        const completedPodcasts = processedPodcasts.filter(p => p.completed === true).length;
         const totalDuration = processedPodcasts.reduce((sum, p) => sum + (p.duration || 0), 0);
 
         // Construct the final course object

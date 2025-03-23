@@ -45,8 +45,9 @@ const CourseEpisodes: React.FC<CourseEpisodesProps> = ({ podcasts }) => {
     );
   }
   
-  // Debug log to see podcast completion status
-  console.log("CourseEpisodes: podcasts with completion status:", podcasts.map(p => ({
+  // More detailed debug logging
+  console.log("CourseEpisodes: Raw podcast data:", podcasts);
+  console.log("CourseEpisodes: Podcasts completion status:", podcasts.map(p => ({
     id: p.id,
     title: p.title,
     completed: p.completed,
