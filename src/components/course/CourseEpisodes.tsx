@@ -51,7 +51,8 @@ const CourseEpisodes: React.FC<CourseEpisodesProps> = ({ podcasts }) => {
     id: p.id,
     title: p.title,
     completed: p.completed,
-    progress: p.progress
+    progress: p.progress,
+    completedType: typeof p.completed
   })));
   
   return (

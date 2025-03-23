@@ -1,6 +1,9 @@
 
 import { supabase } from "@/lib/supabase";
 
+// Add a completion threshold (e.g., 95% of the podcast duration)
+const COMPLETION_THRESHOLD = 0.90;
+
 export function useProgressSaving(podcastId: string | undefined, podcastCourseId?: string) {
   const saveProgress = async (audioElement: HTMLAudioElement | null, completed = false) => {
     if (!audioElement || !podcastId) return;
@@ -24,7 +27,8 @@ export function useProgressSaving(podcastId: string | undefined, podcastCourseId
       
       // Calculate completion percentage
       const progressPercentage = duration > 0 ? (last_position / duration) * 100 : 0;
-      const isCompleted = completed || (duration > 0 && last_position >= duration * 0.95);
+      // Mark as completed if explicitly set or if position is near end (90%)
+      const isCompleted = completed || (duration > 0 && last_position >= duration * COMPLETION_THRESHOLD);
       
       console.log(`Saving progress for ${podcastId}: position=${last_position}/${duration} (${progressPercentage.toFixed(1)}%), completed=${isCompleted}`);
       
@@ -58,7 +62,7 @@ export function useProgressSaving(podcastId: string | undefined, podcastCourseId
           .update({
             last_position,
             duration, // Store the duration for future reference
-            completed: isCompleted || existingRecord.completed, // Keep as completed if it was already completed
+            completed: isCompleted, // Set to true if it's completed now
             course_id: podcastCourseId,
             updated_at: timestamp
           })
@@ -69,7 +73,7 @@ export function useProgressSaving(podcastId: string | undefined, podcastCourseId
         if (updateError) {
           console.error("Error updating progress:", updateError);
         } else {
-          console.log(`Progress updated successfully with timestamp: ${timestamp}`, data);
+          console.log(`Progress updated successfully, completed=${isCompleted}, timestamp: ${timestamp}`, data);
         }
       } 
       // Otherwise insert a new record
@@ -93,7 +97,7 @@ export function useProgressSaving(podcastId: string | undefined, podcastCourseId
         if (insertError) {
           console.error("Error inserting progress:", insertError);
         } else {
-          console.log(`Progress inserted successfully with timestamp: ${timestamp}`, data);
+          console.log(`Progress inserted successfully, completed=${isCompleted}, timestamp: ${timestamp}`, data);
         }
       }
     } catch (error) {
@@ -101,7 +105,75 @@ export function useProgressSaving(podcastId: string | undefined, podcastCourseId
     }
   };
 
+  // Add a method to explicitly mark a podcast as completed
+  const markAsCompleted = async () => {
+    if (!podcastId) return false;
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        console.log("No active session, can't mark as completed");
+        return false;
+      }
+      
+      const userId = session.user.id;
+      const timestamp = new Date().toISOString();
+      
+      // Check if record exists
+      const { data: existingRecord } = await supabase
+        .from('user_progress')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('podcast_id', podcastId)
+        .maybeSingle();
+      
+      if (existingRecord) {
+        // Update existing record
+        const { error } = await supabase
+          .from('user_progress')
+          .update({
+            completed: true,
+            updated_at: timestamp
+          })
+          .eq('user_id', userId)
+          .eq('podcast_id', podcastId);
+        
+        if (error) {
+          console.error("Error marking podcast as completed:", error);
+          return false;
+        }
+      } else {
+        // Insert new record
+        const { error } = await supabase
+          .from('user_progress')
+          .insert([
+            {
+              user_id: userId,
+              podcast_id: podcastId,
+              last_position: 0,
+              completed: true,
+              course_id: podcastCourseId,
+              updated_at: timestamp,
+              created_at: timestamp
+            }
+          ]);
+        
+        if (error) {
+          console.error("Error inserting completed podcast:", error);
+          return false;
+        }
+      }
+      
+      console.log(`Podcast ${podcastId} marked as completed`);
+      return true;
+    } catch (error) {
+      console.error("Exception marking podcast as completed:", error);
+      return false;
+    }
+  };
+
   return {
-    saveProgress
+    saveProgress,
+    markAsCompleted
   };
 }

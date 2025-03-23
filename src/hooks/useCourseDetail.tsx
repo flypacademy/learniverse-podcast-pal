@@ -144,7 +144,7 @@ export const useCourseDetail = (courseId: string | undefined) => {
           };
           
           // Log individual progress records
-          console.log(`Progress for podcast ${progress.podcast_id}: position=${progress.last_position}, completed=${progress.completed}`);
+          console.log(`Progress for podcast ${progress.podcast_id}: position=${progress.last_position}, completed=${progress.completed}, completedType=${typeof progress.completed}`);
         });
 
         // Transform podcast data to include progress and header info
@@ -152,8 +152,11 @@ export const useCourseDetail = (courseId: string | undefined) => {
           const progress = progressMap[podcast.id] || { position: 0, completed: false };
           const podcastProgress = podcast.duration ? (progress.position / podcast.duration) * 100 : 0;
           
+          // Ensure completed is a boolean
+          const isCompleted = progress.completed === true;
+          
           // Log detailed completion info about each podcast
-          console.log(`Processing podcast ${podcast.id} "${podcast.title}": ${progress.completed ? "COMPLETED" : "not completed"} (${progress.position}/${podcast.duration} = ${podcastProgress.toFixed(1)}%)`);
+          console.log(`Processing podcast ${podcast.id} "${podcast.title}": ${isCompleted ? "COMPLETED" : "not completed"} (${progress.position}/${podcast.duration} = ${podcastProgress.toFixed(1)}%)`);
           
           return {
             id: podcast.id,
@@ -162,7 +165,7 @@ export const useCourseDetail = (courseId: string | undefined) => {
             courseName: courseData.title,
             duration: podcast.duration || 0,
             progress: podcastProgress,
-            completed: progress.completed === true, // Enforce boolean value
+            completed: isCompleted, // Enforce boolean value
             image: podcast.image_url || courseData.image_url,
             header_text: podcastToHeader[podcast.id] || null,
           };

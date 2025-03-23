@@ -47,8 +47,11 @@ const PodcastCard = ({
     return courseName.split(" ")[0];
   };
   
+  // Force boolean conversion for completed to ensure it's a true boolean
+  const isCompleted = completed === true;
+  
   // Detailed debug logging for completion status
-  console.log(`PodcastCard ${id} "${title}": completed=${completed}, progress=${progress}, should show checkmark=${completed === true}`);
+  console.log(`PodcastCard ${id} "${title}": completed=${completed}, type=${typeof completed}, isCompleted=${isCompleted}, progress=${progress}`);
 
   return (
     <Link 
@@ -69,7 +72,7 @@ const PodcastCard = ({
           </div>
         )}
         
-        {completed ? (
+        {isCompleted ? (
           <div className="absolute inset-0 bg-green-500/90 flex items-center justify-center">
             <Check className="h-8 w-8 text-white" />
           </div>
@@ -116,7 +119,7 @@ const PodcastCard = ({
             <span>{formatDuration(duration)}</span>
           </div>
           
-          {!completed && progress > 0 && (
+          {!isCompleted && progress > 0 && (
             <div className="flex-1 progress-bar h-1.5 max-w-[100px] bg-gray-200 rounded-full overflow-hidden">
               <div 
                 className="progress-value bg-primary h-full"
@@ -125,7 +128,7 @@ const PodcastCard = ({
             </div>
           )}
           
-          {completed && (
+          {isCompleted && (
             <div className="text-xs text-green-600 font-medium flex items-center">
               <Check className="h-3 w-3 mr-1" />
               Completed
