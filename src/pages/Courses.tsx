@@ -1,11 +1,13 @@
+
 import React, { useState, useEffect } from "react";
-import { Search, BookOpen, Plus } from "lucide-react";
+import { Search, BookOpen, Plus, Check } from "lucide-react";
 import Layout from "@/components/Layout";
 import CourseCard from "@/components/CourseCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { supabase } from "@/lib/supabase";
+import { Button } from "@/components/ui/button";
 
 interface Course {
   id: string;
@@ -36,6 +38,9 @@ const Courses = () => {
   const [availableCourses, setAvailableCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  
+  // Changed default tab to find-courses
+  const [activeTab, setActiveTab] = useState("find-courses");
   
   const fetchCourses = async () => {
     setLoading(true);
@@ -133,10 +138,34 @@ const Courses = () => {
     const enrolledCourse = { ...courseToEnroll, enrolled: true };
     setMyCourses(prev => [...prev, enrolledCourse]);
 
+    // Switch to my courses tab after enrolling
+    setActiveTab("my-courses");
+
     // Show success toast
     toast({
       title: "Course Added",
       description: `${courseToEnroll.title} has been added to your courses.`,
+    });
+    
+    // In a real app, you'd update user enrollment in the database here
+  };
+
+  const handleUnenrollCourse = (courseId: string) => {
+    // Find the course to unenroll
+    const courseToUnenroll = myCourses.find(course => course.id === courseId);
+    if (!courseToUnenroll) return;
+
+    // Update my courses (remove the unenrolled one)
+    setMyCourses(prev => prev.filter(c => c.id !== courseId));
+    
+    // Add back to available courses with enrolled status set to false
+    const unenrolledCourse = { ...courseToUnenroll, enrolled: false };
+    setAvailableCourses(prev => [...prev, unenrolledCourse]);
+
+    // Show success toast
+    toast({
+      title: "Course Removed",
+      description: `${courseToUnenroll.title} has been removed from your courses.`,
     });
     
     // In a real app, you'd update user enrollment in the database here
@@ -237,67 +266,18 @@ const Courses = () => {
             <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
           </div>
         ) : (
-          // Courses Tabs
-          <Tabs defaultValue="my-courses" className="w-full">
+          // Courses Tabs - Changed default value to find-courses
+          <Tabs 
+            value={activeTab} 
+            onValueChange={setActiveTab} 
+            className="w-full"
+          >
             <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="my-courses">My Courses</TabsTrigger>
               <TabsTrigger value="find-courses">Find Courses</TabsTrigger>
+              <TabsTrigger value="my-courses">My Courses</TabsTrigger>
             </TabsList>
             
-            {/* My Courses Tab */}
-            <TabsContent value="my-courses" className="space-y-6">
-              {filteredMyCourses.length === 0 ? (
-                <div className="text-center py-8">
-                  <BookOpen className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-                  <h3 className="font-medium text-gray-700">No enrolled courses</h3>
-                  <p className="text-gray-500 text-sm mt-1">
-                    Switch to "Find Courses" to add some
-                  </p>
-                </div>
-              ) : (
-                <>
-                  {myCoursesHeaders.map((header) => (
-                    <div key={header || 'no-header'} className="space-y-3">
-                      {header && (
-                        <h3 className="font-display font-semibold text-lg text-gray-900 mt-6">
-                          {header}
-                        </h3>
-                      )}
-                      
-                      <Carousel className="w-full">
-                        <CarouselContent>
-                          {groupedMyCourses[header].map((course) => (
-                            <CarouselItem key={course.id} className="basis-full">
-                              <CourseCard 
-                                id={course.id}
-                                title={course.title}
-                                subject={course.subject}
-                                totalPodcasts={course.totalPodcasts}
-                                completedPodcasts={course.completedPodcasts}
-                                image={course.image}
-                                size="large"
-                              />
-                            </CarouselItem>
-                          ))}
-                        </CarouselContent>
-                        <div className="flex justify-center mt-3">
-                          <div className="flex gap-1.5">
-                            {groupedMyCourses[header].map((_, index) => (
-                              <div 
-                                key={index} 
-                                className={`h-1.5 rounded-full ${index === 0 ? 'w-4 bg-primary' : 'w-1.5 bg-gray-200'}`}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      </Carousel>
-                    </div>
-                  ))}
-                </>
-              )}
-            </TabsContent>
-            
-            {/* Find Courses Tab */}
+            {/* Find Courses Tab - Now first */}
             <TabsContent value="find-courses" className="space-y-6">
               {filteredAvailableCourses.length === 0 ? (
                 <div className="text-center py-8">
@@ -330,18 +310,86 @@ const Courses = () => {
                                 image={course.image}
                                 size="large"
                               />
-                              <button 
+                              <Button 
                                 onClick={() => handleEnrollCourse(course.id)}
-                                className="absolute top-3 right-3 bg-white rounded-full p-1 shadow-md"
+                                className="absolute top-3 right-3 h-8 w-8 rounded-full p-0 bg-white hover:bg-white/90"
+                                variant="outline"
                               >
                                 <Plus className="h-5 w-5 text-primary" />
-                              </button>
+                              </Button>
                             </CarouselItem>
                           ))}
                         </CarouselContent>
                         <div className="flex justify-center mt-3">
                           <div className="flex gap-1.5">
                             {groupedAvailableCourses[header].map((_, index) => (
+                              <div 
+                                key={index} 
+                                className={`h-1.5 rounded-full ${index === 0 ? 'w-4 bg-primary' : 'w-1.5 bg-gray-200'}`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </Carousel>
+                    </div>
+                  ))}
+                </>
+              )}
+            </TabsContent>
+            
+            {/* My Courses Tab - Second tab */}
+            <TabsContent value="my-courses" className="space-y-6">
+              {filteredMyCourses.length === 0 ? (
+                <div className="text-center py-8">
+                  <BookOpen className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                  <h3 className="font-medium text-gray-700">No enrolled courses</h3>
+                  <p className="text-gray-500 text-sm mt-1">
+                    Switch to "Find Courses" to add some courses
+                  </p>
+                  <Button
+                    onClick={() => setActiveTab("find-courses")}
+                    className="mt-4"
+                    variant="outline"
+                  >
+                    Find Courses
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  {myCoursesHeaders.map((header) => (
+                    <div key={header || 'no-header'} className="space-y-3">
+                      {header && (
+                        <h3 className="font-display font-semibold text-lg text-gray-900 mt-6">
+                          {header}
+                        </h3>
+                      )}
+                      
+                      <Carousel className="w-full">
+                        <CarouselContent>
+                          {groupedMyCourses[header].map((course) => (
+                            <CarouselItem key={course.id} className="basis-full relative">
+                              <CourseCard 
+                                id={course.id}
+                                title={course.title}
+                                subject={course.subject}
+                                totalPodcasts={course.totalPodcasts}
+                                completedPodcasts={course.completedPodcasts}
+                                image={course.image}
+                                size="large"
+                              />
+                              <Button 
+                                onClick={() => handleUnenrollCourse(course.id)}
+                                className="absolute top-3 right-3 h-8 w-8 rounded-full p-0 bg-white hover:bg-white/90"
+                                variant="outline"
+                              >
+                                <Check className="h-5 w-5 text-green-500" />
+                              </Button>
+                            </CarouselItem>
+                          ))}
+                        </CarouselContent>
+                        <div className="flex justify-center mt-3">
+                          <div className="flex gap-1.5">
+                            {groupedMyCourses[header].map((_, index) => (
                               <div 
                                 key={index} 
                                 className={`h-1.5 rounded-full ${index === 0 ? 'w-4 bg-primary' : 'w-1.5 bg-gray-200'}`}
